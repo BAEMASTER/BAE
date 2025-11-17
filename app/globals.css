@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Base layer: only structure + typography, no background */
+@layer base {
+  html, body {
+    @apply min-h-screen font-sans text-gray-900 bg-transparent;
+  }
+
+  h1 {
+    @apply text-5xl font-extrabold mb-6 tracking-tight text-white drop-shadow-lg;
+  }
+
+  p {
+    @apply text-lg text-gray-100 mb-8;
+  }
+
+  button {
+    @apply bg-white/80 hover:bg-white text-indigo-700 font-semibold 
+           py-2 px-6 rounded-2xl shadow-md transition-all hover:scale-105 hover:shadow-xl;
+  }
+
+  footer {
+    @apply mt-10 text-gray-200 text-sm;
+  }
+}
+
+/* Utility layer: shimmer animation */
+@layer utilities {
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}

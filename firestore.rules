@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function authed() { return request.auth != null; }
+    function isSelf(uid) { return authed() && request.auth.uid == uid; }
+    function participates(after) {
+      return authed() && after.data.participants.hasAny([request.auth.uid]);
+    }
+
+    // --- USERS (profile + state) ---
+    // Allow each user to read/write their own user doc (where your interests live)
+    match /users/{uid} {
+      allow read, write: if isSelf(uid);
+    }
+
+    // If you prefer "state" as a separate doc under /users:
+    match /users/{uid}/state {
+      allow read, write: if isSelf(uid);
+    }
+
+    // Catch-all for any other docs directly under a user (safe for MVP)
+    match /users/{uid}/{anyDoc=**} {
+      allow read, write: if isSelf(uid);
+    }
+
+    // --- QUEUES (client may only manage its own waiting doc; no reads needed) ---
+    match /queues/{interest}/waiting/{uid} {
+      allow create, update, delete: if isSelf(uid);
+      allow read: if false;
+    }
+
+    // --- MATCHES (created by Cloud Functions, readable by participants only) ---
+    match /matches/{matchId} {
+      allow read: if participates(getAfter());
+
+      // Only allow changing ACKs, and only for participants
+      allow update: if participates(getAfter())
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["acks"])
+        && request.resource.data.acks.keys().hasAll(resource.data.participants);
+
+      allow create, delete: if false; // function only
+    }
+  }
+}
