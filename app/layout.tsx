@@ -1,35 +1,37 @@
-'use client'; 
+'use client';
 
 import './globals.css';
-import Header from '@/components/Header'; // Use the standard import path
-import { ReactNode } from 'react'; 
-// Next.js metadata is usually defined outside the component, but we will keep 
-// the existing structure and make sure the component is clean.
-
-// We need to assume the Header component is located at '@/components/Header'
-// The user provided 'Header from ../components/Header', which works, but 
-// standard practice is to use the alias: '@/components/Header'
+import Header from '@/components/Header';
+import { ReactNode } from 'react';
+import { usePathname } from 'next/navigation'; // <-- IMPORTANT: Import usePathname
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body className="min-h-screen">
-        {/*
-          CHANGE 1: Removed the unnecessary bgColor prop since the actual Header component doesn't use it.
-        */}
-        <Header />
-        
-        {/* CHANGE 2: Applying the light, bright gradient to the main content area 
-          This ensures a light background on the homepage and other non-auth pages.
-        */}
-        <main className="min-h-screen 
-            bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100 
-            text-purple-900 
-            pt-16" // Added padding top to account for the sticky header
+  // 1. Get the current URL path
+  const pathname = usePathname();
+
+  // 2. Check if we are on a route starting with /auth (e.g., /auth or /auth/login)
+  const isAuthPage = pathname.startsWith('/auth');
+
+  return (
+    <html lang="en">
+      <body className="min-h-screen">
+        
+        {/* 3. CONDITIONAL HEADER: Hide the header on the auth page */}
+        {!isAuthPage && <Header />}
+
+        {/* 4. CONDITIONAL MAIN WRAPPER STYLES */}
+        <main
+          className={
+            isAuthPage
+              // If it's the auth page, only give it minimum height, no background or padding
+              ? 'min-h-screen' 
+              // Otherwise, apply the global light theme gradient and top padding (for the header)
+              : 'min-h-screen bg-gradient-to-br from-pink-50 via-fuchsia-50 to-indigo-100 text-purple-900 pt-16'
+          }
         >
           {children}
         </main>
-      </body>
-    </html>
-  );
+      </body>
+    </html>
+  );
 }
