@@ -60,7 +60,7 @@ export default function AuthPage() {
           Meet Someone New, Share Your Glow!
         </h1>
 
-        {/* SUBHEADLINE — your new line */}
+        {/* SUBHEADLINE */}
         <p className="text-lg text-gray-700 mb-8 font-medium">
           Have fun. Meet people. Watch your shared interests glow.
         </p>
@@ -76,15 +76,12 @@ export default function AuthPage() {
           onClick={handleGoogleSignIn}
           disabled={loading}
           className={`
-            w-full py-5 px-6 rounded-full text-white font-extrabold text-xl
+            w-full py-5 px-6 rounded-full text-white font-extrabold text-xl 
             transition-all duration-300
             ${
               loading
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500
-                   shadow-[0_15px_40px_rgba(236,72,153,0.35)]
-                   hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)]
-                  '
+                : 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)]'
             }
           `}
         >
