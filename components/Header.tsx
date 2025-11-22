@@ -50,10 +50,16 @@ export default function Header() {
   };
 
   return (
-    // Light, bright gradient safe for all pages
-    <header className="fixed top-0 z-40 w-full bg-gradient-to-r from-pink-300/80 via-purple-300/80 to-indigo-300/80 backdrop-blur-xl border-b border-purple-400/40 shadow-lg transition-all duration-700">
+    <header className="
+      fixed top-0 z-40 w-full 
+      bg-gradient-to-r from-pink-300/80 via-purple-300/80 to-indigo-300/80 
+      backdrop-blur-xl 
+      border-b border-white/40  /* POLISHED BORDER */
+      shadow-lg 
+      transition-all duration-700
+    ">
       
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3 text-purple-900">
+      <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3 text-purple-900">
 
         {/* Logo / Brand */}
         <Link
@@ -64,16 +70,10 @@ export default function Header() {
         </Link>
 
         {/* Nav Links */}
-        <nav className="ml-4 flex items-center gap-5 text-sm text-purple-700">
-          <Link href="/" className="hover:text-purple-900 transition-colors">
-            Home
-          </Link>
-          <Link href="/me" className="hover:text-purple-900 transition-colors">
-            Profile
-          </Link>
-          <Link href="/devcheck" className="hover:text-purple-900 transition-colors">
-            DevCheck
-          </Link>
+        <nav className="ml-4 flex items-center gap-6 text-sm text-purple-700">
+          <Link href="/" className="hover:text-purple-900 transition-colors">Home</Link>
+          <Link href="/me" className="hover:text-purple-900 transition-colors">Profile</Link>
+          <Link href="/devcheck" className="hover:text-purple-900 transition-colors">DevCheck</Link>
         </nav>
 
         {/* Right-Side User Box */}
@@ -87,32 +87,47 @@ export default function Header() {
                     alt="avatar"
                     width={28}
                     height={28}
-                    className="rounded-full border border-purple-400/60"
+                    className="rounded-full border border-white/50"
                   />
                 ) : (
                   <div className="h-7 w-7 rounded-full bg-purple-200/40" />
                 )}
 
-                <span className="hidden text-sm sm:inline text-purple-700">
+                <span className="hidden text-sm sm:inline text-purple-800">
                   {user.displayName || user.email}
                 </span>
               </div>
 
-              {/* Sign Out Button */}
               <button
                 onClick={doSignOut}
                 disabled={busy}
-                className="rounded-md border border-purple-400/60 px-3 py-1.5 text-sm text-purple-800 hover:bg-purple-100/60 transition-all disabled:opacity-60"
+                className="
+                  rounded-md 
+                  border border-white/50 
+                  px-3 py-1.5 
+                  text-sm text-purple-900
+                  hover:bg-white/40 
+                  transition-all 
+                  disabled:opacity-60
+                "
               >
                 Sign out
               </button>
             </>
           ) : (
-            // Sign In Button
             <button
               onClick={doSignIn}
               disabled={busy}
-              className="rounded-md bg-gradient-to-r from-fuchsia-600 to-pink-600 px-3 py-1.5 text-sm font-semibold text-white shadow hover:opacity-90 transition-all disabled:opacity-60"
+              className="
+                rounded-md 
+                bg-gradient-to-r from-fuchsia-600 to-pink-600 
+                px-4 py-2 
+                text-sm font-semibold text-white 
+                shadow-lg 
+                hover:opacity-90 
+                transition-all 
+                disabled:opacity-60
+              "
             >
               {busy ? '…' : 'Continue with Google'}
             </button>
