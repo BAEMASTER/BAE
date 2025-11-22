@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
@@ -22,26 +23,26 @@ export default function AuthPage() {
     const handleGoogleSignIn = async () => {
         setLoading(true);
         setError(null);
+
         try {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
             const userRef = doc(db, 'users', user.uid);
-            await setDoc(
-                userRef, 
-                {
-                    displayName: user.displayName,
-                    email: user.email,
-                    lastLogin: new Date().toISOString(),
-                },
-                { merge: true }
-            );
+
+            const userData = {
+                displayName: user.displayName,
+                email: user.email,
+                lastLogin: new Date().toISOString(),
+            };
+
+            await setDoc(userRef, userData, { merge: true });
 
             router.push('/');
         } catch (error: any) {
             console.error('Google Sign-In Error:', error);
-            setError(error.message || 'Sign-in failed.');
+            setError(error.message || 'Sign-in failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -70,7 +71,17 @@ export default function AuthPage() {
                     disabled={loading}
                     className={`
                         w-full py-5 px-6 rounded-full text-white font-extrabold text-xl 
-                        transition-all duration-300 
-                        ${loading 
-                            ? 'bg-gray-400 cursor-not-allowed' 
-                            : 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)]_]()
+                        transition-all duration-300
+                        ${
+                            loading
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)]'
+                        }
+                    `}
+                >
+                    {loading ? 'Connecting...' : 'Continue with Google'}
+                </button>
+            </div>
+        </main>
+    );
+}
