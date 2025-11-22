@@ -19,8 +19,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main
           className={
             isAuthPage
-              ? "min-h-screen pt-[72px]" /* FIXED: remove white gap on auth */
-              : "min-h-screen pt-[72px] bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-purple-900"
+  ? "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100"
+  : "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 pt-[72px]"
+
           }
         >
           {children}
