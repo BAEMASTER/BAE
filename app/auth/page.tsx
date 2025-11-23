@@ -95,22 +95,20 @@ export default function AuthPage() {
 
           {/* CTA Button */}
           <button
-            onClick={doSignIn}
-            disabled={loading}
-            className={`
-              w-full py-5 rounded-full text-xl font-extrabold text-white 
-              transition-all duration-500
-              ${
-                loading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 
-                     shadow-[0_15px_40px_rgba(236,72,153,0.35)] 
-                     hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)]'
-              }
-            `}
-          >
-            {loading ? 'Loading…' : 'Continue with Google'}
-          </button>
+  onClick={doSignIn}
+  disabled={loading}
+  className={`
+    w-full py-5 rounded-full text-xl font-extrabold text-white 
+    transition-all duration-500
+    ${
+      loading
+        ? "bg-gray-400 cursor-not-allowed"
+        : "bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)]"
+    }
+  `}
+>
+  {loading ? "Loading…" : "Continue with Google"}
+</button>
         </div>
       </div>
 
