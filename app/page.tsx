@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_H = 72;
 
@@ -15,6 +15,16 @@ export default function HomePage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [userName, setUserName] = useState('');
   const [isChecking, setIsChecking] = useState(true);
+
+  const words = ['uplift', 'brighten', 'inspire', 'change', 'elevate'];
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % words.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -42,11 +52,9 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
 
-      {/* Glow background */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-fuchsia-300/20 blur-[120px] rounded-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 w-[35rem] h-[35rem] bg-indigo-300/20 blur-[120px] rounded-full" />
 
-      {/* Header */}
       <header
         className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px]"
         style={{
@@ -65,13 +73,11 @@ export default function HomePage() {
         </button>
       </header>
 
-      {/* Hero */}
       <section
         className="flex flex-col items-center text-center px-6"
         style={{ paddingTop: NAV_H + 48 }}
       >
 
-        {/* Meet. Match. BAE. */}
         <motion.h2
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,7 +90,6 @@ export default function HomePage() {
           </span>
         </motion.h2>
 
-        {/* One good conversation... */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,13 +97,33 @@ export default function HomePage() {
           className="text-2xl sm:text-3xl font-bold text-fuchsia-800/90 mb-4"
         >
           One good conversation can{' '}
-          <span className="inline-block animate-rotateWord bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold">
-            change
+          <span className="relative inline-block w-[140px]">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={words[index]}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.45 }}
+                className="relative z-10 bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold"
+              >
+                {words[index]}
+              </motion.span>
+
+              {/* GLOW BEHIND WORD */}
+              <motion.span
+                key={`glow-${words[index]}`}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 0.55, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.15 }}
+                transition={{ duration: 0.6 }}
+                className="absolute inset-0 blur-xl rounded-full bg-gradient-to-r from-fuchsia-400/40 to-pink-400/40"
+              />
+            </AnimatePresence>
           </span>{' '}
           your whole day.
         </motion.p>
 
-        {/* Instant video line */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,7 +133,6 @@ export default function HomePage() {
           Instant video conversations with real people.
         </motion.p>
 
-        {/* CTA */}
         <motion.button
           whileHover={{ scale: 1.045 }}
           whileTap={{ scale: 0.97 }}
@@ -125,7 +149,6 @@ export default function HomePage() {
           <span className="relative z-10">{isChecking ? 'Loading...' : 'BAE Someone Now!'}</span>
         </motion.button>
 
-        {/* Social proof */}
         <div className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/30 border border-white/40 text-fuchsia-700 font-medium">
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -134,10 +157,11 @@ export default function HomePage() {
           People online right now
         </div>
 
-        {/* Interests */}
         {userInterests.length > 0 && (
           <div className="mt-12 bg-white/20 backdrop-blur-md rounded-2xl px-8 py-6 border border-white/40 max-w-xl mx-auto shadow-lg">
-            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">Your Interests</h3>
+            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">
+              Your Interests
+            </h3>
             <div className="flex flex-wrap justify-center gap-3">
               {userInterests.map((interest) => (
                 <span
@@ -157,19 +181,6 @@ export default function HomePage() {
       <footer className="text-center text-fuchsia-800/60 text-sm pb-6">
         Built with ❤️ by BAE Team
       </footer>
-
-      {/* Rotating word keyframes */}
-      <style jsx global>{`
-        @keyframes rotateWord {
-          0%, 20% { opacity: 1; transform: translateY(0); }
-          25%, 45% { opacity: 0; transform: translateY(-40%); }
-          50%, 70% { opacity: 1; transform: translateY(0); }
-          75%, 100% { opacity: 0; transform: translateY(40%); }
-        }
-        .animate-rotateWord {
-          animation: rotateWord 4s infinite;
-        }
-      `}</style>
     </main>
   );
 }
