@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-/* Base layer: only structure + typography, no background */
+/* -----------------------------------------------------------
+   BASE LAYER (your original settings, preserved)
+----------------------------------------------------------- */
 @layer base {
   html, body {
     @apply min-h-screen font-sans text-gray-900 bg-transparent;
@@ -16,7 +18,8 @@
 
   button {
     @apply bg-white/80 hover:bg-white text-indigo-700 font-semibold 
-           py-2 px-6 rounded-2xl shadow-md transition-all hover:scale-105 hover:shadow-xl;
+           py-2 px-6 rounded-2xl shadow-md transition-all 
+           hover:scale-105 hover:shadow-xl;
   }
 
   footer {
@@ -24,10 +27,67 @@
   }
 }
 
-/* Utility layer: shimmer animation */
+/* -----------------------------------------------------------
+   UTILITIES – shimmer animation (your original)
+----------------------------------------------------------- */
 @layer utilities {
   @keyframes shimmer {
     0%   { background-position: -200% 0; }
     100% { background-position: 200% 0; }
+  }
+}
+
+/* -----------------------------------------------------------
+   NEW: Rotating Word Animation (fade + slide)
+----------------------------------------------------------- */
+@layer utilities {
+  @keyframes rotateFadeSlide {
+    0% {
+      opacity: 0;
+      transform: translateY(12%);
+    }
+    10% {
+      opacity: 1;
+      transform: translateY(0%);
+    }
+    80% {
+      opacity: 1;
+      transform: translateY(0%);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-12%);
+    }
+  }
+
+  .animate-rotateFadeSlide {
+    animation: rotateFadeSlide 3.2s ease-in-out forwards;
+  }
+}
+
+/* -----------------------------------------------------------
+   NEW: Glow Effect for RotatingGlowWord Component
+----------------------------------------------------------- */
+@layer utilities {
+  .rotating-glow {
+    position: relative;
+  }
+
+  .rotating-glow::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 12px;
+
+    /* pink → fuchsia glow */
+    background: radial-gradient(
+      circle,
+      rgba(236, 72, 153, 0.45) 0%,
+      rgba(236, 72, 153, 0.1) 60%,
+      transparent 100%
+    );
+
+    filter: blur(14px);
+    z-index: -1;
   }
 }
