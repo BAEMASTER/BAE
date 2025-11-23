@@ -1,39 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import clsx from "clsx";
+import { useEffect, useState } from "react";
 
-interface Props {
-  words: string[];
-  interval?: number; // ms
-}
+const WORDS = ["energize", "spark", "brighten", "uplift", "elevate"];
 
-export default function RotatingGlowWord({
-  words,
-  interval = 3200, // default 3.2 seconds
-}: Props) {
+export default function RotatingGlowWord() {
   const [index, setIndex] = useState(0);
 
+  // Rotate every 2.5 seconds
   useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((prev) => (prev + 1) % words.length);
-    }, interval);
-    return () => clearInterval(id);
-  }, [interval, words.length]);
+    const interval = setInterval(() => {
+      setIndex((i) => (i + 1) % WORDS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <span
-      className={clsx(
-        "relative inline-block font-extrabold",
-        "text-transparent bg-clip-text",
-        "bg-gradient-to-r from-fuchsia-500 to-pink-500",
-        "rotating-glow"
-      )}
-      key={index} // rerender for animation
+      key={index}
+      className="
+        rotating-glow
+        animate-rotateFadeSlide
+        bg-gradient-to-r from-fuchsia-500 to-pink-500
+        bg-clip-text text-transparent
+        font-extrabold inline-block
+      "
     >
-      <span className="inline-block animate-rotateFadeSlide">
-        {words[index]}
-      </span>
+      {WORDS[index]}
     </span>
   );
 }

@@ -28,62 +28,58 @@
 }
 
 /* -----------------------------------------------------------
-   UTILITIES – shimmer animation (your original)
+   UTILITIES — shimmer + rotating word + glow
+   (MERGED into ONE @layer utilities to fix Tailwind)
 ----------------------------------------------------------- */
 @layer utilities {
+
+  /* ---------------- Shimmer ---------------- */
   @keyframes shimmer {
     0%   { background-position: -200% 0; }
     100% { background-position: 200% 0; }
   }
-}
 
-/* -----------------------------------------------------------
-   NEW: Rotating Word Animation (fade + slide)
------------------------------------------------------------ */
-@layer utilities {
+  /* ---------------- Rotating Word Animation ---------------- */
   @keyframes rotateFadeSlide {
     0% {
       opacity: 0;
-      transform: translateY(12%);
+      transform: translateY(16%);
     }
-    10% {
+    12% {
       opacity: 1;
       transform: translateY(0%);
     }
-    80% {
+    75% {
       opacity: 1;
       transform: translateY(0%);
     }
     100% {
       opacity: 0;
-      transform: translateY(-12%);
+      transform: translateY(-16%);
     }
   }
 
   .animate-rotateFadeSlide {
-    animation: rotateFadeSlide 3.2s ease-in-out forwards;
+    animation: rotateFadeSlide 2.5s ease-in-out forwards;
   }
-}
 
-/* -----------------------------------------------------------
-   NEW: Glow Effect for RotatingGlowWord Component
------------------------------------------------------------ */
-@layer utilities {
+  /* ---------------- Glow Effect for rotating words ---------------- */
   .rotating-glow {
     position: relative;
+    font-weight: 800;
   }
 
   .rotating-glow::after {
     content: "";
     position: absolute;
-    inset: -4px;
+    inset: -6px;
     border-radius: 12px;
 
-    /* pink → fuchsia glow */
+    /* pink → fuchsia energetic glow */
     background: radial-gradient(
       circle,
-      rgba(236, 72, 153, 0.45) 0%,
-      rgba(236, 72, 153, 0.1) 60%,
+      rgba(236, 72, 153, 0.55) 0%,
+      rgba(236, 72, 153, 0.18) 60%,
       transparent 100%
     );
 
