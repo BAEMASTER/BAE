@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 /* -----------------------------------------------------------
-   BASE LAYER (preserved from your original)
+   BASE LAYER (your original settings, preserved)
 ----------------------------------------------------------- */
 @layer base {
-  html, body {
+  html,
+  body {
     @apply min-h-screen font-sans text-gray-900 bg-transparent;
   }
 
@@ -17,8 +18,8 @@
   }
 
   button {
-    @apply bg-white/80 hover:bg-white text-indigo-700 font-semibold
-           py-2 px-6 rounded-2xl shadow-md transition-all
+    @apply bg-white/80 hover:bg-white text-indigo-700 font-semibold 
+           py-2 px-6 rounded-2xl shadow-md transition-all 
            hover:scale-105 hover:shadow-xl;
   }
 
@@ -28,85 +29,44 @@
 }
 
 /* -----------------------------------------------------------
-   UTILITIES — shimmer, rotating words, glow
+   UTILITIES – shimmer animation (your original)
 ----------------------------------------------------------- */
 @layer utilities {
-  /* Shimmer (your original) */
   @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/* -----------------------------------------------------------
+   UTILITIES – rotating word animation (fade + subtle slide)
+----------------------------------------------------------- */
+@layer utilities {
+  @keyframes rotateWordFadeUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10%);
+    }
+    15% {
+      opacity: 1;
+      transform: translateY(0%);
+    }
+    80% {
+      opacity: 1;
+      transform: translateY(0%);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-10%);
+    }
   }
 
-  /* Ultra-smooth rotate fade (crossfade, no slide) */
-  @keyframes fadeSwitchIn {
-    0% { opacity: 0; }
-    20% { opacity: 1; }
-    100% { opacity: 1; }
-  }
-
-  @keyframes fadeSwitchOut {
-    0% { opacity: 1; }
-    80% { opacity: 0; }
-    100% { opacity: 0; }
-  }
-
-  .animate-fadeSwitchIn {
-    animation: fadeSwitchIn 2.5s linear forwards;
-  }
-
-  .animate-fadeSwitchOut {
-    animation: fadeSwitchOut 2.5s linear forwards;
-  }
-
-  /* Gradient text for rotating word */
-  .rotating-gradient-text {
-    @apply bg-gradient-to-r from-fuchsia-500 to-pink-500
-           bg-clip-text text-transparent font-extrabold;
-  }
-
-  /* -------------------------------------------------------
-     GLOW WORD: “glow” with white + golden halo
-  -------------------------------------------------------- */
-  @keyframes glowFadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-  }
-
-  @keyframes glowBreath {
-    0% { opacity: 1; }
-    50% { opacity: 0.85; }
-    100% { opacity: 1; }
-  }
-
-  .glow-word {
-    position: relative;
+  .rotate-word {
     display: inline-block;
-    color: #fefefe;
-    font-weight: 700;
-  }
-
-  .glow-word::after {
-    content: "";
-    position: absolute;
-    inset: -4px 0 -6px 0;
-    border-radius: 9999px;
-
-    /* white center, warm gold outer halo */
-    background: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(253, 224, 171, 0.6) 35%,
-      rgba(251, 191, 36, 0.18) 70%,
-      transparent 100%
-    );
-
-    filter: blur(10px);
-    opacity: 0;
-
-    /* Fade in once, then gentle breathing loop */
-    animation:
-      glowFadeIn 1.2s ease-out forwards,
-      glowBreath 3.8s ease-in-out 1.2s infinite;
-    z-index: -1;
+    animation: rotateWordFadeUp 2.4s ease-in-out;
   }
 }
