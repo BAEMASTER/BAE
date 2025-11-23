@@ -71,6 +71,7 @@ export default function HomePage() {
         className="flex flex-col items-center text-center px-6"
         style={{ paddingTop: NAV_H + 48 }}
       >
+
         {/* Meet. Match. BAE. */}
         <motion.h2
           initial={{ opacity: 0, y: 18 }}
@@ -84,26 +85,26 @@ export default function HomePage() {
           </span>
         </motion.h2>
 
-        {/* One good conversation... */}
+        {/* One good conversation… */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.7 }}
-          className="text-2xl sm:text-3xl font-bold text-fuchsia-800/90 mb-3"
+          className="text-2xl sm:text-3xl font-bold text-fuchsia-800/90 mb-4"
         >
           One good conversation can{' '}
           <RotatingGlowWord />{' '}
           your whole day.
         </motion.p>
 
-        {/* Instant video conversations */}
+        {/* Instant video line */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.7 }}
           className="text-lg sm:text-xl max-w-3xl text-fuchsia-900/90 mb-10 font-medium"
         >
-          Instant video conversations with real people where your shared interests glow.
+          Instant video conversations with real people — where shared interests glow.
         </motion.p>
 
         {/* CTA */}
@@ -115,11 +116,13 @@ export default function HomePage() {
           className="relative px-10 sm:px-14 py-5 sm:py-6 rounded-full text-2xl sm:text-3xl font-extrabold tracking-tight text-white bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)] transition-all duration-500 overflow-hidden"
         >
           <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.5),transparent)] bg-[length:200%_100%] opacity-0 hover:opacity-100 animate-[shimmer_3.8s_linear_infinite]" />
+
           <motion.div
             className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-r from-pink-400/35 via-fuchsia-400/35 to-indigo-400/35 blur-2xl"
             animate={{ opacity: [0.45, 0.8, 0.45], scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity }}
           />
+
           <span className="relative z-10">{isChecking ? 'Loading...' : 'BAE Someone Now!'}</span>
         </motion.button>
 
@@ -132,9 +135,12 @@ export default function HomePage() {
           People online right now
         </div>
 
+        {/* Interests */}
         {userInterests.length > 0 && (
           <div className="mt-12 bg-white/20 backdrop-blur-md rounded-2xl px-8 py-6 border border-white/40 max-w-xl mx-auto shadow-lg">
-            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">Your Interests</h3>
+            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">
+              Your Interests
+            </h3>
             <div className="flex flex-wrap justify-center gap-3">
               {userInterests.map((interest) => (
                 <span
