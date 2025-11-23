@@ -9,18 +9,19 @@ import { motion } from 'framer-motion';
 
 const NAV_H = 72;
 
+// Rotating words used on both home + auth
+const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
+
 export default function HomePage() {
   const router = useRouter();
-
   const [userId, setUserId] = useState<string | null>(null);
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [userName, setUserName] = useState('');
   const [isChecking, setIsChecking] = useState(true);
 
-  // Rotating word state
-  const rotatingWords = ['uplift', 'brighten', 'elevate', 'inspire', 'change'];
   const [wordIndex, setWordIndex] = useState(0);
 
+  // Auth state
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -37,18 +38,19 @@ export default function HomePage() {
     return () => unsub();
   }, []);
 
+  // Rotating word ticker
   useEffect(() => {
     const id = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % rotatingWords.length);
-    }, 2400); // slightly longer than animation duration
-
+      setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
+    }, 2400);
     return () => clearInterval(id);
-  }, [rotatingWords.length]);
+  }, []);
 
   const handleBAEClick = () => {
     if (!userId) return router.push('/auth');
     if (userInterests.length < 3) {
-      return alert('Add at least 3 interests before BAEing someone!');
+      alert('Add at least 3 interests before BAEing someone!');
+      return;
     }
     router.push('/match');
   };
@@ -104,12 +106,12 @@ export default function HomePage() {
           className="text-2xl sm:text-3xl font-bold text-fuchsia-800/90 mb-4"
         >
           One good conversation can{' '}
-          <span className="inline-flex min-w-[7rem] justify-center">
+          <span className="inline-flex justify-center min-w-[7rem]">
             <span
               key={wordIndex}
               className="rotate-word bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold"
             >
-              {rotatingWords[wordIndex]}
+              {ROTATING_WORDS[wordIndex]}
             </span>
           </span>{' '}
           your whole day.
@@ -117,13 +119,15 @@ export default function HomePage() {
 
         {/* Secondary tagline */}
         <motion.p
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28, duration: 0.7 }}
+          transition={{ delay: 0.26, duration: 0.6 }}
           className="text-lg sm:text-xl max-w-3xl text-fuchsia-900/90 mb-10 font-semibold"
         >
           BAE is instant video conversations where your shared interests{' '}
-          <span className="font-bold">glow.</span>
+          <span className="glow-word font-extrabold text-fuchsia-900">
+            glow.
+          </span>
         </motion.p>
 
         {/* CTA */}
@@ -132,12 +136,9 @@ export default function HomePage() {
           whileTap={{ scale: 0.97 }}
           onClick={handleBAEClick}
           disabled={isChecking}
-          className="relative px-10 sm:px-14 py-5 sm:py-6 rounded-full text-2xl sm:text-3xl font-extrabold tracking-tight text-white
-                     bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)]
-                     hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)] transition-all duration-500 overflow-hidden"
+          className="relative px-10 sm:px-14 py-5 sm:py-6 rounded-full text-2xl sm:text-3xl font-extrabold tracking-tight text-white bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)] transition-all duration-500 overflow-hidden"
         >
-          <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.5),transparent)]
-                           bg-[length:200%_100%] opacity-0 hover:opacity-100 animate-[shimmer_3.8s_linear_infinite]" />
+          <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.5),transparent)] bg-[length:200%_100%] opacity-0 hover:opacity-100 animate-[shimmer_3.8s_linear_infinite]" />
           <motion.div
             className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-r from-pink-400/35 via-fuchsia-400/35 to-indigo-400/35 blur-2xl"
             animate={{ opacity: [0.45, 0.8, 0.45], scale: [1, 1.05, 1] }}

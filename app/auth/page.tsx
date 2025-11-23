@@ -5,19 +5,19 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebaseClient';
 import { motion } from 'framer-motion';
 
+const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
+
 export default function AuthPage() {
   const [loading, setLoading] = useState(false);
-
-  const rotatingWords = ['uplift', 'brighten', 'elevate', 'inspire', 'change'];
   const [wordIndex, setWordIndex] = useState(0);
 
+  // Rotating word ticker
   useEffect(() => {
     const id = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % rotatingWords.length);
+      setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
     }, 2400);
-
     return () => clearInterval(id);
-  }, [rotatingWords.length]);
+  }, []);
 
   const doSignIn = async () => {
     try {
@@ -60,12 +60,12 @@ export default function AuthPage() {
           className="text-2xl sm:text-3xl font-bold text-fuchsia-800/90 mb-4"
         >
           One good conversation can{' '}
-          <span className="inline-flex min-w-[7rem] justify-center">
+          <span className="inline-flex justify-center min-w-[7rem]">
             <span
               key={wordIndex}
               className="rotate-word bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold"
             >
-              {rotatingWords[wordIndex]}
+              {ROTATING_WORDS[wordIndex]}
             </span>
           </span>{' '}
           your whole day.
@@ -76,10 +76,12 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.26, duration: 0.6 }}
-          className="text-lg sm:text-xl max-w-3xl text-fuchsia-900/90 mb-2 font-semibold"
+          className="text-lg sm:text-xl text-fuchsia-900/90 mb-2 font-semibold"
         >
           BAE is instant video conversations where your shared interests{' '}
-          <span className="font-bold">glow.</span>
+          <span className="glow-word font-extrabold text-fuchsia-900">
+            glow.
+          </span>
         </motion.p>
 
         {/* Small CTA line */}
