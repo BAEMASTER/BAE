@@ -28,20 +28,16 @@
 }
 
 /* -----------------------------------------------------------
-   Shimmer (your original)
+   UTILITIES — shimmer, rotating words, glow
 ----------------------------------------------------------- */
 @layer utilities {
+  /* Shimmer (your original) */
   @keyframes shimmer {
     0%   { background-position: -200% 0; }
     100% { background-position: 200% 0; }
   }
-}
 
-/* -----------------------------------------------------------
-   NEW — Ultra-smooth rotate fade animation
-   (no slide, no jerk, no layout shift)
------------------------------------------------------------ */
-@layer utilities {
+  /* Ultra-smooth rotate fade (crossfade, no slide) */
   @keyframes fadeSwitchIn {
     0% { opacity: 0; }
     20% { opacity: 1; }
@@ -64,6 +60,53 @@
 
   /* Gradient text for rotating word */
   .rotating-gradient-text {
-    @apply bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold;
+    @apply bg-gradient-to-r from-fuchsia-500 to-pink-500
+           bg-clip-text text-transparent font-extrabold;
+  }
+
+  /* -------------------------------------------------------
+     GLOW WORD: “glow” with white + golden halo
+  -------------------------------------------------------- */
+  @keyframes glowFadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes glowBreath {
+    0% { opacity: 1; }
+    50% { opacity: 0.85; }
+    100% { opacity: 1; }
+  }
+
+  .glow-word {
+    position: relative;
+    display: inline-block;
+    color: #fefefe;
+    font-weight: 700;
+  }
+
+  .glow-word::after {
+    content: "";
+    position: absolute;
+    inset: -4px 0 -6px 0;
+    border-radius: 9999px;
+
+    /* white center, warm gold outer halo */
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(253, 224, 171, 0.6) 35%,
+      rgba(251, 191, 36, 0.18) 70%,
+      transparent 100%
+    );
+
+    filter: blur(10px);
+    opacity: 0;
+
+    /* Fade in once, then gentle breathing loop */
+    animation:
+      glowFadeIn 1.2s ease-out forwards,
+      glowBreath 3.8s ease-in-out 1.2s infinite;
+    z-index: -1;
   }
 }

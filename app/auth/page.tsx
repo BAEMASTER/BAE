@@ -22,7 +22,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br
                     from-rose-100 via-fuchsia-100 to-indigo-100 px-6">
 
-      {/* Background glow circles */}
+      {/* Background glows (match homepage feel) */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[40rem] h-[40rem] 
                       bg-fuchsia-300/20 blur-[120px] rounded-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 w-[35rem] h-[35rem] 
@@ -32,7 +32,7 @@ export default function AuthPage() {
       <div className="relative z-10 bg-white/60 backdrop-blur-xl shadow-xl
                       px-10 py-12 rounded-3xl border border-white/40 max-w-xl w-full text-center">
 
-        {/* MEET MATCH BAE — EXACT HOMEPAGE STYLE */}
+        {/* Meet. Match. BAE. */}
         <motion.h2
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -45,7 +45,7 @@ export default function AuthPage() {
           </span>
         </motion.h2>
 
-        {/* TAGLINE WITH ROTATING WORD */}
+        {/* One good conversation… */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -57,14 +57,15 @@ export default function AuthPage() {
           your whole day.
         </motion.p>
 
-        {/* SECONDARY TAGLINE (single line, no wrap) */}
+        {/* Secondary tagline w/ glowing “glow” */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.7 }}
           className="text-lg sm:text-xl text-fuchsia-900/80 mb-10 font-medium"
         >
-          Instant video conversations with real people — where shared interests glow.
+          Instant video conversations where your shared interests{' '}
+          <span className="glow-word">glow</span>.
         </motion.p>
 
         {/* SIGN IN BUTTON */}

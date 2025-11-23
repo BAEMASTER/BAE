@@ -97,14 +97,15 @@ export default function HomePage() {
           your whole day.
         </motion.p>
 
-        {/* Instant video line */}
+        {/* Instant video line with glowing “glow” */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.7 }}
           className="text-lg sm:text-xl max-w-3xl text-fuchsia-900/90 mb-10 font-medium"
         >
-          Instant video conversations with real people — where shared interests glow.
+          Instant video conversations where your shared interests{' '}
+          <span className="glow-word">glow</span>.
         </motion.p>
 
         {/* CTA */}
