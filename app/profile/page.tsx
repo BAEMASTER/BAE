@@ -1,22 +1,27 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 export default function ProfilePage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+
   const [displayName, setDisplayName] = useState('');
+  const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 🚪 Auth guard + load profile
+  // 🔐 Auth listener + load profile
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -24,24 +29,30 @@ export default function ProfilePage() {
         return;
       }
       setUserId(user.uid);
+      setFirebaseUser(user);
 
       try {
         const snap = await getDoc(doc(db, 'users', user.uid));
         const data = snap.data();
         if (data) {
           setDisplayName(data.displayName || user.displayName || '');
+          setPhotoURL(data.photoURL || user.photoURL || null);
           setInterests(data.interests || []);
         } else {
           setDisplayName(user.displayName || '');
+          setPhotoURL(user.photoURL || null);
         }
       } catch (e) {
         console.error('Error loading profile', e);
       }
+      
+      setFirebaseUser(user);
     });
 
     return () => unsub();
   }, [router]);
 
+  // ➕ Add interest
   const addInterest = () => {
     const i = newInterest.trim();
     if (i && !interests.includes(i)) {
@@ -50,159 +61,170 @@ export default function ProfilePage() {
     setNewInterest('');
   };
 
+  // ❌ Remove interest
   const removeInterest = (i: string) => {
     setInterests(prev => prev.filter(x => x !== i));
   };
 
+  // 📸 Handle photo upload
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoURL(URL.createObjectURL(file));
+  };
+
+  // 💾 Save profile (no redirect)
   const saveProfile = async () => {
     if (!userId) return;
-
-    if (interests.length < 3) {
-      alert('Add 3+ interests first to unlock matching & glow!');
-      return;
-    }
-
     setSaving(true);
+
     try {
       await setDoc(
         doc(db, 'users', userId),
-        { displayName, interests, updatedAt: new Date() },
+        { displayName, photoURL, interests, updatedAt: new Date() },
         { merge: true }
       );
       setSaved(true);
-      setTimeout(() => setSaved(false), 2600);
-    } catch (e) {
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
       alert('Save failed');
     } finally {
       setSaving(false);
     }
   };
 
-  const goHome = () => router.push('/');
+  // ✨ BAE button click
+  const handleBAEClick = () => {
+    if (firebaseUser && interests.length >= 3) {
+      router.push('/match');
+    }
+  };
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
-
+    <main className="min-h-screen w-full bg-gradient-to-br from-rose-50 via-fuchsia-50 to-indigo-50 text-gray-900 flex flex-col items-center px-6 pt-24">
+      
       {/* HEADER */}
-      <header
-        className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px]"
-        style={{
-          WebkitBackdropFilter: 'saturate(1.2) blur(8px)',
-          backdropFilter: 'saturate(1.2) blur(8px)',
-        }}
-      >
-        <div className="text-3xl font-extrabold tracking-tight text-fuchsia-600">BAE</div>
-        <button
-          onClick={goHome}
-          className="text-sm font-semibold text-purple-900/70 hover:text-purple-900 transition-all"
-        >
-          Home
-        </button>
+      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-6 h-[64px] bg-white/40 backdrop-blur-xl border-b border-white/30 shadow-sm">
+        <div className="text-2xl font-extrabold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+          BAE
+        </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-6 pt-24">
-
-        {/* TITLE */}
-        <motion.h1
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-5xl font-extrabold bg-gradient-to-r from-fuchsia-600 via-pink-500 to-amber-400 bg-clip-text text-transparent drop-shadow-xl mb-10 text-center"
+      {/* IDENTITY BOX */}
+      <motion.section
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col items-center mb-10"
+      >
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="w-28 h-28 rounded-full overflow-hidden border-3 border-white shadow-md bg-white flex items-center justify-center cursor-pointer hover:shadow-lg transition"
         >
-          Your Profile
-        </motion.h1>
+          {photoURL ? (
+            <Image
+              src={photoURL}
+              alt="Profile"
+              width={112}
+              height={112}
+              className="object-cover"
+            />
+          ) : (
+            <span className="text-2xl opacity-30">+</span>
+          )}
+        </div>
 
-        {/* DISPLAY NAME */}
-        <div className="w-full max-w-xl mx-auto mb-8">
-          <label className="block text-sm font-semibold mb-2 text-purple-900/90">
-            Display Name
-          </label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handlePhotoUpload}
+        />
+
+        <h2 className="mt-5 font-extrabold text-lg opacity-80">Upload Photo</h2>
+      </motion.section>
+
+      {/* INTERESTS CARD */}
+      <section className="w-full max-w-xl bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white p-6">
+        <h2 className="text-xl font-extrabold text-purple-700 mb-4 tracking-tight">Interests</h2>
+
+        {/* INPUT ROW */}
+        <div className="flex gap-2 mb-5">
           <input
             type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Your name"
-            className="w-full px-5 py-3 rounded-full bg-white/80 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
+            value={newInterest}
+            onChange={(e) => setNewInterest(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addInterest()}
+            placeholder="Add an interest"
+            className="flex-1 px-5 py-3 rounded-full bg-white shadow-sm border border-gray-200 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-pink-300 focus:outline-none transition"
           />
+
+          <button
+            onClick={addInterest}
+            className="px-6 py-3 rounded-full text-sm font-bold text-white bg-gradient-to-r from-fuchsia-500 to-pink-500 shadow-md hover:opacity-90 transition"
+          >
+            Add
+          </button>
         </div>
 
-        {/* INTERESTS BOX */}
-        <div className="w-full bg-white/15 p-8 rounded-3xl border border-white/20 backdrop-blur-lg shadow-lg">
-          <h2 className="text-3xl font-bold text-purple-900 mb-2 text-center">Your Interests</h2>
-
-          {/* 3-INTEREST ONBOARDING COPY + GLOW PILL */}
-          <p className="text-sm text-purple-900/80 font-semibold text-center mb-5">
-            Add 3+ interests to unlock matching. Shared interests will{' '}
-            <span className="px-2 py-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-indigo-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.55)]">
-              glow ✨
-            </span>{' '}
-            on BAE.
-          </p>
-
-          {/* ADD INTEREST INPUT */}
-          <div className="flex gap-3 mb-6 w-full max-w-xl mx-auto">
-            <input
-              type="text"
-              value={newInterest}
-              onChange={(e) => setNewInterest(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addInterest()}
-              placeholder="Add an interest"
-              className="flex-1 px-5 py-3 rounded-full bg-white/80 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-400"
-            />
-            <button
-              onClick={addInterest}
-              className="px-8 py-3 text-white font-bold rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-600 shadow-md hover:shadow-lg transition"
+        {/* PILL LIST */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {interests.map(i => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-fuchsia-50 border border-fuchsia-200 text-purple-900 font-bold text-sm shadow-sm"
             >
-              Add
-            </button>
-          </div>
-
-          {/* LIST OF INTEREST PILLS WITH REMOVE */}
-          {interests.length === 0 && <p className="text-sm italic opacity-40 text-center mb-4">No interests yet</p>}
-
-          <div className="flex flex-wrap justify-center gap-3">
-            {interests.map((i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 rounded-full text-fuchsia-700 font-semibold text-sm shadow-sm hover:bg-white/90 transition"
-              >
-                {i}
-                <button
-                  onClick={() => removeInterest(i)}
-                  className="text-fuchsia-500 hover:text-fuchsia-700 font-bold text-lg leading-none"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
+              {i}
+              <button onClick={() => removeInterest(i)} className="text-purple-400 hover:text-purple-700 transition">×</button>
+            </span>
+          ))}
         </div>
 
-        {/* SAVE PROFILE BUTTON */}
-        <div className="flex justify-center items-center pt-8 pb-8">
+        {/* Count */}
+        {!interests.length && (
+          <p className="text-sm opacity-25 mt-3">No interests added</p>
+        )}
+        <p className="text-xs font-medium text-purple-700/60 mt-4">
+          {interests.length} interest{interests.length === 1 ? '' : 's'} added
+        </p>
+
+        {/* BUTTON ROW */}
+        <div className="grid grid-cols-2 gap-4 mt-8 w-full">
+          {/* SAVE */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={saveProfile}
+            disabled={saving}
+            className="w-full py-3 rounded-full font-bold text-white bg-gradient-to-r from-fuchsia-500 to-purple-500 shadow-md hover:shadow-lg transition disabled:opacity-40"
+          >
+            {saving ? 'Saving...' : 'Save Profile'}
+          </motion.button>
+
+          {/* BAE (Gated) */}
           <motion.button
             whileHover={{ scale: interests.length >= 3 ? 1.04 : 1 }}
-            whileTap={{ scale: interests.length >= 3 ? 0.97 : 1 }}
-            onClick={saveProfile}
-            disabled={interests.length < 3 || saving}
-            className={`relative px-14 py-5 rounded-full text-2xl font-extrabold tracking-tight transition-all ${
-              interests.length < 3
-                ? 'bg-gray-500/40 text-white/40 cursor-not-allowed border border-white/10'
-                : saved
-                ? 'bg-green-500 text-white'
-                : 'bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-400 text-purple-900 shadow-lg hover:shadow-[0_0_24px_rgba(236,72,153,0.4)]'
-            }`}
+            whileTap={{ scale: interests.length >= 3 ? 0.96 : 1 }}
+            onClick={handleBAEClick}
+            disabled={interests.length < 3}
+            className="w-full py-3 rounded-full font-extrabold text-white bg-gradient-to-r from-pink-500 via-purple-400 to-indigo-400 shadow-lg hover:shadow-2xl disabled:opacity-40"
           >
-            {saving ? 'Saving...' : saved ? '✔ Saved!' : 'Save Profile'}
+            BAE Someone ✨
           </motion.button>
         </div>
 
-      </div>
+        {/* Unlock label */}
+        {interests.length < 3 && (
+          <p className="text-xs text-purple-900/60 mt-3">
+            Add 3+ interests to unlock matching & glow ✨
+          </p>
+        )}
 
-      <footer className="text-center text-fuchsia-800/60 text-sm pb-6">
-        Built with ❤️ by BAE Team
-      </footer>
+      </section>
 
+      {/* Bottom padding so page never clips */}
+      <div className="h-20" />
+      
     </main>
   );
 }
