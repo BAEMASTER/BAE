@@ -1,336 +1,266 @@
 ﻿'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, User, getAuth, signInAnonymously } from 'firebase/auth';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged, User, signInAnonymously, getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { getApps, initializeApp } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Sparkles, XCircle, CheckCircle, Info, Heart, Plus } from 'lucide-react';
+import { Save, Sparkles, XCircle, Heart, Plus } from 'lucide-react';
 
-// --- CONSTANTS ---
+// --- CONSTANTS (in scope so no "not found" errors) ---
 const MAIN_INSTRUCTION_COPY = "Add 3+ interests to unlock your BAE matches. Every passion counts!";
-const MOTIVATION_COPY = "The interest list is the heart of BAE—it fuels your connection potential. 💖";
+const MOTIVATION_COPY = "The more interests you add, the stronger your BAE connection will glow ✨";
 const APP_NAME_FALLBACK = "SO-INTERESTING";
 
-// --- Custom Toast Component (Replaces Forbidden Alerts) ---
-interface ToastProps {
-    message: string;
-    type: 'error' | 'success' | 'info';
-    onClose: () => void;
-}
-
-const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
-    const colorClasses = {
-        error: 'bg-red-500 border-red-300 text-white',
-        success: 'bg-green-500 border-green-300 text-white',
-        info: 'bg-blue-500 border-blue-300 text-white',
-    };
-    const Icon = type === 'error' ? XCircle : type === 'success' ? CheckCircle : Info;
-
-    useEffect(() => {
-        const timer = setTimeout(onClose, 4000);
-        return () => clearTimeout(timer);
-    }, [onClose]);
-
-    return (
-        <motion.div 
-            initial={{ opacity: 0, y: 50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.8 }}
-            className={`fixed bottom-5 right-5 z-50 p-4 rounded-xl shadow-2xl font-semibold flex items-center gap-3 border ${colorClasses[type]}`}
-        >
-            <Icon size={20} />
-            <span>{message}</span>
-            <button onClick={onClose} className="ml-2 opacity-80 hover:opacity-100">
-                &times;
-            </button>
-        </motion.div>
-    );
-};
-
-// Simple navigation replacement
-const useSimpleRouter = () => {
-    const push = (path: string) => {
-        window.history.pushState({}, '', path);
-        window.location.reload(); 
-    };
-    return { push };
-};
-
 export default function ProfilePage() {
-    // --- State for Firebase Instances ---
-    const [authReady, setAuthReady] = useState(false);
-    const [firebaseApp, setFirebaseApp] = useState<any>(null);
-    const [db, setDb] = useState<any>(null);
-    const [auth, setAuth] = useState<any>(null);
+  const [firebaseApp, setFirebaseApp] = useState<any>(null);
+  const [db, setDb] = useState<any>(null);
+  const [auth, setAuth] = useState<any>(null);
+  const [authReady, setAuthReady] = useState(false);
 
-    // --- State for Application Data ---
-    const [user, setUserState] = useState<User | null>(null);
-    const [displayName, setDisplayName] = useState('');
-    const [interests, setInterestsState] = useState<string[]>([]);
-    const [newInterest, setNewInterest] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
-    const [minInterestWarning, setMinInterestWarning] = useState(false);
-    const [toastMessage, setToastMessage] = useState<{message: string, type: 'error' | 'success' | 'info'} | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [interests, setInterestsState] = useState<string[]>([]);
+  const [newInterest, setNewInterest] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [minInterestWarning, setMinInterestWarning] = useState(false);
 
-    const router = useSimpleRouter();
+  // Simple nav
+  const goHome = () => {
+    window.history.pushState({}, '', '/');
+    window.location.reload();
+  };
+  const goMatch = () => {
+    if (interests.length < 3) {
+      setMinInterestWarning(true);
+      setTimeout(() => setMinInterestWarning(false), 1800);
+      return;
+    }
+    window.history.pushState({}, '', '/match/page');
+    window.location.reload();
+  };
 
-    // --- Firebase Initialization and Auth Listener ---
-    useEffect(() => {
-        const initFirebase = async () => {
-            let appInstance;
+  // Firebase init exactly once at runtime
+  useEffect(() => {
+    const initFirebase = async () => {
+      try {
+        let appInstance;
 
-            try {
-                // Initialize using Vercel Environment Variable (as requested)
-                const config = JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || "{}");
-                if (Object.keys(config).length === 0) {
-                    console.error("FIREBASE CONFIGURATION MISSING OR EMPTY.");
-                    setAuthReady(true);
-                    return;
-                }
+        const config = JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || "{}");
 
-                if (!getApps().length) {
-                    appInstance = initializeApp(config);
-                } else {
-                    appInstance = getApps()[0];
-                }
-
-                const firebaseAuth = getAuth(appInstance);
-                const firestore = getFirestore(appInstance);
-
-                setFirebaseApp(appInstance);
-                setAuth(firebaseAuth);
-                setDb(firestore);
-
-                // Anonymous sign-in fallback if needed (ensures we have a UID)
-                if (!firebaseAuth.currentUser) {
-                    await signInAnonymously(firebaseAuth);
-                }
-
-                // Auth listener + load profile
-                const unsub = onAuthStateChanged(firebaseAuth, async (u) => {
-                    setUserState(u);
-                    if (!u) {
-                        setAuthReady(true);
-                        return;
-                    }
-
-                    const appName = appInstance.name || APP_NAME_FALLBACK;
-                    const profileRef = doc(firestore, `artifacts/${appName}/users/${u.uid}/profile/data`);
-
-                    try {
-                        const snap = await getDoc(profileRef);
-                        const data = snap.exists() ? snap.data() : null;
-
-                        if (data) {
-                            setDisplayName(data.displayName || u.displayName || u.email || 'Mystery BAE');
-                            setInterestsState(data.interests || []);
-                        } else {
-                            setDisplayName(u.displayName || u.email || 'Mystery BAE');
-                        }
-                    } catch (e) {
-                        console.error("Profile load failed", e);
-                    } finally {
-                        setAuthReady(true);
-                    }
-                });
-
-                return () => unsub();
-
-            } catch (e) {
-                console.error("Firebase Initialization Failed", e);
-                setAuthReady(true);
-            }
-        };
-
-        initFirebase();
-    }, []);
-
-    const addInterest = () => {
-        const i = newInterest.trim();
-        if (i && !interests.includes(i)) {
-            setInterestsState((prev) => [...prev, i.charAt(0).toUpperCase() + i.slice(1).toLowerCase()]); // Capitalize first letter
+        if (!config.projectId && !Object.keys(config).length) {
+          console.error("❌ Firebase config missing");
+          setAuthReady(true);
+          return;
         }
-        setNewInterest('');
+
+        if (!getApps().length) {
+          appInstance = initializeApp(config, config.projectId || APP_NAME_FALLBACK);
+        } else {
+          appInstance = getApps()[0];
+        }
+
+        const firebaseAuth = getAuth(appInstance);
+        const firestore = getFirestore(appInstance);
+
+        setFirebaseApp(appInstance);
+        setAuth(firebaseAuth);
+        setDb(firestore);
+
+        if (!firebaseAuth.currentUser) {
+          await signInAnonymously(firebaseAuth);
+        }
+
+        const unsub = onAuthStateChanged(firebaseAuth, async (u) => {
+          setUserState(u);
+          setAuthReady(true);
+
+          if (!u) return;
+
+          const appName = appInstance?.name || APP_NAME_FALLBACK;
+          const profileRef = doc(firestore, `artifacts/${appName}/users/${u.uid}/profile/data`);
+
+          try {
+            const snap = await getDoc(profileRef);
+            const data = snap.exists() ? snap.data() : null;
+            const name = data?.displayName || u.displayName || u.email || "BAE Human";
+
+            setDisplayName(name);
+            setInterestsState(data?.interests || []);
+          } catch (e) {
+            console.error("❌ Profile load fail:", e);
+          }
+        });
+
+        return () => unsub();
+
+      } catch (e) {
+        console.error("❌ Firebase init crash:", e);
+        setAuthReady(true);
+      }
     };
 
-    const removeInterest = (i: string) => {
-        setInterestsState((prev) => prev.filter((x) => x !== i));
-    };
+    initFirebase();
+  }, []);
 
-    const saveProfile = async () => {
-        if (!user || !authReady || !db || !firebaseApp) return;
+  const addInterest = () => {
+    const i = newInterest.trim();
+    if (!i) return;
 
-        if (interests.length < 3) {
-            setMinInterestWarning(true);
-            setTimeout(() => setMinInterestWarning(false), 2000);
-            return;
-        }
+    const formatted = i.charAt(0).toUpperCase() + i.slice(1).toLowerCase();
+    if (!interests.includes(formatted)) {
+      setInterestsState(prev => [...prev, formatted]);
+    }
+    setNewInterest('');
+  };
 
-        setSaving(true);
-        const appName = firebaseApp.name || APP_NAME_FALLBACK;
-        const profileRef = doc(db, `artifacts/${appName}/users/${user.uid}/profile/data`);
+  const removeInterest = (i: string) => {
+    setInterestsState(prev => prev.filter(x => x !== i));
+  };
 
-        try {
-            await setDoc(profileRef, {
-                displayName,
-                interests,
-                updatedAt: new Date().toISOString()
-            }, { merge: true });
-
-            setSaved(true);
-            setToastMessage({ message: "Interests saved successfully!", type: 'success' });
-            setTimeout(() => setSaved(false), 1500);
-
-        } catch (e) {
-            console.error("Interest save failed", e);
-            setToastMessage({ message: "Save failed. Check console for details.", type: 'error' });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const navigateMatch = useCallback(() => {
-        if (interests.length < 3) {
-            setMinInterestWarning(true);
-            setTimeout(() => setMinInterestWarning(false), 2000);
-            return;
-        }
-        router.push('/match/page');
-    }, [interests.length, router]);
-    
-    // Component Loading State
-    if (!authReady) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-200 via-purple-200 to-red-100 flex items-center justify-center text-pink-500">
-                <p className="text-xl animate-pulse font-black">Initializing BAE...</p>
-            </div>
-        );
+  const saveProfile = async () => {
+    if (!user || !db || !auth) return;
+    if (interests.length < 3) {
+      setMinInterestWarning(true);
+      setTimeout(()=>setMinInterestWarning(false),1800);
+      return;
     }
 
-    const canBae = interests.length >= 3;
-    const gradientText = "bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-purple-600";
-    const minRequired = 3;
-    const requiredRemaining = minRequired - interests.length;
+    setSaving(true);
+    const appName = firebaseApp?.name || APP_NAME_FALLBACK;
+    const profileRef = doc(db, `artifacts/${appName}/users/${user.uid}/profile/data`);
 
-    return (
-        <main className="min-h-screen bg-gradient-to-b from-pink-50 to-purple-100 px-4 sm:px-6 py-8 text-gray-800 flex flex-col items-center">
+    try {
+      await setDoc(profileRef, {
+        displayName,
+        interests,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
 
-            {/* Minimal Header for Identity */}
-            <header className="w-full max-w-4xl mb-4 py-2 border-b border-pink-200">
-                <p className="text-sm text-gray-600 font-semibold">
-                    Profile for: <span className="font-extrabold text-purple-700">{displayName}</span>
-                </p>
-                <p className="text-xs text-gray-400 truncate break-all">
-                    UID: {user?.uid || "N/A"}
-                </p>
-            </header>
+      setSaved(true);
+      setTimeout(()=>setSaved(false),1300);
+    } catch (e) {
+      console.error("🔥 Save fail:", e);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            {/* Interest Hub - Now the ONLY HUGE Focus */}
-            <div className="w-full max-w-4xl bg-white/95 backdrop-blur-lg p-6 sm:p-10 rounded-3xl shadow-2xl border-2 border-pink-400/50 flex flex-col min-h-[70vh]">
+  return (
+    <main
+      className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-50 to-indigo-100 px-6 pt-24 text-gray-900"
+    >
+      <div className="max-w-4xl mx-auto">
 
-                <div className="mb-8 pb-4 border-b border-pink-200">
-                    <h1 className={`text-5xl sm:text-6xl font-black ${gradientText} text-center`}>
-                        <Heart size={40} className="inline-block align-top mr-2"/>
-                        <span className="leading-tight">Your BAE Passions</span>
-                    </h1>
-                    <p className="text-gray-600 text-lg mt-3 text-center font-medium">{MAIN_INSTRUCTION_COPY}</p>
-                    <p className="text-gray-400 text-sm mt-1 text-center">{MOTIVATION_COPY}</p>
-                </div>
+        {/* identity — small */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-24 h-24 rounded-full bg-white/60 border-4 border-fuchsia-400/40 overflow-hidden shadow-sm">
+            { user?.photoURL
+              ? <img src={user.photoURL} className="w-full h-full object-cover" alt="profile"/>
+              : <UserIcon size={36} className="opacity-50 m-auto"/>
+            }
+          </div>
+          <h2 className="text-xl font-black mt-2 text-fuchsia-600 truncate text-center w-full max-w-[260px]">
+            {displayName || "BAE Human"}
+          </h2>
+        </div>
 
-                {/* Input Area */}
-                <div className="flex gap-3 my-4">
-                    <input
-                        value={newInterest}
-                        onChange={(e) => setNewInterest(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && addInterest()}
-                        placeholder="Type a fun interest (e.g., Cat Videos, Retro Gaming)..."
-                        className="flex-1 px-5 py-4 rounded-full bg-pink-50 ring-2 ring-pink-300 placeholder-gray-400 text-base focus:outline-none focus:ring-purple-500 shadow-inner transition"
-                        maxLength={30}
-                    />
-                    <motion.button
-                        onClick={addInterest}
-                        whileHover={{scale:1.05}}
-                        whileTap={{scale:0.95}}
-                        disabled={!newInterest.trim()}
-                        className="px-6 py-4 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full font-extrabold text-base shadow-lg hover:shadow-xl hover:brightness-110 transition disabled:opacity-50"
-                    >
-                        <Plus size={18} className="inline-block align-text-bottom mr-1"/> Add
-                    </motion.button>
-                </div>
+        {/* BIG Interests Card */}
+        <div className="bg-white/35 backdrop-blur-lg rounded-3xl p-8 shadow-xl border-2 border-pink-300/40 min-h-[60vh] flex flex-col">
+          
+          <div className="text-center mb-6">
+            <Heart size={28} className="text-fuchsia-500 mx-auto mb-1"/>
+            <h1 className="text-3xl font-black text-fuchsia-700">Profile Interests</h1>
+            <p className="text-sm text-fuchsia-600/70">{MAIN_INSTRUCTION_COPY}</p>
+          </div>
 
-                {/* Selected interest pills */}
-                <div className="flex-grow overflow-y-auto mb-6 pr-1 space-y-3 pt-4">
-                    <h3 className="text-xl font-extrabold text-purple-700 flex items-center gap-2 mt-2 border-b border-pink-100 pb-2">
-                        <Sparkles size={20} className="text-yellow-500"/> Your Love List ({interests.length}/{minRequired})
-                    </h3>
-                    <AnimatePresence>
-                        <div className="flex flex-wrap gap-4 p-2">
-                            {interests.map((i) => (
-                                <motion.span
-                                    key={i}
-                                    initial={{opacity:0, scale:0.8}}
-                                    animate={{opacity:1, scale:1}}
-                                    exit={{opacity:0, scale:0.8}}
-                                    className="px-5 py-2 rounded-full bg-pink-200 border border-purple-400/50 text-base font-bold shadow-md flex items-center gap-3 text-purple-800 whitespace-nowrap hover:shadow-lg transition"
-                                >
-                                    {i}
-                                    <button onClick={() => removeInterest(i)} className="text-purple-600 hover:text-red-600 transition leading-none font-black text-xl">×</button>
-                                </motion.span>
-                            ))}
-                        </div>
-                    </AnimatePresence>
-                </div>
+          {/* Input */}
+          <div className="flex gap-3 mb-6">
+            <input
+              value={newInterest}
+              onChange={(e)=>setNewInterest(e.target.value)}
+              onKeyDown={(e)=>e.key==='Enter' && addInterest()}
+              placeholder="Add a passion..."
+              className="flex-1 px-4 py-2 rounded-full bg-white/60 border border-pink-300/70 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 shadow-inner"
+              maxLength={26}
+            />
+            <button
+              onClick={addInterest}
+              className="px-5 py-2 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-black shadow-md hover:brightness-110 transition"
+            >
+              <Plus size={16} className="inline mr-1"/> Add
+            </button>
+          </div>
 
-                {/* Min interest warning */}
-                <AnimatePresence>
-                    {minInterestWarning && (
-                        <motion.div
-                            initial={{opacity:0,y:-6}}
-                            animate={{opacity:1,y:0}}
-                            exit={{opacity:0,y:-6}}
-                            className="bg-red-100 border-2 border-red-500 text-red-700 font-extrabold py-3 px-4 rounded-xl text-center mb-4 shadow-xl"
-                        >
-                            <XCircle size={18} className="inline mr-2"/> C'mon, give us at least 3 things to BAE with!
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Bottom buttons - Prominent and Fun */}
-                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-pink-100">
-                    <motion.button
-                        onClick={saveProfile}
-                        disabled={saving}
-                        whileTap={{scale:0.97}}
-                        className={`w-full py-4 rounded-2xl font-extrabold text-base shadow-lg transition-all border
-                            ${saved
-                                ? 'bg-green-500 text-white border-green-700 hover:bg-green-600'
-                                : 'bg-white text-gray-700 border-pink-300 hover:bg-pink-50'
-                            }
-                            ${saving ? 'opacity-60 cursor-not-allowed' : ''}
-                        `}
-                    >
-                        <Save size={18} className="mr-2 inline-block align-text-bottom"/>
-                        {saving ? 'Saving Your BAE Profile…' : 'Save Your List'}
-                    </motion.button>
-
-                    <motion.button
-                        onClick={navigateMatch}
-                        whileHover={{ scale:1.02 }}
-                        whileTap={{ scale:0.98 }}
-                        disabled={!canBae}
-                        className="w-full py-4 rounded-2xl font-black text-white text-lg shadow-2xl transition-all bg-gradient-to-r from-pink-600 via-fuchsia-600 to-purple-700 hover:shadow-pink-500/70 disabled:opacity-40 disabled:hover:shadow-none disabled:cursor-not-allowed"
-                    >
-                        <Sparkles size={20} className="mr-2 inline-block align-text-bottom"/>
-                        {canBae ? 'GO BAE NOW!' : `Need ${requiredRemaining} More Passions!`}
-                    </motion.button>
-                </div>
-            </div>
-            
+          {/* Selected Pills */}
+          <div className="flex-grow overflow-y-auto mb-6">
+            <h3 className="text-base font-black text-purple-700 mb-3 flex items-center gap-2">
+              <Sparkles size={18} className="text-yellow-500"/> Selected ({interests.length}/3)
+            </h3>
             <AnimatePresence>
-                {toastMessage && <Toast message={toastMessage.message} type={toastMessage.type} onClose={() => setToastMessage(null)} />}
+              <div className="flex flex-wrap gap-2">
+                {interests.map(i=>(
+                  <motion.span
+                    key={i}
+                    initial={{opacity:0, scale:0.85}}
+                    animate={{opacity:1, scale:1}}
+                    exit={{opacity:0, scale:0.85}}
+                    className="px-4 py-1.5 rounded-full bg-fuchsia-200/70 border border-fuchsia-400/30 font-bold text-xs shadow-sm flex items-center gap-1 whitespace-nowrap"
+                  >
+                    {i}
+                    <button onClick={()=>removeInterest(i)} className="opacity-70 hover:opacity-100 transition">
+                      ×
+                    </button>
+                  </motion.span>
+                ))}
+              </div>
             </AnimatePresence>
-        </main>
-    );
+          </div>
+
+          {/* Warnings */}
+          {minInterestWarning && (
+            <div className="text-center text-red-500 font-black text-xs mb-4">
+              <XCircle size={14} className="inline mr-1"/> Need at least 3 interests!
+            </div>
+          )}
+
+          {/* 2 Buttons at bottom */}
+          <div className="grid grid-cols-2 gap-4 mt-auto">
+            <motion.button
+              onClick={saveProfile}
+              whileTap={{scale:0.96}}
+              className="w-full py-3 rounded-2xl font-black text-base shadow-md transition-all bg-gradient-to-br from-gray-100 to-green-100 border border-green-300/40 hover:brightness-105"
+            >
+              <span className="flex items-center justify-center gap-1">
+                <Save size={16}/>
+                Save
+              </span>
+            </motion.button>
+
+            <motion.button
+              onClick={goMatch}
+              whileTap={{scale:0.96}}
+              disabled={interests.length < 3}
+              className="w-full py-3 rounded-2xl font-black text-base shadow-md transition-all bg-gradient-to-r from-fuchsia-500 via-pink-500 to-purple-600 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <Sparkles size={18}/> BAE
+              </span>
+            </motion.button>
+          </div>
+
+          {/* small redirect option */}
+          {saved && (
+            <p className="text-center text-xs text-green-600 font-black mt-4">
+              ✅ Saved!
+              <span onClick={goHome} className="text-fuchsia-600 underline ml-2 cursor-pointer hover:text-purple-700">
+                BAE Now?
+              </span>
+            </p>
+          )}
+        </div>
+      </div>
+    </main>
+  );
 }
