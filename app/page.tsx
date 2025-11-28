@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
@@ -13,8 +13,8 @@ const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
 export default function HomePage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  const [userInterests, setUserInterests] = useState<string[]>([]);
-  const [userName, setUserName] = useState('');
+  const [userInterests, setUserName] = useState<string[]>([]);
+  const [userName, setUserInterests] = useState('');
   const [isChecking, setIsChecking] = useState(true);
   const [wordIndex, setWordIndex] = useState(0);
 
@@ -55,7 +55,7 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
 
-      {/* Soft glowing background accents */}
+      {/* Glow background accents */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-fuchsia-300/20 blur-[120px] rounded-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 w-[35rem] h-[35rem] bg-indigo-300/20 blur-[120px] rounded-full" />
 
@@ -68,15 +68,9 @@ export default function HomePage() {
         }}
       >
         <div className="text-3xl font-extrabold tracking-tight text-fuchsia-600">BAE</div>
-        <button
-          onClick={() => router.push(userId ? '/profile' : '/auth')}
-          className="px-5 py-2 rounded-full bg-white/30 hover:bg-white/40 border border-white/40 text-sm font-semibold text-fuchsia-700 transition-all"
-        >
-          {userId ? userName : 'Sign In'}
-        </button>
       </header>
 
-      {/* Hero section */}
+      {/* Hero */}
       <section className="flex flex-col items-center text-center px-6" style={{ paddingTop: NAV_H + 48 }}>
 
         {/* Meet. Match. BAE. */}
@@ -90,7 +84,7 @@ export default function HomePage() {
           <span className="bg-gradient-to-r from-yellow-400 to-pink-500 bg-clip-text text-transparent">BAE.</span>
         </motion.h2>
 
-        {/* One good conversation... */}
+        {/* Conversation tagline */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -109,30 +103,30 @@ export default function HomePage() {
           your whole day.
         </motion.p>
 
-        {/* Secondary tagline with glowing "glow" word */}
+        {/* Updated glowing "glow" word like UI chips */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.26, duration: 0.6 }}
-          className="text-lg sm:text-xl max-w-3xl text-fuchsia-900/90 mb-10 font-semibold"
+          className="text-lg sm:text-xl max-w-3xl text-purple-900 mb-10 font-semibold"
         >
           BAE is instant video conversations where your shared interests{' '}
           <motion.span
             animate={{
               boxShadow: [
-                '0 0 5px rgba(255, 215, 0, 0.14)',
-                '0 0 9px rgba(255, 215, 0, 0.22)',
-                '0 0 5px rgba(255, 215, 0, 0.14)',
+                '0 0 12px rgba(255, 215, 0, 0.55)',
+                '0 0 22px rgba(255, 215, 0, 0.85)',
+                '0 0 12px rgba(255, 215, 0, 0.55)',
               ],
             }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-            className="inline-block px-2 py-0.5 rounded-full bg-white/10 text-fuchsia-700/95 font-medium"
+            transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+            className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-400 text-purple-900 font-bold"
           >
             glow
           </motion.span>.
         </motion.p>
 
-        {/* CTA Button */}
+        {/* CTA */}
         <motion.button
           whileHover={{ scale: 1.045 }}
           whileTap={{ scale: 0.97 }}
@@ -140,45 +134,15 @@ export default function HomePage() {
           disabled={isChecking}
           className="relative px-10 sm:px-14 py-5 sm:py-6 rounded-full text-2xl sm:text-3xl font-extrabold tracking-tight text-white bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.55)] transition-all duration-500 overflow-hidden"
         >
-          <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.5),transparent)] bg-[length:200%_100%] opacity-0 hover:opacity-100 animate-[shimmer_3.8s_linear_infinite]" />
-          <motion.div
-            className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-r from-pink-400/35 via-fuchsia-400/35 to-indigo-400/35 blur-2xl"
-            animate={{ opacity: [0.45, 0.8, 0.45], scale: [1, 1.05, 1] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
           <span className="relative z-10">{isChecking ? 'Loading...' : 'BAE Someone Now!'}</span>
         </motion.button>
 
-        {/* Social proof */}
-        <div className="mt-8 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/30 border border-white/40 text-fuchsia-700 font-medium">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400"></span>
-          </span>
-          People online right now
-        </div>
-
-        {/* Interests box */}
-        {userInterests.length > 0 && (
-          <div className="mt-12 bg-white/20 backdrop-blur-md rounded-2xl px-8 py-6 border border-white/40 max-w-xl mx-auto shadow-lg">
-            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">Your Interests</h3>
-            <div className="flex flex-wrap justify-center gap-3">
-              {userInterests.map((interest) => (
-                <span
-                  key={interest}
-                  className="px-4 py-2 rounded-full bg-gradient-to-r from-fuchsia-100 to-pink-100 text-fuchsia-700 font-semibold text-sm shadow-sm hover:from-fuchsia-200 hover:to-pink-200 transition-colors"
-                >
-                  {interest}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="h-16" />
       </section>
 
-      <footer className="text-center text-fuchsia-800/60 text-sm pb-6">Built with ❤️ by BAE Team</footer>
+      <footer className="text-center text-fuchsia-800/60 text-sm pb-6">
+        Built with ❤️ by BAE Team
+      </footer>
+
     </main>
   );
 }
