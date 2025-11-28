@@ -1,27 +1,17 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User, getAuth } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User as UserIcon, Save } from 'lucide-react';
 
-// Match your homepage gradient (light, elegant, not dark)
 const gradientClass = "bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100";
 
-let app;
-let db;
-let firebaseAuth;
-
-try {
-  // Initialize Firebase app exactly once (client side)
-  app = initializeApp(JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || "{}"));
-  db = getFirestore(app);
-  firebaseAuth = getAuth(app);
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-}
+let app = initializeApp(JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || "{}"));
+let db = getFirestore(app);
+let firebaseAuth = app && app.name ? (await import('firebase/auth')).getAuth(app) : getAuth();
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,7 +23,7 @@ export default function ProfilePage() {
   const [minWarn, setMinWarn] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Auth guard + load profile
+  // 🚪 Auth guard + load profile
   useEffect(() => {
     const unsub = onAuthStateChanged(firebaseAuth, async (u) => {
       if (!u) {
@@ -59,7 +49,6 @@ export default function ProfilePage() {
     return () => unsub();
   }, []);
 
-  // Add interest pill
   const addInterest = () => {
     const i = newInterest.trim();
     if (i && !interests.includes(i)) {
@@ -68,12 +57,10 @@ export default function ProfilePage() {
     setNewInterest('');
   };
 
-  // Remove interest pill
   const removeInterest = (i: string) => {
     setInterests(prev => prev.filter(x => x !== i));
   };
 
-  // Save interests (green flash retained)
   const saveProfile = async () => {
     if (!user) return;
     if (interests.length < 3) {
@@ -97,32 +84,14 @@ export default function ProfilePage() {
     }
   };
 
-  // Go to match only if 3+ interests exist
-  const goBAE = () => {
-    if (interests.length < 3) {
-      setMinWarn(true);
-      setTimeout(() => setMinWarn(false), 2000);
-      return;
-    }
-    window.location.href = "/match/page";
-  };
-
-  if (!ready) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${gradientClass}`}>
-        <p className="text-xl font-bold text-fuchsia-500 drop-shadow">Loading Profile...</p>
-      </div>
-    );
-  }
-
   const canBae = interests.length >= 3;
-  const baeText = canBae ? "BAE Someone Now" : "3 Interests Required";
+  const baeText = canBae ? "BAE Someone ✨" : "3 Interests Required";
 
   return (
     <main className={`min-h-screen pt-24 px-6 py-8 text-gray-900 ${gradientClass}`}>
       <div className="mx-auto max-w-4xl space-y-6">
 
-        {/* Headline: simple, clean, modern */}
+        {/* 🔱 Title */}
         <motion.h1
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -132,44 +101,56 @@ export default function ProfilePage() {
           Your Profile
         </motion.h1>
 
-        {/* Profile identity card (small, top-centered) */}
-        <div className="bg-white/60 border border-white/40 rounded-2xl shadow-md p-5 flex items-center gap-4 mx-auto max-w-sm">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-fuchsia-200 flex items-center justify-center">
+        {/* 👤 Personal Card (photo small, moved aside, not dominant) */}
+        <div className="bg-gray-800/25 backdrop-blur-lg border border-gray-700/20 rounded-2xl shadow-md p-4 flex items-center gap-3 max-w-xs mx-auto">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-fuchsia-200 flex items-center justify-center">
             {firebaseAuth.currentUser?.photoURL ? (
               <img src={firebaseAuth.currentUser.photoURL} className="w-full h-full object-cover" />
             ) : (
-              <UserIcon size={28} className="text-fuchsia-600/70" />
+              <UserIcon size={22} className="text-fuchsia-600/70" />
             )}
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-fuchsia-700/80">Signed in as</p>
-            <p className="text-base font-bold truncate text-fuchsia-800">
-              {displayName || firebaseAuth.currentUser?.email}
+          <div className="flex-1 text-left">
+            <p className="text-xs font-semibold text-white/70">Signed in as</p>
+            <p className="text-sm font-bold truncate text-fuchsia-800/90">
+              {displayName || firebaseAuth.currentUser?.email || "User"}
             </p>
+            <button
+              onClick={() => console.log("Change photo later")}
+              className="text-xs text-fuchsia-500 hover:text-fuchsia-600 transition font-semibold"
+            >
+              Change Photo
+            </button>
           </div>
         </div>
 
-        {/* Interests Hub (dominant section) */}
+        {/* 💫 Interests Hub (hero) */}
         <div className="bg-white/40 backdrop-blur-xl border border-white/30 rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-bold mb-4 text-fuchsia-700">Your Interests</h2>
+          <h2 className="text-2xl font-bold mb-3 text-fuchsia-700">Interests</h2>
+          <p className="text-sm font-semibold text-fuchsia-600/80 mb-4">
+            Add 3+ interests to start matching. Your shared interests will glow ✨
+          </p>
 
+          {/* Input + Add */}
           <div className="flex gap-2 mb-4">
             <input
               placeholder="Add more interests..."
               value={newInterest}
               onChange={(e) => setNewInterest(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addInterest()}
-              className="flex-1 px-4 py-2 rounded-full bg-white/70 border border-white/50 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 placeholder-gray-500"
+              className="flex-1 px-4 py-2 rounded-full bg-white/70 border border-white/40 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/40 placeholder-gray-500"
             />
             <button
               onClick={addInterest}
-              className="px-5 py-2 rounded-full bg-fuchsia-600 text-white font-bold shadow-sm hover:opacity-90 transition-all"
+              disabled={saving || !ready}
+              className="px-5 py-2 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-rose-500 font-bold shadow-md hover:opacity-90 transition-all disabled:opacity-50 text-white"
             >
               Add
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          {/* Selected pills */}
+          <div className="flex flex-wrap justify-center">
             <AnimatePresence>
               {interests.map(i => (
                 <motion.span
@@ -177,47 +158,52 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="px-3 py-1.5 bg-white/70 border border-white/40 shadow-sm rounded-full text-sm font-semibold text-fuchsia-700 inline-flex items-center gap-1"
+                  className="px-3 py-1.5 bg-white/70 border border-white/40 shadow-sm rounded-full text-sm font-semibold text-fuchsia-800 inline-flex items-center gap-1 m-1"
                 >
                   {i}
-                  <button onClick={() => removeInterest(i)} className="text-fuchsia-500 font-bold leading-none">×</button>
+                  <button onClick={() => removeInterest(i)} className="text-fuchsia-600 font-bold">×</button>
                 </motion.span>
               ))}
             </AnimatePresence>
           </div>
 
-          {minWarn && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center text-red-600 text-sm font-bold mt-4"
-            >
-              Add at least 3 interests.
-            </motion.p>
-          )}
+          {/* Min warning */}
+          <AnimatePresence>
+            {minWarn && (
+              <motion.p
+                initial={{opacity:0, y:-8}}
+                animate={{opacity:1, y:0}}
+                exit={{opacity:0, y:-8}}
+                className="text-center text-red-600 text-xs font-bold mt-2"
+              >
+                Add at least 3 interests.
+              </motion.p>
+            )}
+          </AnimatePresence>
+
         </div>
 
-        {/* Action buttons side-by-side */}
-        <div className="grid grid-cols-2 gap-4 mx-auto max-w-xl">
+        {/* Buttons side-by-side, equal sized */}
+        <div className="grid grid-cols-2 gap-3 max-w-md mx-auto pt-2">
           <motion.button
             onClick={saveProfile}
-            disabled={saving}
-            whileTap={{ scale: 0.97 }}
+            disabled={saving || !canBae || !ready}
+            whileTap={{ scale: 0.96 }}
             className={`flex items-center justify-center gap-2 w-full py-3 rounded-full font-bold transition-all ${
-              saved ? "bg-green-500 text-white shadow-md" : "bg-white/70 border border-white/40 text-fuchsia-700 shadow-sm hover:opacity-90"
+              saved
+                ? "bg-green-500 text-white shadow-md"
+                : "bg-gray-800/40 backdrop-blur-lg text-white/90 border border-white/10 hover:opacity-85 disabled:opacity-30"
             }`}
           >
-            <Save size={18} />
-            {saving ? "Saving..." : "Save Interests"}
+            <Save size={16} />
+            {saving ? "Saving…" : "Save"}
           </motion.button>
 
           <motion.button
-            onClick={goBAE}
+            onClick={() => window.location.href = "/match"}
             disabled={!canBae}
-            whileHover={{ scale: canBae ? 1.03 : 1 }}
-            whileTap={{ scale: canBae ? 0.97 : 1 }}
-            className="w-full py-3 rounded-full font-bold text-white bg-gradient-to-r from-pink-500 via-fuchsia-500 to-rose-500 shadow-lg hover:opacity-90 transition-all disabled:opacity-50"
+            whileTap={{ scale: 0.96 }}
+            className="w-full py-3 rounded-full font-bold text-white bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-400 shadow-lg disabled:opacity-30"
           >
             {baeText}
           </motion.button>
