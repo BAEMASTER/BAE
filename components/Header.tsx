@@ -11,36 +11,47 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const router = useRouter();
+
   useEffect(() => {
-    const un = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => un();
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
   }, []);
 
   const showError = (message: string) => {
     console.error("User Alert:", message);
   };
 
-  const doSignIn = async () => {
+  const doGooglePopupSignIn = async () => {
     try {
       setBusy(true);
       await signInWithPopup(auth, new GoogleAuthProvider());
+      // after login success, send home
+      router.push('/');
     } catch (e) {
       console.error(e);
-      showError('Sign-in failed. Check your Firebase config/domains.');
+      showError('Sign-in failed. Try again.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const doSignIn = () => {
+    // route to auth page instead of popup
+    router.push('/auth');
   };
 
   const doSignOut = async () => {
     try {
       setBusy(true);
       await signOut(auth);
+      router.push('/');
     } catch (e) {
       console.error(e);
       showError('Sign-out failed.');
@@ -50,34 +61,30 @@ export default function Header() {
   };
 
   return (
-    <header className="
-      fixed top-0 z-40 w-full 
-      bg-gradient-to-r from-pink-300/80 via-purple-300/80 to-indigo-300/80 
-      backdrop-blur-xl 
-      border-b border-white/40  /* POLISHED BORDER */
-      shadow-lg 
-      transition-all duration-700
-    ">
-      
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3 text-purple-900">
+    <header
+      className="
+        fixed top-0 z-40 w-full
+        bg-gradient-to-r from-rose-200/80 via-fuchsia-200/80 to-rose-200/80
+        backdrop-blur-xl
+        border-b border-white/30
+        shadow-md
+        transition-all duration-500
+        h-[72px] flex items-center
+      "
+    >
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3 text-fuchsia-700 leading-normal">
 
         {/* Logo / Brand */}
         <Link
           href="/"
-          className="text-2xl font-extrabold text-purple-900 hover:text-purple-700 transition-colors"
+          className="text-3xl font-extrabold text-fuchsia-600 hover:text-fuchsia-700 transition-colors"
+          style={{ textShadow: "0 0 18px rgba(236,72,153,0.22)" }}
         >
           BAE
         </Link>
 
-        {/* Nav Links */}
-        <nav className="ml-4 flex items-center gap-6 text-sm text-purple-700">
-          <Link href="/" className="hover:text-purple-900 transition-colors">Home</Link>
-          <Link href="/me" className="hover:text-purple-900 transition-colors">Profile</Link>
-          <Link href="/devcheck" className="hover:text-purple-900 transition-colors">DevCheck</Link>
-        </nav>
-
         {/* Right-Side User Box */}
-        <div className="ml-auto flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {user ? (
             <>
               <div className="flex items-center gap-2">
@@ -85,15 +92,15 @@ export default function Header() {
                   <Image
                     src={user.photoURL}
                     alt="avatar"
-                    width={28}
-                    height={28}
-                    className="rounded-full border border-white/50"
+                    width={32}
+                    height={32}
+                    className="rounded-full border border-white/40 shadow-sm"
                   />
                 ) : (
-                  <div className="h-7 w-7 rounded-full bg-purple-200/40" />
+                  <div className="h-8 w-8 rounded-full bg-fuchsia-200/40 border border-white/30 shadow-sm" />
                 )}
 
-                <span className="hidden text-sm sm:inline text-purple-800">
+                <span className="hidden text-base sm:inline text-fuchsia-700/90 font-semibold max-w-[11rem] truncate">
                   {user.displayName || user.email}
                 </span>
               </div>
@@ -101,40 +108,28 @@ export default function Header() {
               <button
                 onClick={doSignOut}
                 disabled={busy}
-                className="
-                  rounded-md 
-                  border border-white/50 
-                  px-3 py-1.5 
-                  text-sm text-purple-900
-                  hover:bg-white/40 
-                  transition-all 
-                  disabled:opacity-60
-                "
+                className="rounded-xl border border-white/40 px-4 py-2 text-base font-semibold text-fuchsia-700 hover:bg-white/40 transition-all disabled:opacity-50"
               >
                 Sign out
               </button>
             </>
           ) : (
+            // Logged-out button
             <button
               onClick={doSignIn}
               disabled={busy}
-              className="
-                rounded-md 
-                bg-gradient-to-r from-fuchsia-600 to-pink-600 
-                px-4 py-2 
-                text-sm font-semibold text-white 
-                shadow-lg 
-                hover:opacity-90 
-                transition-all 
-                disabled:opacity-60
-              "
+              className="px-6 py-2.5 rounded-full text-xl font-extrabold tracking-tight text-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-orange-400 shadow-[0_10px_26px_rgba(236,72,153,0.32)] hover:shadow-[0_15px_40px_rgba(236,72,153,0.42)] transition-all disabled:opacity-50"
             >
-              {busy ? '…' : 'Continue with Google'}
+              {busy ? '…' : 'Sign in'}
             </button>
           )}
         </div>
-
       </div>
+
+      {/* BONUS: Add Google popup trigger inside auth page */}
+      {/* Call this on the auth page button instead of header */}
+      {/* If you want to use it, expose rotating guru words there */}
+
     </header>
   );
 }
