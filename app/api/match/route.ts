@@ -1,4 +1,5 @@
-// app/api/match/route.ts
+'use client';
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebaseAdmin";
 
@@ -8,8 +9,14 @@ export async function POST(req: NextRequest) {
     const appId = "SO-INTERESTING";
     const usersRef = db.collection(`artifacts/${appId}/users`);
 
+    // ✅ Prevent build-time or bad calls from hitting Daily.co without a real API key
+    if (!process.env.DAILY_API_KEY) {
+      console.error("❌ Missing DAILY API key in environment");
+      return NextResponse.json({ error: "Missing Daily API key" }, { status: 500 });
+    }
+
     return await db.runTransaction(async (transaction) => {
-      // 1. Get ALL waiting users in this mode (excluding self)
+      // 1. Get ALL users who are waiting in same mode, excluding self
       const waitingSnap = await transaction.get(
         usersRef
           .where("status", "==", "waiting")
@@ -18,11 +25,12 @@ export async function POST(req: NextRequest) {
 
       const waitingUsers = waitingSnap.docs.filter(doc => doc.id !== userId);
 
+      // If nobody else is waiting — put this user in queue
       if (waitingUsers.length === 0) {
-        // You're the FIRST → enter queue
-        const userRef = db.doc(`artifacts/${appId}/users/${userId}/profile/main`);
+        const userProfileRef = db.doc(`artifacts/${appId}/users/${userId}/profile`);
+
         transaction.set(
-          userRef,
+          userProfileRef,
           {
             status: "waiting",
             interests,
@@ -32,18 +40,15 @@ export async function POST(req: NextRequest) {
           { merge: true }
         );
 
-        return NextResponse.json(
-          { message: "Waiting for next person..." },
-          { status: 200 }
-        );
+        console.log("⏳ Entered queue as first user:", userId);
+        return NextResponse.json({ message: "Waiting for next person..." }, { status: 200 });
       }
 
-      // 2. You're the SECOND → MATCH with the FIRST in line
-      const partnerDoc = waitingUsers[0]; // ← FIFO: first waiting user
-      const partnerId = partnerDoc.id;
+      // 2. MATCH with the first waiting user
+      const partnerId = waitingUsers[0].id;
 
-      // Create Daily.co room
-      const roomResponse = await fetch("https://api.daily.co/v1/rooms", {
+      // 3. Create Daily.co room at runtime only
+      const roomRes = await fetch("https://api.daily.co/v1/rooms", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.DAILY_API_KEY}`,
@@ -53,36 +58,45 @@ export async function POST(req: NextRequest) {
           name: `bae-${userId}-${partnerId}`,
           properties: {
             enable_prejoin_ui: true,
+            enable_chat: true,
             enable_screenshare: true,
-            lang: "en",
+            start_audio_off: false,
+            start_video_off: false,
             exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
           },
         }),
       });
 
-      const roomData = await roomResponse.json();
-      if (!roomData.url) throw new Error("Failed to create room");
+      const roomData = await roomRes.json();
+      if (!roomRes.ok || !roomData.url) {
+        console.error("❌ Daily.co room creation failed:", roomData);
+        throw new Error("Daily.co room creation failed");
+      }
+
       const roomUrl = roomData.url;
+      console.log("🫶 Matched users in room:", roomUrl);
 
-      // 3. Update both users
-      const userRef = db.doc(`artifacts/${appId}/users/${userId}/profile/main`);
-      const partnerRef = db.doc(`artifacts/${appId}/users/${partnerId}/profile/main`);
+      // 4. Update Firestore docs for both users
+      const myRef = db.doc(`artifacts/${appId}/users/${userId}/profile`);
+      const theirRef = db.doc(`artifacts/${appId}/users/${partnerId}/profile`);
 
-      transaction.update(userRef, {
+      transaction.update(myRef, {
         status: "matched",
         currentRoomUrl: roomUrl,
         partnerId,
         matchedAt: new Date().toISOString(),
       });
 
-      transaction.update(partnerRef, {
+      transaction.update(theirRef, {
         status: "matched",
         currentRoomUrl: roomUrl,
         partnerId: userId,
         matchedAt: new Date().toISOString(),
       });
 
-      // 4. Auto-join
+      console.log("✅ Firestore updated for both users. Launching room.");
+
+      // 5. Return room join payload
       return NextResponse.json({
         matched: true,
         roomUrl,
@@ -90,8 +104,9 @@ export async function POST(req: NextRequest) {
         autoJoin: true,
       });
     });
-  } catch (error) {
-    console.error("Match error:", error);
-    return NextResponse.json({ error: "Matching failed" }, { status: 500 });
+
+  } catch (error: any) {
+    console.error("🔥 Match API error:", error);
+    return NextResponse.json({ error: error.message || "Matching failed" }, { status: 500 });
   }
 }
