@@ -1,222 +1,292 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { db } from '@/lib/firebaseClient';
-import { auth } from '@/lib/firebaseClient';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, User, getAuth, signInAnonymously } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, Save } from 'lucide-react';
+import { User as UserIcon, Save, Sparkles } from 'lucide-react';
 
-const NAV_H = 72;
-const gradientClass = 'bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100';
+// --- ADD THE CONSTANTS HERE (Fix your error) ---
+const MAIN_INSTRUCTION_COPY = "Add More Interests!";
+const MOTIVATION_COPY = "The more interests you add, the stronger your BAE connection will glow ✨";
 
 export default function ProfilePage() {
+  // Firebase initialization only at runtime, exactly once
+  const [authReady, setAuthReady] = useState(false);
+  const [app, setApp] = useState<any>(null);
+  const [db, setDb] = useState<any>(null);
+  const [auth, setAuth] = useState<any>(null);
+
   const [user, setUserState] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [interests, setInterestsState] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [warn, setWarn] = useState(false);
+  const [minInterestWarning, setMinInterestWarning] = useState(false);
 
-  // Load auth + profile from Firestore
+  // Simple navigation replacement (works in PowerShell, no && chaining needed)
+  const navigateHome = () => {
+    window.history.pushState({}, '', '/');
+    window.location.reload();
+  };
+
+  const navigateMatch = () => {
+    if (interests.length < 3) {
+      setMinInterestWarning(true);
+      setTimeout(() => setMinInterestWarning(false), 2000);
+      return;
+    }
+    window.history.pushState({}, '', '/match/page');
+    window.location.reload();
+  };
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        setUserState(null);
-        return;
-      }
-      setUserState(u);
+    const initFirebase = async () => {
+      let firebaseApp;
 
-      try {
-        const snap = await getDoc(doc(db, 'users', u.uid));
-        const data = snap.data();
-        if (data) {
-          setDisplayName(data.displayName || u.displayName || '');
-          setInterestsState(data.interests || []);
-        } else {
-          setDisplayName(u.displayName || '');
-          setInterestsState([]);
+      if (!getApps().length) {
+        firebaseApp = initializeApp(JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG || "{}"));
+      } else {
+        firebaseApp = getApps()[0];
+      }
+
+      const firebaseAuth = getAuth(firebaseApp);
+      const firestore = getFirestore(firebaseApp);
+
+      // Only set state once Firebase is guaranteed initialized
+      setApp(firebaseApp);
+      setAuth(firebaseAuth);
+      setDb(firestore);
+
+      // Anonymous sign-in fallback if needed
+      if (!firebaseAuth.currentUser) {
+        try {
+          await signInAnonymously(firebaseAuth);
+        } catch (e) {
+          console.error("Anonymous auth failed", e);
         }
-      } catch (e) {
-        console.error('Error loading profile', e);
       }
-    });
 
-    return () => unsub();
+      // Auth listener + load profile
+      const unsub = onAuthStateChanged(firebaseAuth, async (u) => {
+        setUserState(u);
+        if (!u) {
+          setAuthReady(true);
+          return;
+        }
+
+        const profileRef = doc(firestore, `artifacts/${firebaseApp.name || "SO-INTERESTING"}/users/${u.uid}/profile/data`);
+        try {
+          const snap = await getDoc(profileRef);
+          const data = snap.exists() ? snap.data() : null;
+
+          if (data) {
+            setDisplayName(data.displayName || u.displayName || u.email || '');
+            setInterestsState(data.interests || []);
+          } else {
+            setDisplayName(u.displayName || u.email || '');
+          }
+        } catch (e) {
+          console.error("Profile load failed", e);
+        } finally {
+          setAuthReady(true);
+        }
+      });
+
+      return () => unsub();
+    };
+
+    initFirebase();
   }, []);
 
-  // Add interest pill
   const addInterest = () => {
     const i = newInterest.trim();
     if (i && !interests.includes(i)) {
-      setInterestsState([...interests, i]);
+      setInterestsState((prev) => [...prev, i]);
     }
     setNewInterest('');
   };
 
-  // Remove interest pill
   const removeInterest = (i: string) => {
-    setInterestsState(interests.filter((x) => x !== i));
+    setInterestsState((prev) => prev.filter((x) => x !== i));
   };
 
-  // Save interests to Firestore
   const saveProfile = async () => {
-    if (!user) return;
+    if (!user || !authReady || !db) return;
+
     if (interests.length < 3) {
-      setWarn(true);
-      setTimeout(() => setWarn(false), 2600);
+      setMinInterestWarning(true);
+      setTimeout(() => setMinInterestWarning(false), 2000);
       return;
     }
 
     setSaving(true);
+    const profileRef = doc(db, `artifacts/${app.name || "SO-INTERESTING"}/users/${user.uid}/profile/data`);
+
     try {
-      await setDoc(
-        doc(db, 'users', user.uid),
-        { displayName, interests, updatedAt: new Date() },
-        { merge: true }
-      );
+      await setDoc(profileRef, {
+        displayName,
+        interests,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
+
     } catch (e) {
-      console.error('Save failed', e);
+      console.error("Interest save failed", e);
+      alert("Save failed");
     } finally {
       setSaving(false);
     }
   };
 
-  // Go to match screen (BAE)
-  const goBAE = () => {
-    if (interests.length < 3) {
-      setWarn(true);
-      setTimeout(() => setWarn(false), 2600);
-      return;
-    }
-    window.location.href = '/match';
-  };
-
-  const canBae = interests.length >= 3;
-  const baeText = canBae ? 'BAE Someone ✨' : '3+ Interests Required';
-
   return (
-    <main className={`min-h-screen w-full overflow-hidden ${gradientClass} text-fuchsia-900`}>
-      {/* fixed header spacer */}
-      <div style={{ height: NAV_H }} />
+    <main className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 px-6 py-14 text-white">
 
-      {/* Personal mini card */}
-      <section className="absolute top-6 right-6">
-        <div className="bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/30 shadow-sm w-32">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-20 h-20">
-              {user?.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt="Profile"
-                  className="w-full h-full object-cover rounded-full border-2 border-fuchsia-400/40"
-                />
-              ) : (
-                <div className="w-full h-full rounded-full bg-white/30 flex items-center justify-center border-2 border-fuchsia-400/40">
-                  <UserIcon size={28} className="text-fuchsia-600/70" />
-                </div>
-              )}
-            </div>
-            <h2 className="text-sm font-bold truncate w-full mt-2">{displayName || 'User'}</h2>
-            <button className="text-[10px] text-fuchsia-600/70 hover:text-fuchsia-700 transition mt-1">
-              Change Photo
-            </button>
+      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+
+        {/* Small personal identity card */}
+        <div className="md:col-span-1 bg-gray-800/55 backdrop-blur-xl p-4 rounded-2xl border border-white/25 flex flex-col items-center gap-2 shadow-sm">
+          <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center border-4 border-fuchsia-400/40 overflow-hidden">
+            {user?.photoURL ? (
+              <img src={user.photoURL} alt="profile" className="w-full h-full object-cover"/>
+            ) : (
+              <UserIcon size={32} className="text-fuchsia-300/70"/>
+            )}
           </div>
+          <span className="text-lg font-bold text-white/90 truncate w-full text-center px-2">
+            {displayName || "User"}
+          </span>
+          <button
+            onClick={() => alert("Photo change later")}
+            className="text-xs font-semibold text-fuchsia-300/90 hover:text-white transition"
+          >
+            Change Profile Photo
+          </button>
         </div>
-      </section>
 
-      {/* Interests Hub */}
-      <div className="mx-auto max-w-3xl px-6 pt-24 text-center">
-        <h1 className="text-3xl font-extrabold mb-6 text-fuchsia-700 drop-shadow-md">Your Mega Interest Graph</h1>
+        {/* Interest hub */}
+        <div className="md:col-span-2 bg-gray-800/80 backdrop-blur-xl p-6 rounded-2xl shadow-md border border-white/20 flex flex-col min-h-[520px]">
 
-        <div className="bg-white/30 backdrop-blur-lg p-5 rounded-2xl border border-white/40 shadow-sm mb-6">
-          <p className="text-fuchsia-700 text-sm font-semibold mb-3">
-            {MAIN_INSTRUCTION_COPY}<br/>
-            <span className="text-xs text-fuchsia-600/60">{MOTIVATION_COPY}</span>
-          </p>
+          <div className="mb-4 border-b border-white/10 pb-2">
+            <h2 className="text-2xl font-extrabold text-fuchsia-300 flex items-center gap-2">
+              <Sparkles size={22}/> Profile Interests
+            </h2>
+            <p className="text-fuchsia-200 text-sm mt-1 opacity-80">{MAIN_INSTRUCTION_COPY}</p>
+            <p className="text-white/50 text-xs mt-1">{MOTIVATION_COPY}</p>
+          </div>
 
-          {/* Input + Add */}
-          <div className="flex gap-3 mb-3">
+          {/* Input */}
+          <div className="flex gap-3 my-4">
             <input
               value={newInterest}
               onChange={(e) => setNewInterest(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addInterest()}
-              placeholder="Add an interest..."
-              className="flex-1 px-4 py-2 rounded-full bg-white/80 text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 placeholder-gray-700 text-sm"
+              placeholder="Add a passion..."
+              className="flex-1 px-4 py-2 rounded-full bg-white/10 border border-white/20 placeholder-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 shadow-sm"
             />
             <motion.button
               onClick={addInterest}
-              disabled={saving}
-              whileTap={{ scale: 0.94 }}
-              className="px-5 py-2 rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 font-bold text-white shadow-md hover:opacity-90 disabled:opacity-40 text-sm"
+              whileHover={{scale:1.03}}
+              whileTap={{scale:0.97}}
+              className="px-5 py-2 bg-gradient-to-r from-fuchsia-500 to-pink-500 rounded-full font-bold text-sm shadow-md"
             >
               Add
             </motion.button>
           </div>
 
-          {/* Interest Pills */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
+          {/* Selected interest pills */}
+          <div className="flex-grow overflow-y-auto mb-5 pr-1">
+            <h3 className="text-sm font-bold text-white/90 mb-2 flex items-center gap-1">
+              <Sparkles size={14}/> Selected ({interests.length})
+            </h3>
             <AnimatePresence>
-              {interests.map((i) => (
-                <motion.span
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  className="px-3 py-1.5 bg-white/80 border border-fuchsia-300/30 rounded-full text-xs font-bold text-fuchsia-700 shadow-sm inline-flex items-center gap-1"
-                >
-                  {i}
-                  <button onClick={() => removeInterest(i)} className="text-fuchsia-600 font-extrabold">
-                    ×
-                  </button>
-                </motion.span>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {interests.map((i) => (
+                  <motion.span
+                    key={i}
+                    initial={{opacity:0, scale:0.9}}
+                    animate={{opacity:1, scale:1}}
+                    exit={{opacity:0, scale:0.9}}
+                    className="px-3 py-1 rounded-full bg-fuchsia-500/18 border border-fuchsia-300/18 text-xs font-semibold shadow-sm flex items-center gap-1"
+                  >
+                    {i}
+                    <button onClick={() => removeInterest(i)} className="text-xs opacity-70 hover:opacity-100">×</button>
+                  </motion.span>
+                ))}
+              </div>
             </AnimatePresence>
           </div>
 
-          {/* Warning */}
+          {/* Min interest warning */}
           <AnimatePresence>
-            {warn && (
+            {minInterestWarning && (
               <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                className="text-red-600 text-xs font-bold mt-2"
+                initial={{opacity:0,y:-6}}
+                animate={{opacity:1,y:0}}
+                exit={{opacity:0,y:-6}}
+                className="bg-red-500/30 border border-red-400/40 text-red-100 text-xs font-bold py-2 px-3 rounded-xl text-center mb-3 shadow-sm"
               >
-                ⚠️ Add at least 3 interests to unlock matching!
+                3+ interests required
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Save + BAE Buttons */}
-          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mt-5">
+          {/* Bottom buttons */}
+          <div className="grid grid-cols-2 gap-3">
             <motion.button
               onClick={saveProfile}
-              disabled={saving || !canBae}
-              whileTap={{ scale: 0.97 }}
-              className={`flex items-center justify-center py-2 rounded-full font-bold shadow-md border border-white/30 disabled:opacity-30 ${
-                saved ? 'bg-green-500/80 border-green-500 text-white' : 'bg-gray-800/40 text-white'
-              } text-sm`}
+              disabled={saving || interests.length < 3}
+              whileTap={{scale:0.97}}
+              className={`w-full py-3 rounded-xl font-extrabold text-sm shadow-sm transition-all border
+                ${saved
+                  ? 'bg-green-500/80 border-green-400/60'
+                  : 'bg-white/15 border-white/25 hover:opacity-80'
+                }
+                ${(saving || interests.length < 3) && !saved ? 'opacity-40 cursor-not-allowed' : ''}
+              `}
             >
-              <Save size={14} className="mr-2" />
-              {saving ? 'Saving...' : 'Save'}
+              <Save size={16} className="mr-1 inline-block align-text-bottom"/>
+              {saving ? 'Saving…' : 'Save'}
             </motion.button>
 
             <motion.button
-              onClick={goBAE}
-              disabled={!canBae}
-              whileTap={{ scale: 0.97 }}
-              className="py-2 rounded-full font-bold text-white shadow-lg bg-gradient-to-r from-fuchsia-500 to-amber-400 disabled:opacity-30 text-sm"
+              onClick={navigateMatch}
+              whileHover={{ scale:1.03 }}
+              whileTap={{ scale:0.97 }}
+              disabled={interests.length < 3}
+              className="w-full py-3 rounded-xl font-extrabold text-sm shadow-sm transition-all bg-gradient-to-r from-fuchsia-500 via-pink-500 to-yellow-500 hover:opacity-90 disabled:opacity-40"
             >
-              {baeText}
+              <Sparkles size={16} className="mr-1 inline-block align-text-bottom"/>
+              BAE
             </motion.button>
           </div>
+
+          {/* Small link to home */}
+          {saved && (
+            <motion.p
+              initial={{opacity:0}}
+              animate={{opacity:1}}
+              exit={{opacity:0}}
+              className="text-green-200 text-[10px] mt-3 text-center font-bold opacity-80"
+            >
+              Also saved on homepage
+              <motion.span
+                onClick={navigateHome}
+                className="cursor-pointer underline ml-1 hover:text-white transition"
+              >
+                (Go home)
+              </motion.span>
+            </motion.p>
+          )}
+
         </div>
+
       </div>
+
     </main>
   );
 }
