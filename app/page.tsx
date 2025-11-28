@@ -8,8 +8,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 
 const NAV_H = 72;
-
-// Rotating words used on both home + auth
 const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
 
 export default function HomePage() {
@@ -18,10 +16,9 @@ export default function HomePage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [userName, setUserName] = useState('');
   const [isChecking, setIsChecking] = useState(true);
-
   const [wordIndex, setWordIndex] = useState(0);
 
-  // Auth state
+  // 🚪 Auth state
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -38,7 +35,7 @@ export default function HomePage() {
     return () => unsub();
   }, []);
 
-  // Rotating word ticker
+  // 🔄 Rotating ticker words
   useEffect(() => {
     const id = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
@@ -57,7 +54,8 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
-      {/* Glow background */}
+
+      {/* Soft glowing background accents */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-fuchsia-300/20 blur-[120px] rounded-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 w-[35rem] h-[35rem] bg-indigo-300/20 blur-[120px] rounded-full" />
 
@@ -69,9 +67,7 @@ export default function HomePage() {
           backdropFilter: 'saturate(1.2) blur(8px)',
         }}
       >
-        <div className="text-3xl font-extrabold tracking-tight text-fuchsia-600">
-          BAE
-        </div>
+        <div className="text-3xl font-extrabold tracking-tight text-fuchsia-600">BAE</div>
         <button
           onClick={() => router.push(userId ? '/profile' : '/auth')}
           className="px-5 py-2 rounded-full bg-white/30 hover:bg-white/40 border border-white/40 text-sm font-semibold text-fuchsia-700 transition-all"
@@ -80,11 +76,9 @@ export default function HomePage() {
         </button>
       </header>
 
-      {/* Hero */}
-      <section
-        className="flex flex-col items-center text-center px-6"
-        style={{ paddingTop: NAV_H + 48 }}
-      >
+      {/* Hero section */}
+      <section className="flex flex-col items-center text-center px-6" style={{ paddingTop: NAV_H + 48 }}>
+
         {/* Meet. Match. BAE. */}
         <motion.h2
           initial={{ opacity: 0, y: 18 }}
@@ -93,9 +87,7 @@ export default function HomePage() {
           className="text-6xl sm:text-7xl font-extrabold leading-tight text-fuchsia-700 drop-shadow-2xl mb-6"
         >
           Meet. Match.{` `}
-          <span className="bg-gradient-to-r from-yellow-400 to-pink-500 bg-clip-text text-transparent">
-            BAE.
-          </span>
+          <span className="bg-gradient-to-r from-yellow-400 to-pink-500 bg-clip-text text-transparent">BAE.</span>
         </motion.h2>
 
         {/* One good conversation... */}
@@ -117,7 +109,7 @@ export default function HomePage() {
           your whole day.
         </motion.p>
 
-        {/* Secondary tagline */}
+        {/* Secondary tagline with glowing "glow" word */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -125,12 +117,22 @@ export default function HomePage() {
           className="text-lg sm:text-xl max-w-3xl text-fuchsia-900/90 mb-10 font-semibold"
         >
           BAE is instant video conversations where your shared interests{' '}
-          <span className="glow-word font-extrabold text-fuchsia-900">
-            glow.
-          </span>
+          <motion.span
+            animate={{
+              boxShadow: [
+                '0 0 5px rgba(255, 215, 0, 0.14)',
+                '0 0 9px rgba(255, 215, 0, 0.22)',
+                '0 0 5px rgba(255, 215, 0, 0.14)',
+              ],
+            }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+            className="inline-block px-2 py-0.5 rounded-full bg-white/10 text-fuchsia-700/95 font-medium"
+          >
+            glow
+          </motion.span>.
         </motion.p>
 
-        {/* CTA */}
+        {/* CTA Button */}
         <motion.button
           whileHover={{ scale: 1.045 }}
           whileTap={{ scale: 0.97 }}
@@ -144,9 +146,7 @@ export default function HomePage() {
             animate={{ opacity: [0.45, 0.8, 0.45], scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity }}
           />
-          <span className="relative z-10">
-            {isChecking ? 'Loading...' : 'BAE Someone Now!'}
-          </span>
+          <span className="relative z-10">{isChecking ? 'Loading...' : 'BAE Someone Now!'}</span>
         </motion.button>
 
         {/* Social proof */}
@@ -158,12 +158,10 @@ export default function HomePage() {
           People online right now
         </div>
 
-        {/* Interests */}
+        {/* Interests box */}
         {userInterests.length > 0 && (
           <div className="mt-12 bg-white/20 backdrop-blur-md rounded-2xl px-8 py-6 border border-white/40 max-w-xl mx-auto shadow-lg">
-            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">
-              Your Interests
-            </h3>
+            <h3 className="text-fuchsia-800 text-xl font-extrabold mb-5 tracking-tight">Your Interests</h3>
             <div className="flex flex-wrap justify-center gap-3">
               {userInterests.map((interest) => (
                 <span
@@ -180,9 +178,7 @@ export default function HomePage() {
         <div className="h-16" />
       </section>
 
-      <footer className="text-center text-fuchsia-800/60 text-sm pb-6">
-        Built with ❤️ by BAE Team
-      </footer>
+      <footer className="text-center text-fuchsia-800/60 text-sm pb-6">Built with ❤️ by BAE Team</footer>
     </main>
   );
 }
