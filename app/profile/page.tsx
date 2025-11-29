@@ -42,12 +42,13 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
       <AnimatePresence>
         {isHovered && (
           <motion.button
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             onClick={() => onRemove(interest)}
-            whileHover={{ backgroundColor: "#ef4444", scale: 1.15 }}
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-fuchsia-500 text-white flex items-center justify-center text-xs font-black shadow-md z-10"
+            whileHover={{ backgroundColor: "#ef4444" }}
+            className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-fuchsia-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm z-10 leading-none"
             aria-label="Remove interest"
           >
             ×
