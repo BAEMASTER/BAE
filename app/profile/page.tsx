@@ -305,7 +305,7 @@ export default function ProfilePage() {
           className="flex-grow w-full max-w-4xl bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl mb-8"
         >
           <h3 className="text-xl font-bold text-fuchsia-800 mb-5 text-center">
-            Your Passions ({interests.length})
+            What You're Really Into ({interests.length})
           </h3>
 
           {interests.length === 0 && (
