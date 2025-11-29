@@ -54,6 +54,42 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
+<main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
+
+  {/* INSERT FLOATING BAE TAGLINES RIGHT HERE ⬇ */}
+  <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
+    {[
+      "To BAE, or not to BAE.",
+      "All You Need is BAE.",
+      "Don't Worry, BAE Happy.",
+      "Keep calm and BAE.",
+      "BAE=MC²."
+    ].map((text, idx) => (
+      <motion.div
+        key={text}
+        initial={{ opacity: 0, x: Math.random() * 100, y: Math.random() * 40 }}
+        animate={{
+          x: [null, Math.random() * 120 - 60, Math.random() * 120 - 60],
+          y: [null, Math.random() * 60 - 30, Math.random() * 60 - 30],
+          opacity: 0.18,
+        }}
+        transition={{
+          duration: 18 + Math.random() * 12,
+          repeat: Infinity,
+          repeatType: "mirror",
+          ease: "easeInOut",
+          delay: idx * 2.8,
+        }}
+        className="absolute font-black text-3xl sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-500"
+      >
+        {text}
+      </motion.div>
+    ))}
+  </div>
+  {/* END INSERT */}
+
+  {/* existing page content below remains unchanged */}
+
 
       {/* Glow background accents */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-fuchsia-300/20 blur-[120px] rounded-full" />
