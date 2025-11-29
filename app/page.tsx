@@ -14,11 +14,11 @@ const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
 
 // --- FIXED: Correct motivational pill copy ---
 const FLOATING_TAGLINES = [
-  "To BAE, or not to BAE.",
+  "To BAE, or not to BAE, That is the Question.",
   "All You Need is BAE.",
   "Don't Worry, BAE Happy.",
-  "Keep calm and BAE.",
-  "I Will Always BAE You.",
+  "BAE the Change You Wish to See",
+  "BAE = MC².",
 ];
 
 // --- Make sure to avoid calling MAIN_INSTRUCTION_COPY differently from the profile page ---
@@ -101,27 +101,44 @@ export default function HomePage() {
 
       {/* FLOATING TAGLINES BG */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
-        {FLOATING_TAGLINES.map((text, idx) => (
-          <motion.div
-            key={text}
-            initial={{ opacity: 0, x: Math.random() * 90, y: Math.random() * 30 }}
-            animate={{
-              x: [null, Math.random() * 140 - 70, Math.random() * 140 - 70],
-              y: [null, Math.random() * 80 - 40, Math.random() * 80 - 40],
-              opacity: 0.17,
-            }}
-            transition={{
-              duration: 20 + Math.random() * 8,
-              repeat: Infinity,
-              repeatType: "mirror",
-              ease: "easeInOut",
-              delay: idx * 3,
-            }}
-            className="absolute text-3xl sm:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-500 whitespace-nowrap"
-          >
-            {text}
-          </motion.div>
-        ))}
+        {FLOATING_TAGLINES.map((text, idx) => {
+          // Generate random starting positions across the full viewport
+          const startX = Math.random() * 100; // 0-100%
+          const startY = Math.random() * 100; // 0-100%
+          
+          return (
+            <motion.div
+              key={text}
+              initial={{ opacity: 0, x: `${startX}vw`, y: `${startY}vh` }}
+              animate={{
+                x: [
+                  `${startX}vw`,
+                  `${Math.random() * 100}vw`,
+                  `${Math.random() * 100}vw`,
+                  `${startX}vw`
+                ],
+                y: [
+                  `${startY}vh`,
+                  `${Math.random() * 100}vh`,
+                  `${Math.random() * 100}vh`,
+                  `${startY}vh`
+                ],
+                opacity: [0, 0.17, 0.17, 0],
+              }}
+              transition={{
+                duration: 25 + Math.random() * 10,
+                repeat: Infinity,
+                repeatType: "loop",
+                ease: "easeInOut",
+                delay: idx * 5,
+              }}
+              className="absolute text-3xl sm:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-500 whitespace-nowrap"
+              style={{ left: 0, top: 0 }}
+            >
+              {text}
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Glow accents */}
