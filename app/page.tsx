@@ -12,16 +12,6 @@ import { Save, Sparkles, XCircle, CheckCircle, Heart, Plus } from 'lucide-react'
 const NAV_H = 72;
 const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
 
-// --- FIXED: Correct motivational pill copy ---
-const FLOATING_TAGLINES = [
-  "To BAE, or not to BAE.",
-  "All You Need is BAE.",
-  "Don't Worry, BAE Happy.",
-  "Keep calm and BAE.",
-  "I Will Always BAE You.",
-];
-
-// --- Make sure to avoid calling MAIN_INSTRUCTION_COPY differently from the profile page ---
 const MIN_REQUIRED = 3;
 
 export default function HomePage() {
@@ -37,7 +27,7 @@ export default function HomePage() {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // State definitions (Fix: corrected setter naming and assignments)
+  // State definitions
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [userInterests, setUserInterests] = useState<string[]>([]);
@@ -99,52 +89,6 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
 
-      {/* FLOATING TAGLINES BG */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
-        {FLOATING_TAGLINES.map((text, idx) => {
-          // Generate unique random positions for each tagline
-          const startX = 10 + Math.random() * 80; // 10-90%
-          const startY = 10 + Math.random() * 80; // 10-90%
-          const midX1 = 10 + Math.random() * 80;
-          const midY1 = 10 + Math.random() * 80;
-          const midX2 = 10 + Math.random() * 80;
-          const midY2 = 10 + Math.random() * 80;
-          
-          return (
-            <motion.div
-              key={text}
-              initial={{ opacity: 0 }}
-              animate={{
-                x: [
-                  `${startX}vw`,
-                  `${midX1}vw`,
-                  `${midX2}vw`,
-                  `${startX}vw`
-                ],
-                y: [
-                  `${startY}vh`,
-                  `${midY1}vh`,
-                  `${midY2}vh`,
-                  `${startY}vh`
-                ],
-                opacity: [0, 0.25, 0.25, 0],
-              }}
-              transition={{
-                duration: 30 + idx * 5,
-                repeat: Infinity,
-                repeatType: "loop",
-                ease: "linear",
-                delay: idx * 6,
-              }}
-              className="absolute text-3xl sm:text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-500 whitespace-nowrap"
-              style={{ left: 0, top: 0 }}
-            >
-              {text}
-            </motion.div>
-          );
-        })}
-      </div>
-
       {/* Glow accents */}
       <div className="pointer-events-none absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-fuchsia-300/20 blur-3xl rounded-full" />
       <div className="pointer-events-none absolute bottom-0 right-0 w-[35rem] h-[35rem] bg-indigo-300/20 blur-3xl rounded-full" />
@@ -173,10 +117,19 @@ export default function HomePage() {
           className="text-2xl sm:text-3xl font-bold mb-8 text-purple-900"
         >
           One great conversation can{' '}
-          <span className="inline-flex justify-center min-w-[7rem]">
-            <span className="bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold">
-              {ROTATING_WORDS[wordIndex]}
-            </span>
+          <span className="inline-flex justify-center min-w-[7rem] relative h-[1.2em]">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={wordIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="absolute bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold"
+              >
+                {ROTATING_WORDS[wordIndex]}
+              </motion.span>
+            </AnimatePresence>
           </span>{' '}
           your whole day.
         </motion.p>
