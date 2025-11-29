@@ -52,7 +52,8 @@ export default function HomePage() {
       }
 
       try {
-        const snap = await getDoc(doc(db, 'users', u.uid, 'profile', 'data'));
+        // FIXED: Read from the same path where profile page saves
+        const snap = await getDoc(doc(db, 'users', u.uid));
         const data = snap.data();
 
         setUserName(data?.displayName || u.displayName || u.email || 'You');
@@ -75,29 +76,16 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, []);
 
-  // ✅ FIXED BAE CTA behavior (ALL cases covered)
-const MIN_REQUIRED = 3;
-
-const handleBAEClick = () => {
-  if (isChecking) return; // still loading auth/profile
-
-  // CASE 1: not signed in
-  if (!user) {
-    router.push('/auth');
-    return;
-  }
-
-  // CASE 2: signed in but needs more interests
-  if (userInterests.length < MIN_REQUIRED) {
-    console.error("❌ Minimum interests not met for matching:", user.uid);
-    alert(`Add at least ${MIN_REQUIRED} interests to unlock video matches! (${MIN_REQUIRED - userInterests.length} more needed!)`);
-    return;
-  }
-
-  // CASE 3: signed in + enough interests = GO MATCH
-  router.push('/match');
-};
-
+  // BAE CTA behavior
+  const handleBAEClick = () => {
+    if (isChecking) return;
+    if (!user) return router.push('/auth');
+    if (userInterests.length < 3) {
+      alert('Add at least 3 interests before BAEing someone!');
+      return;
+    }
+    router.push('/match');
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 text-fuchsia-800">
