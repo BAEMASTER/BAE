@@ -271,26 +271,27 @@ export default function ProfilePage() {
             <AnimatePresence>
               {interests.map((i) => (
                 <motion.span
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.7 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 500, 
-                    damping: 25 
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  className="group relative px-5 py-2.5 rounded-full bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all cursor-default"
-                >
-                  {i}
-                  <button
-                    onClick={() => handleRemoveInterest(i)}
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-fuchsia-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-500 text-xs font-black"
-                  >
-                    ×
-                  </button>
-                </motion.span>
+  key={i}
+  initial={{ opacity: 0, scale: 0.7 }}
+  animate={{ opacity: 1, scale: 1 }}
+  exit={{ opacity: 0, scale: 0.7 }}
+  transition={{ 
+    type: "spring", 
+    stiffness: 500, 
+    damping: 25 
+  }}
+  whileHover={{ scale: 1.05 }}
+  className="group relative px-5 py-2.5 rounded-full bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all cursor-default"
+>
+  {i}
+  <button
+    onClick={() => handleRemoveInterest(i)}
+    className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-fuchsia-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-500 text-sm font-black shadow-md"
+    aria-label="Remove interest"
+  >
+    ×
+  </button>
+</motion.span>
               ))}
             </AnimatePresence>
           </div>
