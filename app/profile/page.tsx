@@ -221,16 +221,7 @@ export default function ProfilePage() {
       </AnimatePresence>
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
-        {/* Tiny identity strip */}
-        <div className="w-full mb-4 text-xs text-purple-800/70">
-          {user && (
-            <>
-              <span className="font-semibold">Signed in as:</span>{' '}
-              <span className="font-bold">{displayName}</span>
-            </>
-          )}
-        </div>
-
+    
         {/* Title */}
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
