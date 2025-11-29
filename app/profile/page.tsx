@@ -46,8 +46,8 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
             onClick={() => onRemove(interest)}
-            whileHover={{ backgroundColor: "#ef4444", scale: 1.1 }}
-            className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-fuchsia-500 text-white flex items-center justify-center text-sm font-black shadow-lg z-10"
+            whileHover={{ backgroundColor: "#ef4444", scale: 1.15 }}
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-fuchsia-500 text-white flex items-center justify-center text-xs font-black shadow-md z-10"
             aria-label="Remove interest"
           >
             ×
@@ -237,7 +237,7 @@ export default function ProfilePage() {
           transition={{ duration: 0.6 }}
           className="text-5xl sm:text-6xl font-black text-fuchsia-700 mb-4 text-center drop-shadow-sm"
         >
-          Your Profile
+          Your Interests Profile
         </motion.h1>
 
         {/* Instruction text */}
@@ -282,7 +282,7 @@ export default function ProfilePage() {
             value={newInterest}
             onChange={(e) => setNewInterest(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
-            placeholder="Add an interest... (e.g., Retro Gaming, Coffee Rituals)"
+            placeholder="Add Your Interests Here!"
             className="flex-1 px-5 py-3.5 rounded-full bg-white/80 backdrop-blur-sm ring-2 ring-fuchsia-300/50 shadow-md focus:outline-none focus:ring-fuchsia-500 focus:ring-2 text-gray-900 placeholder-gray-500 text-base font-medium transition-all"
             maxLength={40}
           />
