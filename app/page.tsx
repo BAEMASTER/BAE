@@ -117,15 +117,15 @@ export default function HomePage() {
           className="text-2xl sm:text-3xl font-bold mb-8 text-purple-900"
         >
           One great conversation can{' '}
-          <span className="inline-flex justify-center min-w-[7rem] relative h-[1.2em]">
+          <span className="inline-block min-w-[7rem] relative align-baseline">
             <AnimatePresence mode="wait">
               <motion.span
                 key={wordIndex}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="absolute bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className="bg-gradient-to-r from-fuchsia-500 to-pink-500 bg-clip-text text-transparent font-extrabold"
               >
                 {ROTATING_WORDS[wordIndex]}
               </motion.span>
