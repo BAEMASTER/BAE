@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Save, XCircle, CheckCircle } from 'lucide-react';
 
 // Copy + config
-const MAIN_INSTRUCTION_COPY = 'Your shared interests will glow during calls - the more you add, the better!';
+const MAIN_INSTRUCTION_COPY = 'Your shared interests will glow during conversations - the more you add, the better!';
 const MIN_REQUIRED = 3;
 
 // Simple router using window.location
@@ -18,6 +18,45 @@ const useSimpleRouter = () => {
   };
   return { push };
 };
+
+// Interest Pill Component
+function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: string) => void }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <motion.span
+      initial={{ opacity: 0, scale: 0.7 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.7 }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 500, 
+        damping: 25 
+      }}
+      whileHover={{ scale: 1.05 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative px-5 py-2.5 rounded-full bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all cursor-default"
+    >
+      {interest}
+      <AnimatePresence>
+        {isHovered && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            onClick={() => onRemove(interest)}
+            whileHover={{ backgroundColor: "#ef4444", scale: 1.1 }}
+            className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-fuchsia-500 text-white flex items-center justify-center text-sm font-black shadow-lg z-10"
+            aria-label="Remove interest"
+          >
+            ×
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </motion.span>
+  );
+}
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,6 +70,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [hasSeenCelebration, setHasSeenCelebration] = useState(false);
 
   const router = useSimpleRouter();
 
@@ -52,6 +92,7 @@ export default function ProfilePage() {
         if (data) {
           setDisplayName(data.displayName || u.displayName || u.email || 'Mystery BAE');
           setInterests(Array.isArray(data.interests) ? data.interests : []);
+          setHasSeenCelebration(data.hasSeenCelebration || false);
         } else {
           setDisplayName(u.displayName || u.email || 'Mystery BAE');
         }
@@ -65,13 +106,19 @@ export default function ProfilePage() {
     return () => unsub();
   }, []);
 
-  // Check for celebration when hitting 3 interests
+  // Check for celebration when hitting 3 interests (only first time)
   useEffect(() => {
-    if (interests.length === MIN_REQUIRED) {
+    if (interests.length === MIN_REQUIRED && !hasSeenCelebration && user) {
       setShowCelebration(true);
+      setHasSeenCelebration(true);
+      
+      // Save the flag to Firestore
+      const ref = doc(db, 'users', user.uid);
+      setDoc(ref, { hasSeenCelebration: true }, { merge: true }).catch(console.error);
+      
       setTimeout(() => setShowCelebration(false), 3000);
     }
-  }, [interests.length]);
+  }, [interests.length, hasSeenCelebration, user]);
 
   const handleAddInterest = () => {
     const i = newInterest.trim();
@@ -270,28 +317,11 @@ export default function ProfilePage() {
           <div className="flex flex-wrap justify-center gap-3">
             <AnimatePresence>
               {interests.map((i) => (
-                <motion.span
-  key={i}
-  initial={{ opacity: 0, scale: 0.7 }}
-  animate={{ opacity: 1, scale: 1 }}
-  exit={{ opacity: 0, scale: 0.7 }}
-  transition={{ 
-    type: "spring", 
-    stiffness: 500, 
-    damping: 25 
-  }}
-  whileHover={{ scale: 1.05 }}
-  className="group relative px-5 py-2.5 rounded-full bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all cursor-default"
->
-  {i}
-  <button
-    onClick={() => handleRemoveInterest(i)}
-    className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-fuchsia-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-500 text-sm font-black shadow-md"
-    aria-label="Remove interest"
-  >
-    ×
-  </button>
-</motion.span>
+                <InterestPill 
+                  key={i} 
+                  interest={i} 
+                  onRemove={handleRemoveInterest} 
+                />
               ))}
             </AnimatePresence>
           </div>
