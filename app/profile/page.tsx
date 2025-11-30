@@ -564,28 +564,33 @@ export default function ProfilePage() {
 
         </div>
 
-        {/* Single centered BAE button */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="flex justify-center w-full max-w-xl"
-        >
-          <motion.button
-            onClick={handleGoBAE}
-            whileHover={{ scale: canBae ? 1.03 : 1 }}
-            whileTap={{ scale: canBae ? 0.97 : 1 }}
-            disabled={!canBae}
-            className={`flex items-center justify-center gap-2 px-8 py-5 rounded-2xl text-xl font-black shadow-lg transition-all ${
-              canBae 
-                ? 'bg-gradient-to-r from-amber-300 to-yellow-400 border-2 border-yellow-500/50 shadow-yellow-300/50 hover:shadow-xl hover:brightness-110' 
-                : 'bg-gray-300 text-gray-500 border-2 border-gray-400/50 cursor-not-allowed opacity-60'
-            }`}
-          >
-            <Sparkles size={20} />
-            {canBae ? 'BAE SOMEONE NOW!' : `Need ${requiredRemaining} more`}
-          </motion.button>
-        </motion.div>
+       {/* Single centered BAE button */}
+<motion.div 
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.6, duration: 0.6 }}
+  className="flex justify-center w-full max-w-xl"
+>
+  <motion.button
+    onClick={handleGoBAE}
+    whileHover={{ scale: canBae ? 1.045 : 1 }}
+    whileTap={{ scale: canBae ? 0.97 : 1 }}
+    disabled={!canBae}
+    className={`relative flex items-center justify-center gap-2 px-10 sm:px-14 py-5 sm:py-6 rounded-full text-white text-xl sm:text-2xl font-black shadow-lg transition-all ${
+      canBae 
+        ? 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 hover:shadow-xl' 
+        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+    }`}
+  >
+    <Sparkles size={24} />
+    <span className="relative z-10">
+      {canBae ? 'BAE SOMEONE NOW!' : `Need ${requiredRemaining} more`}
+    </span>
+    {canBae && (
+      <span className="absolute inset-0 bg-white/10 blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-700"></span>
+    )}
+  </motion.button>
+</motion.div>
       </div>
     </main>
   );
