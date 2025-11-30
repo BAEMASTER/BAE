@@ -99,45 +99,76 @@ function InterestExplorer({
   userInterests: string[]; 
   onAddInterest: (interest: string) => void;
 }) {
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [unseenProfiles, setUnseenProfiles] = useState<any[]>([]);
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchRandomProfile = async () => {
-    setLoading(true);
-    try {
-      // Fetch all users except current user
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, limit(50));
-      const snapshot = await getDocs(q);
+  // Fetch all profiles once on mount
+  useEffect(() => {
+    const fetchAllProfiles = async () => {
+      if (!currentUserId) return;
       
-      const profiles = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter((profile: any) => 
-          profile.id !== currentUserId && 
-          Array.isArray(profile.interests) && 
-          profile.interests.length > 0
-        );
+      setLoading(true);
+      try {
+        const usersRef = collection(db, 'users');
+        const snapshot = await getDocs(usersRef);
+        
+        const profiles = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter((profile: any) => 
+            profile.id !== currentUserId && 
+            Array.isArray(profile.interests) && 
+            profile.interests.length > 0
+          );
 
-      if (profiles.length > 0) {
-        // Pick random profile
-        const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
-        setCurrentProfile(randomProfile);
+        setAllProfiles(profiles);
+        setUnseenProfiles([...profiles]); // Start with all unseen
+        
+        // Pick first random profile
+        if (profiles.length > 0) {
+          const randomIndex = Math.floor(Math.random() * profiles.length);
+          setCurrentProfile(profiles[randomIndex]);
+          setUnseenProfiles(profiles.filter((_, i) => i !== randomIndex));
+        }
+      } catch (error) {
+        console.error('Error fetching profiles:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-    } finally {
-      setLoading(false);
+    };
+
+    fetchAllProfiles();
+  }, [currentUserId]);
+
+  const showNextProfile = () => {
+    if (unseenProfiles.length === 0) {
+      // Seen everyone, reset the pool (excluding current profile)
+      const resetPool = allProfiles.filter(p => p.id !== currentProfile?.id);
+      setUnseenProfiles(resetPool);
+      
+      if (resetPool.length > 0) {
+        const randomIndex = Math.floor(Math.random() * resetPool.length);
+        setCurrentProfile(resetPool[randomIndex]);
+        setUnseenProfiles(resetPool.filter((_, i) => i !== randomIndex));
+      }
+    } else {
+      // Pick random from unseen
+      const randomIndex = Math.floor(Math.random() * unseenProfiles.length);
+      setCurrentProfile(unseenProfiles[randomIndex]);
+      setUnseenProfiles(unseenProfiles.filter((_, i) => i !== randomIndex));
     }
   };
 
-  // Load initial profile
-  useEffect(() => {
-    if (currentUserId) {
-      fetchRandomProfile();
-    }
-  }, [currentUserId]);
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin text-4xl">✨</div>
+      </div>
+    );
+  }
 
-  if (!currentProfile && !loading) {
+  if (!currentProfile && allProfiles.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-fuchsia-600 font-semibold">No profiles available yet</p>
@@ -145,7 +176,7 @@ function InterestExplorer({
     );
   }
 
-  // FIXED: Case-insensitive shared interest count
+  // Case-insensitive shared interest count
   const sharedCount = currentProfile?.interests?.filter((i: string) => 
     userInterests.some(userInt => userInt.toLowerCase() === i.toLowerCase())
   ).length || 0;
@@ -153,17 +184,7 @@ function InterestExplorer({
   return (
     <div className="relative">
       <AnimatePresence mode="wait">
-        {loading ? (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center py-12"
-          >
-            <div className="animate-spin text-4xl">✨</div>
-          </motion.div>
-        ) : currentProfile ? (
+        {currentProfile ? (
           <motion.div
             key={currentProfile.id}
             initial={{ opacity: 0, x: 20 }}
@@ -179,7 +200,7 @@ function InterestExplorer({
               </h4>
             </div>
 
-            {/* Interests - FIXED: Case-insensitive isAlreadyAdded check */}
+            {/* Interests */}
             <div className="flex flex-wrap gap-2 mb-4">
               {currentProfile.interests?.map((interest: string) => (
                 <ExplorerInterestPill
@@ -200,7 +221,7 @@ function InterestExplorer({
 
             {/* Next button */}
             <motion.button
-              onClick={fetchRandomProfile}
+              onClick={showNextProfile}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-bold shadow-lg hover:shadow-xl transition-all"
@@ -208,6 +229,11 @@ function InterestExplorer({
               <RefreshCw size={18} />
               Next Profile
             </motion.button>
+            
+            {/* Debug info (remove later) */}
+            <p className="text-xs text-center mt-2 text-gray-500">
+              {unseenProfiles.length} profiles left to see
+            </p>
           </motion.div>
         ) : null}
       </AnimatePresence>
