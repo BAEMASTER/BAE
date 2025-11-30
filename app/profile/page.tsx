@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Save, XCircle, CheckCircle } from 'lucide-react';
+import { Sparkles, Save, XCircle, CheckCircle, RefreshCw } from 'lucide-react';
 
 // Copy + config
 const MAIN_INSTRUCTION_COPY = 'Your shared interests will glow during conversations - the more you add, the better!';
@@ -19,7 +19,7 @@ const useSimpleRouter = () => {
   return { push };
 };
 
-// Interest Pill Component
+// Interest Pill Component (for user's own interests)
 function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: string) => void }) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -56,6 +56,161 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
         )}
       </AnimatePresence>
     </motion.span>
+  );
+}
+
+// Explorer Interest Pill (clickable to add)
+function ExplorerInterestPill({ 
+  interest, 
+  isAlreadyAdded, 
+  onAdd 
+}: { 
+  interest: string; 
+  isAlreadyAdded: boolean; 
+  onAdd: (interest: string) => void;
+}) {
+  return (
+    <motion.button
+      onClick={() => !isAlreadyAdded && onAdd(interest)}
+      whileHover={{ scale: isAlreadyAdded ? 1 : 1.05 }}
+      whileTap={{ scale: isAlreadyAdded ? 1 : 0.95 }}
+      disabled={isAlreadyAdded}
+      className={`relative px-4 py-2 rounded-full text-sm font-bold shadow-md transition-all ${
+        isAlreadyAdded
+          ? 'bg-fuchsia-100 text-fuchsia-400 border-2 border-fuchsia-200 cursor-default opacity-60'
+          : 'bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 hover:shadow-lg cursor-pointer'
+      }`}
+    >
+      {interest}
+      {isAlreadyAdded && (
+        <span className="ml-1.5 text-xs">✓</span>
+      )}
+    </motion.button>
+  );
+}
+
+// Interest Explorer Component
+function InterestExplorer({ 
+  currentUserId, 
+  userInterests, 
+  onAddInterest 
+}: { 
+  currentUserId: string; 
+  userInterests: string[]; 
+  onAddInterest: (interest: string) => void;
+}) {
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchRandomProfile = async () => {
+    setLoading(true);
+    try {
+      // Fetch all users except current user
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, limit(50)); // Get 50 users
+      const snapshot = await getDocs(q);
+      
+      const profiles = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(profile => 
+          profile.id !== currentUserId && 
+          Array.isArray(profile.interests) && 
+          profile.interests.length > 0
+        );
+
+      if (profiles.length > 0) {
+        // Pick random profile
+        const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
+        setCurrentProfile(randomProfile);
+      }
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load initial profile
+  useEffect(() => {
+    if (currentUserId) {
+      fetchRandomProfile();
+    }
+  }, [currentUserId]);
+
+  if (!currentProfile && !loading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-fuchsia-600 font-semibold">No profiles available yet</p>
+      </div>
+    );
+  }
+
+  const sharedCount = currentProfile?.interests?.filter((i: string) => 
+    userInterests.includes(i)
+  ).length || 0;
+
+  return (
+    <div className="relative">
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center py-12"
+          >
+            <div className="animate-spin text-4xl">✨</div>
+          </motion.div>
+        ) : currentProfile ? (
+          <motion.div
+            key={currentProfile.id}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white/40 backdrop-blur-xl p-6 rounded-3xl border border-white/60 shadow-xl"
+          >
+            {/* Profile Header */}
+            <div className="mb-4">
+              <h4 className="text-lg font-bold text-fuchsia-700">
+                {currentProfile.displayName || 'Anonymous'} • {currentProfile.location || 'Unknown'}
+              </h4>
+            </div>
+
+            {/* Interests */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {currentProfile.interests?.map((interest: string) => (
+                <ExplorerInterestPill
+                  key={interest}
+                  interest={interest}
+                  isAlreadyAdded={userInterests.includes(interest)}
+                  onAdd={onAddInterest}
+                />
+              ))}
+            </div>
+
+            {/* Shared count */}
+            {sharedCount > 0 && (
+              <p className="text-sm text-fuchsia-600 font-semibold mb-4">
+                {sharedCount} shared interest{sharedCount > 1 ? 's' : ''} ✨
+              </p>
+            )}
+
+            {/* Next button */}
+            <motion.button
+              onClick={fetchRandomProfile}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+            >
+              <RefreshCw size={18} />
+              Next Profile
+            </motion.button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -113,7 +268,6 @@ export default function ProfilePage() {
       setShowCelebration(true);
       setHasSeenCelebration(true);
       
-      // Save the flag to Firestore
       const ref = doc(db, 'users', user.uid);
       setDoc(ref, { hasSeenCelebration: true }, { merge: true }).catch(console.error);
       
@@ -126,11 +280,17 @@ export default function ProfilePage() {
     if (!i) return;
 
     if (!interests.includes(i)) {
-      // Capitalize first letter, keep the rest as typed
       const normalized = i.charAt(0).toUpperCase() + i.slice(1);
       setInterests((prev) => [...prev, normalized]);
     }
     setNewInterest('');
+  };
+
+  const handleAddInterestFromExplorer = (interest: string) => {
+    if (!interests.includes(interest)) {
+      setInterests((prev) => [...prev, interest]);
+      // Could add a toast notification here
+    }
   };
 
   const handleRemoveInterest = (value: string) => {
@@ -220,7 +380,7 @@ export default function ProfilePage() {
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-7xl flex flex-col items-center">
     
         {/* Title */}
         <motion.h1 
@@ -265,12 +425,6 @@ export default function ProfilePage() {
           className="flex w-full max-w-xl gap-3 mb-8"
         >
           <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Display name"
-            className="hidden"
-          />
-          <input
             value={newInterest}
             onChange={(e) => setNewInterest(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
@@ -289,41 +443,72 @@ export default function ProfilePage() {
           </motion.button>
         </motion.div>
 
-        {/* Interest pill list */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          className="flex-grow w-full max-w-4xl bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl mb-8"
-        >
-          <h3 className="text-xl font-bold text-fuchsia-800 mb-5 text-center">
-            What You're Really Into ({interests.length})
-          </h3>
+        {/* SIDE-BY-SIDE LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full mb-8">
+          
+          {/* LEFT: Your Interests */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl"
+          >
+            <h3 className="text-xl font-bold text-fuchsia-800 mb-5 text-center">
+              What You're Really Into
+            </h3>
 
-          {interests.length === 0 && (
-            <p className="text-sm italic opacity-50 text-center text-purple-700">
-              No interests yet — add a few to get started! ✨
+            {interests.length === 0 && (
+              <p className="text-sm italic opacity-50 text-center text-purple-700 mb-4">
+                No interests yet — add a few to get started! ✨
+              </p>
+            )}
+
+            <div className="flex flex-wrap justify-center gap-3 mb-4">
+              <AnimatePresence>
+                {interests.map((i) => (
+                  <InterestPill 
+                    key={i} 
+                    interest={i} 
+                    onRemove={handleRemoveInterest} 
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+
+            <p className="text-center text-sm text-fuchsia-600 font-semibold">
+              You've added {interests.length} interest{interests.length !== 1 ? 's' : ''}
             </p>
-          )}
+          </motion.div>
 
-          <div className="flex flex-wrap justify-center gap-3">
-            <AnimatePresence>
-              {interests.map((i) => (
-                <InterestPill 
-                  key={i} 
-                  interest={i} 
-                  onRemove={handleRemoveInterest} 
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-        </motion.div>
+          {/* RIGHT: Interest Explorer */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            <h3 className="text-xl font-bold text-fuchsia-800 mb-4 text-center">
+              ✨ Get Inspired
+            </h3>
+            <p className="text-sm text-purple-700 mb-4 text-center">
+              Explore others' interests - tap to add them to yours!
+            </p>
+            
+            {user && (
+              <InterestExplorer 
+                currentUserId={user.uid}
+                userInterests={interests}
+                onAddInterest={handleAddInterestFromExplorer}
+              />
+            )}
+          </motion.div>
+
+        </div>
 
         {/* Bottom buttons */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
           className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-xl"
         >
           <motion.button
