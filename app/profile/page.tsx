@@ -103,31 +103,32 @@ function InterestExplorer({
   const [loading, setLoading] = useState(false);
 
   const fetchRandomProfile = async () => {
-  setLoading(true);
-  try {
-    // Fetch all users except current user
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, limit(50));
-    const snapshot = await getDocs(q);
-    
-    const profiles = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter((profile: any) =>  // Add 'any' type here
-        profile.id !== currentUserId && 
-        Array.isArray(profile.interests) && 
-        profile.interests.length > 0
-      );
+    setLoading(true);
+    try {
+      // Fetch all users except current user
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, limit(50));
+      const snapshot = await getDocs(q);
+      
+      const profiles = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((profile: any) => 
+          profile.id !== currentUserId && 
+          Array.isArray(profile.interests) && 
+          profile.interests.length > 0
+        );
 
-    if (profiles.length > 0) {
-      const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
-      setCurrentProfile(randomProfile);
+      if (profiles.length > 0) {
+        // Pick random profile
+        const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
+        setCurrentProfile(randomProfile);
+      }
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Load initial profile
   useEffect(() => {
@@ -144,8 +145,9 @@ function InterestExplorer({
     );
   }
 
+  // FIXED: Case-insensitive shared interest count
   const sharedCount = currentProfile?.interests?.filter((i: string) => 
-    userInterests.includes(i)
+    userInterests.some(userInt => userInt.toLowerCase() === i.toLowerCase())
   ).length || 0;
 
   return (
@@ -177,13 +179,13 @@ function InterestExplorer({
               </h4>
             </div>
 
-            {/* Interests */}
+            {/* Interests - FIXED: Case-insensitive isAlreadyAdded check */}
             <div className="flex flex-wrap gap-2 mb-4">
               {currentProfile.interests?.map((interest: string) => (
                 <ExplorerInterestPill
                   key={interest}
                   interest={interest}
-                  isAlreadyAdded={userInterests.includes(interest)}
+                  isAlreadyAdded={userInterests.some(i => i.toLowerCase() === interest.toLowerCase())}
                   onAdd={onAddInterest}
                 />
               ))}
@@ -285,10 +287,13 @@ export default function ProfilePage() {
     setNewInterest('');
   };
 
+  // FIXED: Case-insensitive duplicate check when adding from Explorer
   const handleAddInterestFromExplorer = (interest: string) => {
-    if (!interests.includes(interest)) {
+    const interestLower = interest.toLowerCase();
+    const alreadyExists = interests.some(i => i.toLowerCase() === interestLower);
+    
+    if (!alreadyExists) {
       setInterests((prev) => [...prev, interest]);
-      // Could add a toast notification here
     }
   };
 
