@@ -5,7 +5,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Save, XCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, XCircle, CheckCircle, RefreshCw } from 'lucide-react';
 
 // Copy + config
 const MAIN_INSTRUCTION_COPY = 'Your shared interests will glow during conversations - the more you add, the better!';
@@ -289,8 +289,6 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
 
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasSeenCelebration, setHasSeenCelebration] = useState(false);
@@ -340,17 +338,36 @@ export default function ProfilePage() {
     }
   }, [interests.length, hasSeenCelebration, user]);
 
-  const handleAddInterest = () => {
+  // AUTO-SAVE: Manual interest add
+  const handleAddInterest = async () => {
     const i = newInterest.trim();
-    if (!i) return;
+    if (!i || !user) return;
 
-    if (!interests.includes(i)) {
-      const normalized = i.charAt(0).toUpperCase() + i.slice(1);
-      setInterests((prev) => [...prev, normalized]);
+    const normalized = i.charAt(0).toUpperCase() + i.slice(1);
+    
+    if (!interests.includes(normalized)) {
+      const newInterests = [...interests, normalized];
+      setInterests(newInterests);
+      
+      // Auto-save to Firestore
+      try {
+        const ref = doc(db, 'users', user.uid);
+        await setDoc(
+          ref,
+          { 
+            interests: newInterests,
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        );
+      } catch (e) {
+        console.error('Auto-save failed', e);
+      }
     }
     setNewInterest('');
   };
 
+  // AUTO-SAVE: Interest add from Explorer
   const handleAddInterestFromExplorer = async (interest: string) => {
     const interestLower = interest.toLowerCase();
     const alreadyExists = interests.some(i => i.toLowerCase() === interestLower);
@@ -377,37 +394,6 @@ export default function ProfilePage() {
 
   const handleRemoveInterest = (value: string) => {
     setInterests((prev) => prev.filter((x) => x !== value));
-  };
-
-  const handleSaveProfile = async () => {
-    if (!user) return;
-
-    if (interests.length < MIN_REQUIRED) {
-      setMinInterestWarning(true);
-      setTimeout(() => setMinInterestWarning(false), 1800);
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const ref = doc(db, 'users', user.uid);
-      await setDoc(
-        ref,
-        {
-          displayName,
-          interests,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
-    } catch (e) {
-      console.error('Save failed', e);
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleGoBAE = () => {
@@ -578,39 +564,25 @@ export default function ProfilePage() {
 
         </div>
 
+        {/* Single centered BAE button */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.6 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full max-w-xl"
+          className="flex justify-center w-full max-w-xl"
         >
-          <motion.button
-            onClick={handleSaveProfile}
-            disabled={saving}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-base font-black shadow-lg transition-all border-2 ${
-              saved
-                ? 'bg-green-500 text-white border-green-600 shadow-green-300/50'
-                : 'bg-white/80 backdrop-blur-sm text-fuchsia-600 border-fuchsia-300/50 hover:bg-white hover:shadow-xl'
-            } ${saving ? 'opacity-60 cursor-not-allowed' : ''}`}
-          >
-            <Save size={18} />
-            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Interests'}
-          </motion.button>
-
           <motion.button
             onClick={handleGoBAE}
             whileHover={{ scale: canBae ? 1.03 : 1 }}
             whileTap={{ scale: canBae ? 0.97 : 1 }}
             disabled={!canBae}
-            className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-lg font-black shadow-lg transition-all ${
+            className={`flex items-center justify-center gap-2 px-8 py-5 rounded-2xl text-xl font-black shadow-lg transition-all ${
               canBae 
                 ? 'bg-gradient-to-r from-amber-300 to-yellow-400 border-2 border-yellow-500/50 shadow-yellow-300/50 hover:shadow-xl hover:brightness-110' 
                 : 'bg-gray-300 text-gray-500 border-2 border-gray-400/50 cursor-not-allowed opacity-60'
             }`}
           >
-            <Sparkles size={18} />
+            <Sparkles size={20} />
             {canBae ? 'BAE SOMEONE NOW!' : `Need ${requiredRemaining} more`}
           </motion.button>
         </motion.div>
