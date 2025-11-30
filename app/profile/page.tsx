@@ -103,32 +103,31 @@ function InterestExplorer({
   const [loading, setLoading] = useState(false);
 
   const fetchRandomProfile = async () => {
-    setLoading(true);
-    try {
-      // Fetch all users except current user
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, limit(50)); // Get 50 users
-      const snapshot = await getDocs(q);
-      
-      const profiles = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(profile => 
-          profile.id !== currentUserId && 
-          Array.isArray(profile.interests) && 
-          profile.interests.length > 0
-        );
+  setLoading(true);
+  try {
+    // Fetch all users except current user
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, limit(50));
+    const snapshot = await getDocs(q);
+    
+    const profiles = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter((profile: any) =>  // Add 'any' type here
+        profile.id !== currentUserId && 
+        Array.isArray(profile.interests) && 
+        profile.interests.length > 0
+      );
 
-      if (profiles.length > 0) {
-        // Pick random profile
-        const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
-        setCurrentProfile(randomProfile);
-      }
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-    } finally {
-      setLoading(false);
+    if (profiles.length > 0) {
+      const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
+      setCurrentProfile(randomProfile);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Load initial profile
   useEffect(() => {
