@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Save, XCircle, CheckCircle, RefreshCw } from 'lucide-react';
@@ -69,9 +69,38 @@ function ExplorerInterestPill({
   isAlreadyAdded: boolean; 
   onAdd: (interest: string) => void;
 }) {
+  const playWhooshSound = () => {
+    try {
+      // Create a simple beep using Web Audio API (no external file needed)
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // Frequency in Hz
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (e) {
+      // Silently fail if audio doesn't work
+      console.log('Audio not supported');
+    }
+  };
+
   return (
     <motion.button
-      onClick={() => !isAlreadyAdded && onAdd(interest)}
+      onClick={() => {
+        if (!isAlreadyAdded) {
+          playWhooshSound();
+          onAdd(interest);
+        }
+      }}
       whileHover={{ scale: isAlreadyAdded ? 1 : 1.05 }}
       whileTap={{ scale: isAlreadyAdded ? 1 : 0.95 }}
       disabled={isAlreadyAdded}
@@ -191,7 +220,6 @@ function InterestExplorer({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
-            className="bg-white/40 backdrop-blur-xl p-6 rounded-3xl border border-white/60 shadow-xl"
           >
             {/* Profile Header */}
             <div className="mb-4">
@@ -229,11 +257,6 @@ function InterestExplorer({
               <RefreshCw size={18} />
               Next Profile
             </motion.button>
-            
-            {/* Debug info (remove later) */}
-            <p className="text-xs text-center mt-2 text-gray-500">
-              {unseenProfiles.length} profiles left to see
-            </p>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -313,13 +336,29 @@ export default function ProfilePage() {
     setNewInterest('');
   };
 
-  // FIXED: Case-insensitive duplicate check when adding from Explorer
-  const handleAddInterestFromExplorer = (interest: string) => {
+  // AUTO-SAVE: Case-insensitive duplicate check + auto-save to Firestore
+  const handleAddInterestFromExplorer = async (interest: string) => {
     const interestLower = interest.toLowerCase();
     const alreadyExists = interests.some(i => i.toLowerCase() === interestLower);
     
-    if (!alreadyExists) {
-      setInterests((prev) => [...prev, interest]);
+    if (!alreadyExists && user) {
+      const newInterests = [...interests, interest];
+      setInterests(newInterests);
+      
+      // Auto-save to Firestore
+      try {
+        const ref = doc(db, 'users', user.uid);
+        await setDoc(
+          ref,
+          { 
+            interests: newInterests,
+            updatedAt: new Date().toISOString()
+          },
+          { merge: true }
+        );
+      } catch (e) {
+        console.error('Auto-save failed', e);
+      }
     }
   };
 
@@ -510,16 +549,17 @@ export default function ProfilePage() {
             </p>
           </motion.div>
 
-          {/* RIGHT: Interest Explorer */}
+          {/* RIGHT: Interest Explorer - EXTENDED CARD WITH HEADERS INSIDE */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
+            className="bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl"
           >
-            <h3 className="text-xl font-bold text-fuchsia-800 mb-4 text-center">
+            <h3 className="text-xl font-bold text-fuchsia-800 mb-2 text-center">
               ✨ Get Inspired
             </h3>
-            <p className="text-sm text-purple-700 mb-4 text-center">
+            <p className="text-base font-semibold text-purple-900 mb-6 text-center">
               Explore others' interests - tap to add them to yours!
             </p>
             
