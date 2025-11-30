@@ -69,26 +69,52 @@ function ExplorerInterestPill({
   isAlreadyAdded: boolean; 
   onAdd: (interest: string) => void;
 }) {
-  const playWhooshSound = () => {
+  const playPopShimmer = () => {
     try {
-      // Create a simple beep using Web Audio API (no external file needed)
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Part 1: Soft Pop (warm bubble pop)
+      const popOsc = audioContext.createOscillator();
+      const popGain = audioContext.createGain();
       
-      oscillator.frequency.value = 800; // Frequency in Hz
-      oscillator.type = 'sine';
+      popOsc.connect(popGain);
+      popGain.connect(audioContext.destination);
       
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+      popOsc.frequency.setValueAtTime(400, audioContext.currentTime);
+      popOsc.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.05);
+      popOsc.type = 'sine';
       
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
+      popGain.gain.setValueAtTime(0.25, audioContext.currentTime);
+      popGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+      
+      popOsc.start(audioContext.currentTime);
+      popOsc.stop(audioContext.currentTime + 0.05);
+      
+      // Part 2: Rising Shimmer (ascending sparkles)
+      const shimmerFreqs = [800, 1000, 1200, 1400];
+      const shimmerStart = audioContext.currentTime + 0.05;
+      
+      shimmerFreqs.forEach((freq, index) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        
+        const startTime = shimmerStart + (index * 0.025);
+        const duration = 0.08;
+        
+        gain.gain.setValueAtTime(0.15, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      });
+      
     } catch (e) {
-      // Silently fail if audio doesn't work
       console.log('Audio not supported');
     }
   };
@@ -97,7 +123,7 @@ function ExplorerInterestPill({
     <motion.button
       onClick={() => {
         if (!isAlreadyAdded) {
-          playWhooshSound();
+          playPopShimmer();
           onAdd(interest);
         }
       }}
@@ -133,7 +159,6 @@ function InterestExplorer({
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch all profiles once on mount
   useEffect(() => {
     const fetchAllProfiles = async () => {
       if (!currentUserId) return;
@@ -152,9 +177,8 @@ function InterestExplorer({
           );
 
         setAllProfiles(profiles);
-        setUnseenProfiles([...profiles]); // Start with all unseen
+        setUnseenProfiles([...profiles]);
         
-        // Pick first random profile
         if (profiles.length > 0) {
           const randomIndex = Math.floor(Math.random() * profiles.length);
           setCurrentProfile(profiles[randomIndex]);
@@ -172,7 +196,6 @@ function InterestExplorer({
 
   const showNextProfile = () => {
     if (unseenProfiles.length === 0) {
-      // Seen everyone, reset the pool (excluding current profile)
       const resetPool = allProfiles.filter(p => p.id !== currentProfile?.id);
       setUnseenProfiles(resetPool);
       
@@ -182,7 +205,6 @@ function InterestExplorer({
         setUnseenProfiles(resetPool.filter((_, i) => i !== randomIndex));
       }
     } else {
-      // Pick random from unseen
       const randomIndex = Math.floor(Math.random() * unseenProfiles.length);
       setCurrentProfile(unseenProfiles[randomIndex]);
       setUnseenProfiles(unseenProfiles.filter((_, i) => i !== randomIndex));
@@ -205,7 +227,6 @@ function InterestExplorer({
     );
   }
 
-  // Case-insensitive shared interest count
   const sharedCount = currentProfile?.interests?.filter((i: string) => 
     userInterests.some(userInt => userInt.toLowerCase() === i.toLowerCase())
   ).length || 0;
@@ -221,14 +242,12 @@ function InterestExplorer({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Profile Header */}
             <div className="mb-4">
               <h4 className="text-lg font-bold text-fuchsia-700">
                 {currentProfile.displayName || 'Anonymous'} • {currentProfile.location || 'Unknown'}
               </h4>
             </div>
 
-            {/* Interests */}
             <div className="flex flex-wrap gap-2 mb-4">
               {currentProfile.interests?.map((interest: string) => (
                 <ExplorerInterestPill
@@ -240,14 +259,12 @@ function InterestExplorer({
               ))}
             </div>
 
-            {/* Shared count */}
             {sharedCount > 0 && (
               <p className="text-sm text-fuchsia-600 font-semibold mb-4">
                 {sharedCount} shared interest{sharedCount > 1 ? 's' : ''} ✨
               </p>
             )}
 
-            {/* Next button */}
             <motion.button
               onClick={showNextProfile}
               whileHover={{ scale: 1.05 }}
@@ -280,7 +297,6 @@ export default function ProfilePage() {
 
   const router = useSimpleRouter();
 
-  // Load user + profile
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u || null);
@@ -312,7 +328,6 @@ export default function ProfilePage() {
     return () => unsub();
   }, []);
 
-  // Check for celebration when hitting 3 interests (only first time)
   useEffect(() => {
     if (interests.length === MIN_REQUIRED && !hasSeenCelebration && user) {
       setShowCelebration(true);
@@ -336,7 +351,6 @@ export default function ProfilePage() {
     setNewInterest('');
   };
 
-  // AUTO-SAVE: Case-insensitive duplicate check + auto-save to Firestore
   const handleAddInterestFromExplorer = async (interest: string) => {
     const interestLower = interest.toLowerCase();
     const alreadyExists = interests.some(i => i.toLowerCase() === interestLower);
@@ -345,7 +359,6 @@ export default function ProfilePage() {
       const newInterests = [...interests, interest];
       setInterests(newInterests);
       
-      // Auto-save to Firestore
       try {
         const ref = doc(db, 'users', user.uid);
         await setDoc(
@@ -422,14 +435,12 @@ export default function ProfilePage() {
   return (
     <main className="relative min-h-screen w-full bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 px-5 py-10 text-gray-900 flex flex-col items-center overflow-hidden">
       
-      {/* Subtle background texture/pattern */}
       <div className="pointer-events-none absolute inset-0 opacity-30">
         <div className="absolute top-20 left-10 w-64 h-64 bg-fuchsia-300/20 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-80 h-80 bg-indigo-300/20 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-300/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Celebration overlay */}
       <AnimatePresence>
         {showCelebration && (
           <motion.div
@@ -451,7 +462,6 @@ export default function ProfilePage() {
 
       <div className="relative z-10 w-full max-w-7xl flex flex-col items-center">
     
-        {/* Title */}
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -461,7 +471,6 @@ export default function ProfilePage() {
           Your Interests Profile
         </motion.h1>
 
-        {/* Instruction text */}
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -471,7 +480,6 @@ export default function ProfilePage() {
           {MAIN_INSTRUCTION_COPY}
         </motion.p>
 
-        {/* Warning for min interests */}
         <AnimatePresence>
           {minInterestWarning && (
             <motion.div
@@ -486,7 +494,6 @@ export default function ProfilePage() {
           )}
         </AnimatePresence>
 
-        {/* Interest input */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -512,10 +519,8 @@ export default function ProfilePage() {
           </motion.button>
         </motion.div>
 
-        {/* SIDE-BY-SIDE LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full mb-8">
           
-          {/* LEFT: Your Interests */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -549,7 +554,6 @@ export default function ProfilePage() {
             </p>
           </motion.div>
 
-          {/* RIGHT: Interest Explorer - EXTENDED CARD WITH HEADERS INSIDE */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -574,7 +578,6 @@ export default function ProfilePage() {
 
         </div>
 
-        {/* Bottom buttons */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
