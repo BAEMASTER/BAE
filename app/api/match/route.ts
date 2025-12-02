@@ -1,15 +1,13 @@
 // app/api/match/route.ts
-// ✅ SERVER ONLY, NO 'use client', no invalid imports, edge-safe
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebaseAdmin";
 
 export async function POST(req: NextRequest) {
   try {
     const { userId, interests, selectedMode } = await req.json();
-    const appId = "SO-INTERESTING";
     const usersCollection = 'users';
 
-    // Make a reference to the queue collection (server-only)
+    // Make a reference to the queue collection
     const queueQuery = await db.collection(usersCollection)
       .where("status", "==", "waiting")
       .where("selectedMode", "==", selectedMode)
@@ -35,7 +33,7 @@ export async function POST(req: NextRequest) {
     // 💞 YOU ARE SECOND — match with first waiting user
     const partnerId = waitingUsers[0].id;
 
-    // ✅ Create Daily.co room at runtime only
+    // ✅ Create Daily.co room
     const roomRes = await fetch("https://api.daily.co/v1/rooms", {
       method: "POST",
       headers: {
@@ -62,24 +60,25 @@ export async function POST(req: NextRequest) {
 
     const roomUrl = roomData.url;
 
-    // ✅ Update both users to matched state
-    await db.collection(usersCollection).doc(userId).update({
+    // ✅ FIXED: Use set with merge instead of update
+    await db.collection(usersCollection).doc(userId).set({
       status: "matched",
       currentRoomUrl: roomUrl,
       partnerId,
       matchedAt: new Date().toISOString(),
-    });
+    }, { merge: true });
 
-    await db.collection(usersCollection).doc(partnerId).update({
+    await db.collection(usersCollection).doc(partnerId).set({
       status: "matched",
       currentRoomUrl: roomUrl,
       partnerId: userId,
       matchedAt: new Date().toISOString(),
-    });
+    }, { merge: true });
 
     return NextResponse.json({ matched: true, roomUrl, partnerId, autoJoin: true }, { status: 200 });
 
   } catch (error: any) {
+    console.error("Match API error:", error);
     return NextResponse.json({ error: error.message || "Matching failed" }, { status: 500 });
   }
 }
