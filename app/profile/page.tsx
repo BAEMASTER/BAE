@@ -305,7 +305,7 @@ export default function ProfilePage() {
       }
 
       try {
-        const ref = doc(db, 'users', u.uid);
+        const ref = doc(db, 'artifacts/SO-INTERESTING/users', u.uid);
         const snap = await getDoc(ref);
         const data = snap.exists() ? snap.data() as any : null;
 
@@ -331,7 +331,7 @@ export default function ProfilePage() {
       setShowCelebration(true);
       setHasSeenCelebration(true);
       
-      const ref = doc(db, 'users', user.uid);
+      const ref = doc(db, 'artifacts/SO-INTERESTING/users', user.uid);
       setDoc(ref, { hasSeenCelebration: true }, { merge: true }).catch(console.error);
       
       setTimeout(() => setShowCelebration(false), 3000);
@@ -351,7 +351,7 @@ export default function ProfilePage() {
       
       // Auto-save to Firestore
       try {
-        const ref = doc(db, 'users', user.uid);
+        const ref = doc(db, 'artifacts/SO-INTERESTING/users', user.uid);
         await setDoc(
           ref,
           { 
@@ -377,7 +377,7 @@ export default function ProfilePage() {
       setInterests(newInterests);
       
       try {
-        const ref = doc(db, 'users', user.uid);
+        const ref = doc(db, 'artifacts/SO-INTERESTING/users', user.uid);
         await setDoc(
           ref,
           { 
