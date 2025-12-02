@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, interests, selectedMode } = await req.json();
     const appId = "SO-INTERESTING";
-    const usersCollection = `artifacts/${appId}/users`;
+    const usersCollection = 'users';
 
     // Make a reference to the queue collection (server-only)
     const queueQuery = await db.collection(usersCollection)

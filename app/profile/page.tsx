@@ -305,7 +305,8 @@ export default function ProfilePage() {
       }
 
       try {
-        const ref = doc(db, 'artifacts/SO-INTERESTING/users', u.uid);
+        // ✅ FIXED: Read from correct path
+        const ref = doc(db, 'users', u.uid);
         const snap = await getDoc(ref);
         const data = snap.exists() ? snap.data() as any : null;
 
@@ -331,7 +332,8 @@ export default function ProfilePage() {
       setShowCelebration(true);
       setHasSeenCelebration(true);
       
-      const ref = doc(db, 'artifacts/SO-INTERESTING/users', user.uid);
+      // ✅ FIXED: Write to correct path
+      const ref = doc(db, 'users', user.uid);
       setDoc(ref, { hasSeenCelebration: true }, { merge: true }).catch(console.error);
       
       setTimeout(() => setShowCelebration(false), 3000);
@@ -349,12 +351,13 @@ export default function ProfilePage() {
       const newInterests = [...interests, normalized];
       setInterests(newInterests);
       
-      // Auto-save to Firestore
+      // ✅ FIXED: Save to correct path
       try {
-        const ref = doc(db, 'artifacts/SO-INTERESTING/users', user.uid);
+        const ref = doc(db, 'users', user.uid);
         await setDoc(
           ref,
           { 
+            displayName: displayName,
             interests: newInterests,
             updatedAt: new Date().toISOString()
           },
@@ -376,11 +379,13 @@ export default function ProfilePage() {
       const newInterests = [...interests, interest];
       setInterests(newInterests);
       
+      // ✅ FIXED: Save to correct path
       try {
-        const ref = doc(db, 'artifacts/SO-INTERESTING/users', user.uid);
+        const ref = doc(db, 'users', user.uid);
         await setDoc(
           ref,
           { 
+            displayName: displayName,
             interests: newInterests,
             updatedAt: new Date().toISOString()
           },
@@ -564,8 +569,7 @@ export default function ProfilePage() {
 
         </div>
 
-       {/* Single centered BAE button */}
-<motion.div 
+       <motion.div 
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   transition={{ delay: 0.6, duration: 0.6 }}

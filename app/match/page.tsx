@@ -19,8 +19,6 @@ interface UserData {
 const playConnectionChime = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // Warm, ascending chime (C major chord arpeggio)
     const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
     
     notes.forEach((freq, index) => {
@@ -53,14 +51,12 @@ export default function MatchPage() {
   const remoteVideoRef = useRef<HTMLDivElement>(null);
   const callObject = useRef<any>(null);
 
-  // State
   const [status, setStatus] = useState<'loading' | 'waiting' | 'matched' | 'error'>('loading');
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
   const [sharedInterests, setSharedInterests] = useState<string[]>([]);
   const [showSharedAnimation, setShowSharedAnimation] = useState(false);
 
-  // --- Initialize Match ---
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) {
@@ -70,9 +66,10 @@ export default function MatchPage() {
 
     const initMatch = async () => {
       try {
-        // ✅ FIXED: Load my profile from correct path
-        const snap = await getDoc(doc(db, 'artifacts/SO-INTERESTING/users', user.uid));
+        // ✅ FIXED: Read from correct path
+        const snap = await getDoc(doc(db, 'users', user.uid));
         if (!snap.exists()) {
+          console.error('Profile not found');
           setStatus('error');
           return;
         }
@@ -83,6 +80,12 @@ export default function MatchPage() {
           location: snap.data().location || '',
         };
         setMyProfile(myData);
+
+        if (!myData.interests || myData.interests.length < 3) {
+          console.error('Not enough interests');
+          router.push('/profile');
+          return;
+        }
 
         // Call Match API
         const matchRes = await fetch('/api/match', {
@@ -106,8 +109,8 @@ export default function MatchPage() {
         }
 
         if (matchData.matched) {
-          // ✅ FIXED: Load partner profile from correct path
-          const partnerSnap = await getDoc(doc(db, 'artifacts/SO-INTERESTING/users', matchData.partnerId));
+          // ✅ FIXED: Load partner from correct path
+          const partnerSnap = await getDoc(doc(db, 'users', matchData.partnerId));
           if (partnerSnap.exists()) {
             const theirData: UserData = {
               displayName: partnerSnap.data().displayName || 'Match',
@@ -116,13 +119,11 @@ export default function MatchPage() {
             };
             setTheirProfile(theirData);
 
-            // Calculate shared interests
             const shared = myData.interests.filter(i => 
               theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
             );
             setSharedInterests(shared);
 
-            // Play sound and show animation
             if (shared.length > 0) {
               playConnectionChime();
               setShowSharedAnimation(true);
@@ -132,7 +133,6 @@ export default function MatchPage() {
 
           setStatus('matched');
 
-          // Join Daily.co room
           if (localVideoRef.current && matchData.roomUrl) {
             callObject.current = DailyIframe.createFrame(localVideoRef.current, {
               showLeaveButton: false,
@@ -166,20 +166,16 @@ export default function MatchPage() {
     };
   }, [router]);
 
-  // --- Action Handlers ---
   const handleWatchYouTube = () => {
-    alert('🎥 YouTube watch-together coming soon! Search for a video to watch with your match.');
-    // TODO: Implement YouTube sync player
+    alert('🎥 YouTube watch-together coming soon!');
   };
 
   const handleListenSpotify = () => {
-    alert('🎵 Spotify listen-together coming soon! Pick a song or playlist to share.');
-    // TODO: Implement Spotify sync player
+    alert('🎵 Spotify listen-together coming soon!');
   };
 
   const handleAskGemini = () => {
-    alert('🤖 Ask Gemini together coming soon! Explore topics with AI assistance.');
-    // TODO: Implement shared Gemini chat
+    alert('🤖 Ask Gemini together coming soon!');
   };
 
   const handleEndCall = () => {
@@ -193,10 +189,9 @@ export default function MatchPage() {
     if (callObject.current) {
       callObject.current.leave();
     }
-    router.push('/match');
+    window.location.reload();
   };
 
-  // --- Render Loading State ---
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
@@ -208,7 +203,6 @@ export default function MatchPage() {
     );
   }
 
-  // --- Render Waiting State ---
   if (status === 'waiting') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
@@ -233,7 +227,6 @@ export default function MatchPage() {
     );
   }
 
-  // --- Render Error State ---
   if (status === 'error') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
@@ -258,7 +251,6 @@ export default function MatchPage() {
     );
   }
 
-  // --- Render Matched State (Main UI) ---
   const otherInterests = myProfile?.interests.filter(i => 
     !sharedInterests.some(si => si.toLowerCase() === i.toLowerCase())
   ) || [];
@@ -266,11 +258,9 @@ export default function MatchPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100">
       
-      {/* Glow Effects */}
       <div className="pointer-events-none absolute top-20 left-10 w-96 h-96 bg-fuchsia-300/20 rounded-full blur-3xl" />
       <div className="pointer-events-none absolute bottom-20 right-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl" />
 
-      {/* Header */}
       <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-6 h-16 backdrop-blur-md bg-white/10">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
@@ -293,10 +283,8 @@ export default function MatchPage() {
         </motion.button>
       </header>
 
-      {/* Main Content */}
       <section className="relative z-10 pt-24 pb-12 px-6">
         
-        {/* Title */}
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -305,11 +293,9 @@ export default function MatchPage() {
           Your shared interests <span className="text-fuchsia-600">glow!</span> ✨
         </motion.h1>
 
-        {/* Video + Interest Bridge Layout */}
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
             
-            {/* LEFT: Your Video */}
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -327,14 +313,12 @@ export default function MatchPage() {
               </div>
             </motion.div>
 
-            {/* CENTER: Shared Interest Bridge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
               className="relative flex flex-col items-center justify-center py-8"
             >
-              {/* Connection Animation */}
               <AnimatePresence>
                 {showSharedAnimation && (
                   <motion.div
@@ -348,7 +332,6 @@ export default function MatchPage() {
                 )}
               </AnimatePresence>
 
-              {/* Shared Interests */}
               {sharedInterests.length > 0 ? (
                 <div className="flex flex-col gap-3 items-center">
                   {sharedInterests.map((interest, idx) => (
@@ -383,7 +366,6 @@ export default function MatchPage() {
               )}
             </motion.div>
 
-            {/* RIGHT: Their Video */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -402,7 +384,6 @@ export default function MatchPage() {
             </motion.div>
           </div>
 
-          {/* Other Interests (Below Videos) */}
           {otherInterests.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -424,7 +405,6 @@ export default function MatchPage() {
             </motion.div>
           )}
 
-          {/* Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -462,7 +442,6 @@ export default function MatchPage() {
             </motion.button>
           </motion.div>
 
-          {/* Next Match Button */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
