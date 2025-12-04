@@ -158,7 +158,7 @@ export default function MatchPage() {
             width: '100%',
             height: '100%',
             border: 'none',
-            borderRadius: '20px',
+            borderRadius: '24px',
           },
         });
 
@@ -190,7 +190,7 @@ export default function MatchPage() {
 
   const handleAskGemini = () => {
     if (!isMatched) return;
-    alert('🤖 Ask Gemini together coming soon!');
+    alert('✨ Ask Gemini together coming soon!');
   };
 
   const handleEndCall = () => {
@@ -239,21 +239,45 @@ export default function MatchPage() {
     );
   }
 
-  const otherInterests = myProfile?.interests.filter(i => 
-    !sharedInterests.some(si => si.toLowerCase() === i.toLowerCase())
-  ) || [];
-
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100">
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-700">
       
-      <div className="pointer-events-none absolute top-20 left-10 w-96 h-96 bg-fuchsia-300/20 rounded-full blur-3xl" />
-      <div className="pointer-events-none absolute bottom-20 right-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl" />
+      {/* Animated blob background */}
+      <div className="pointer-events-none absolute inset-0">
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            x: [0, 50, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-20 left-10 w-96 h-96 bg-pink-400/30 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.3, 1],
+            x: [0, -50, 0],
+            y: [0, -30, 0],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl"
+        />
+      </div>
 
-      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-6 h-16 backdrop-blur-md bg-white/10">
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-8 h-20 backdrop-blur-md bg-white/5">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-3xl font-extrabold text-fuchsia-600"
+          className="text-4xl font-extrabold text-white"
         >
           BAE
         </motion.div>
@@ -264,238 +288,268 @@ export default function MatchPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleEndCall}
-          className="flex items-center gap-2 px-5 py-2 bg-red-500/80 hover:bg-red-600 text-white font-bold rounded-full shadow-lg transition-all"
+          className="flex items-center gap-2 px-6 py-3 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg transition-all"
         >
-          <X size={18} />
+          <X size={20} />
           End Call
         </motion.button>
       </header>
 
-      <section className="relative z-10 pt-24 pb-12 px-6">
+      {/* Main Content */}
+      <section className="relative z-10 pt-28 pb-12 px-8 h-screen flex flex-col">
         
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-extrabold text-center mb-8 text-purple-900"
-        >
-          Your shared interests <span className="text-fuchsia-600">glow!</span> ✨
-        </motion.h1>
+        {/* Video Grid */}
+        <div className="flex-1 flex items-center justify-center gap-8 max-w-[1400px] mx-auto w-full">
+          
+          {/* Left Video - User */}
+          <motion.div
+            initial={{ opacity: 0, x: -100 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, type: 'spring' }}
+            className="relative w-[35%]"
+          >
+            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(236,72,153,0.5)] ring-4 ring-pink-400/50">
+              <div ref={localVideoRef} className="w-full h-full bg-gradient-to-br from-pink-900/20 to-purple-900/20" />
+            </div>
+            <div className="mt-4 text-center">
+              <h3 className="text-2xl font-bold text-white drop-shadow-lg">{myProfile?.displayName || 'You'}</h3>
+              {myProfile?.location && (
+                <p className="text-sm text-pink-200">{myProfile.location}</p>
+              )}
+            </div>
+          </motion.div>
 
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+          {/* Center - Interest Bridge */}
+          <div className="w-[30%] flex flex-col items-center justify-center gap-6 relative">
             
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="relative bg-white/40 backdrop-blur-xl rounded-3xl p-6 shadow-2xl"
-            >
-              <div className="aspect-[3/4] bg-gradient-to-br from-fuchsia-200/50 to-pink-200/50 rounded-2xl overflow-hidden shadow-lg">
-                <div ref={localVideoRef} className="w-full h-full" />
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-bold text-fuchsia-700">{myProfile?.displayName || 'You'}</h3>
-                {myProfile?.location && (
-                  <p className="text-sm text-purple-600">{myProfile.location}</p>
-                )}
-              </div>
-            </motion.div>
+            {/* Floating particles */}
+            {[...Array(15)].map((_, i) => (
+              <motion.div
+                key={i}
+                animate={{
+                  y: [0, -100, 0],
+                  x: [0, Math.random() * 40 - 20, 0],
+                  opacity: [0, 1, 0],
+                }}
+                transition={{
+                  duration: 3 + Math.random() * 2,
+                  repeat: Infinity,
+                  delay: Math.random() * 2,
+                }}
+                className="absolute w-1 h-1 bg-yellow-300 rounded-full"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                }}
+              />
+            ))}
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
-              className="relative flex flex-col items-center justify-center py-8"
-            >
-              <AnimatePresence>
-                {showSharedAnimation && (
+            <AnimatePresence>
+              {showSharedAnimation && (
+                <motion.div
+                  initial={{ scale: 0, rotate: 0 }}
+                  animate={{ scale: 1.5, rotate: 360 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  className="absolute text-9xl"
+                >
+                  ✨
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {isMatched && sharedInterests.length > 0 ? (
+              <>
+                <p className="text-xs font-bold text-yellow-200 uppercase tracking-wider mb-2">
+                  Interest Bridge
+                </p>
+                {sharedInterests.map((interest, idx) => (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
-                    className="absolute inset-0 flex items-center justify-center"
+                    key={interest}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ 
+                      scale: 1, 
+                      opacity: 1,
+                      y: [0, -10, 0],
+                    }}
+                    transition={{ 
+                      delay: 0.5 + (idx * 0.2),
+                      y: {
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: idx * 0.3,
+                      }
+                    }}
+                    className="relative"
                   >
-                    <div className="text-8xl">✨</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-xl opacity-75 animate-pulse" />
+                    
+                    {/* Main orb */}
+                    <div className="relative px-10 py-6 bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-400 rounded-full shadow-[0_0_40px_rgba(251,191,36,0.8)] border-4 border-yellow-200">
+                      <p className="text-2xl font-black text-white drop-shadow-lg text-center">
+                        {interest}
+                      </p>
+                    </div>
 
-              {isMatched && sharedInterests.length > 0 ? (
-                <div className="flex flex-col gap-3 items-center">
-                  {sharedInterests.map((interest, idx) => (
-                    <motion.div
-                      key={interest}
-                      initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ 
-                        delay: 0.6 + (idx * 0.1),
-                        type: 'spring',
-                        stiffness: 300
-                      }}
-                      className="px-6 py-3 bg-gradient-to-r from-yellow-200 to-yellow-300 text-yellow-900 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(252,211,77,0.6)] border-2 border-yellow-400"
-                    >
-                      {interest}
-                    </motion.div>
-                  ))}
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
-                    className="text-sm font-semibold text-purple-700 mt-2"
-                  >
-                    {sharedInterests.length} shared interest{sharedInterests.length > 1 ? 's' : ''}
-                  </motion.p>
-                </div>
-              ) : (
+                    {/* Sparkles */}
+                    {[...Array(8)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        animate={{
+                          scale: [0, 1, 0],
+                          opacity: [0, 1, 0],
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          delay: i * 0.2,
+                        }}
+                        className="absolute w-2 h-2 bg-yellow-200 rounded-full"
+                        style={{
+                          left: `${50 + Math.cos((i * Math.PI * 2) / 8) * 80}%`,
+                          top: `${50 + Math.sin((i * Math.PI * 2) / 8) * 80}%`,
+                        }}
+                      />
+                    ))}
+                  </motion.div>
+                ))}
+                <p className="text-sm font-bold text-yellow-200 mt-4">
+                  {sharedInterests.length} shared interest{sharedInterests.length > 1 ? 's' : ''}
+                </p>
+              </>
+            ) : (
+              <motion.div
+                animate={{ 
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.95, 1.05, 0.95],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="text-center"
+              >
+                <div className="text-7xl mb-4">💫</div>
+                <p className="text-xl font-bold text-white drop-shadow-lg">Finding your match...</p>
+                <p className="text-sm text-pink-200 mt-2">Interests will glow here</p>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Right Video - Match */}
+          <motion.div
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, type: 'spring' }}
+            className="relative w-[35%]"
+          >
+            <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-[0_0_60px_rgba(236,72,153,0.5)] ring-4 ring-pink-400/50">
+              {!isMatched ? (
                 <motion.div 
                   animate={{ 
-                    opacity: [0.5, 1, 0.5],
+                    opacity: [0.4, 0.7, 0.4],
                   }}
                   transition={{
                     duration: 2,
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
-                  className="text-center"
+                  className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
                 >
-                  <div className="text-5xl mb-3">💫</div>
-                  <p className="text-lg font-semibold text-purple-700">Finding your match...</p>
-                  <p className="text-sm text-purple-600 mt-2">Interests will glow here</p>
+                  <div className="text-center">
+                    <div className="text-7xl mb-4">✨</div>
+                    <p className="text-2xl font-bold text-white drop-shadow-lg">Waiting for</p>
+                    <p className="text-2xl font-bold text-white drop-shadow-lg">someone special...</p>
+                  </div>
                 </motion.div>
+              ) : (
+                <div ref={remoteVideoRef} className="w-full h-full" />
               )}
-            </motion.div>
+            </div>
+            <div className="mt-4 text-center">
+              <h3 className="text-2xl font-bold text-white drop-shadow-lg">
+                {theirProfile?.displayName || '...'}
+              </h3>
+              {theirProfile?.location && (
+                <p className="text-sm text-pink-200">{theirProfile.location}</p>
+              )}
+            </div>
+          </motion.div>
+        </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="relative bg-white/40 backdrop-blur-xl rounded-3xl p-6 shadow-2xl"
-            >
-              <div className="aspect-[3/4] bg-gradient-to-br from-indigo-200/50 to-purple-200/50 rounded-2xl overflow-hidden shadow-lg relative">
-                {!isMatched ? (
-                  <motion.div 
-                    animate={{ 
-                      opacity: [0.3, 0.6, 0.3],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="absolute inset-0 flex items-center justify-center"
-                  >
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">✨</div>
-                      <p className="text-lg font-bold text-indigo-700">Waiting for</p>
-                      <p className="text-lg font-bold text-indigo-700">someone special...</p>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div ref={remoteVideoRef} className="w-full h-full" />
-                )}
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-bold text-fuchsia-700">
-                  {theirProfile?.displayName || '...'}
-                </h3>
-                {theirProfile?.location && (
-                  <p className="text-sm text-purple-600">{theirProfile.location}</p>
-                )}
-              </div>
-            </motion.div>
-          </div>
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mt-8 flex flex-wrap justify-center gap-4"
+        >
+          <motion.button
+            whileHover={{ scale: isMatched ? 1.05 : 1, y: -2 }}
+            whileTap={{ scale: isMatched ? 0.95 : 1 }}
+            onClick={handleWatchYouTube}
+            disabled={!isMatched}
+            className={`flex items-center gap-3 px-8 py-4 text-white font-bold rounded-full shadow-lg transition-all ${
+              isMatched 
+                ? 'bg-red-500 hover:bg-red-600 cursor-pointer shadow-[0_0_30px_rgba(239,68,68,0.5)]' 
+                : 'bg-gray-500 cursor-not-allowed opacity-40'
+            }`}
+          >
+            <Youtube size={24} />
+            Watch YouTube Together
+          </motion.button>
 
-          {otherInterests.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mt-8 text-center"
-            >
-              <p className="text-sm font-semibold text-purple-700 mb-3">Other interests:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {otherInterests.map(interest => (
-                  <span
-                    key={interest}
-                    className="px-4 py-2 bg-white/50 backdrop-blur-sm text-fuchsia-700 rounded-full text-sm font-medium shadow-sm"
-                  >
-                    {interest}
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-          )}
+          <motion.button
+            whileHover={{ scale: isMatched ? 1.05 : 1, y: -2 }}
+            whileTap={{ scale: isMatched ? 0.95 : 1 }}
+            onClick={handleListenSpotify}
+            disabled={!isMatched}
+            className={`flex items-center gap-3 px-8 py-4 text-white font-bold rounded-full shadow-lg transition-all ${
+              isMatched 
+                ? 'bg-green-500 hover:bg-green-600 cursor-pointer shadow-[0_0_30px_rgba(34,197,94,0.5)]' 
+                : 'bg-gray-500 cursor-not-allowed opacity-40'
+            }`}
+          >
+            <Music size={24} />
+            Listen to Spotify
+          </motion.button>
 
+          <motion.button
+            whileHover={{ scale: isMatched ? 1.05 : 1, y: -2 }}
+            whileTap={{ scale: isMatched ? 0.95 : 1 }}
+            onClick={handleAskGemini}
+            disabled={!isMatched}
+            className={`flex items-center gap-3 px-8 py-4 text-white font-bold rounded-full shadow-lg transition-all ${
+              isMatched 
+                ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer shadow-[0_0_30px_rgba(59,130,246,0.5)]' 
+                : 'bg-gray-500 cursor-not-allowed opacity-40'
+            }`}
+          >
+            <Sparkles size={24} />
+            Ask Gemini Together
+          </motion.button>
+        </motion.div>
+
+        {/* Next Match Button */}
+        {isMatched && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1 }}
-            className="mt-10 flex flex-wrap justify-center gap-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="mt-6 text-center"
           >
             <motion.button
-              whileHover={{ scale: isMatched ? 1.05 : 1 }}
-              whileTap={{ scale: isMatched ? 0.95 : 1 }}
-              onClick={handleWatchYouTube}
-              disabled={!isMatched}
-              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
-                isMatched 
-                  ? 'bg-red-500 hover:bg-red-600 cursor-pointer' 
-                  : 'bg-gray-400 cursor-not-allowed opacity-50'
-              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleNextMatch}
+              className="px-10 py-3 bg-white/20 backdrop-blur-sm text-white font-bold rounded-full shadow-lg hover:bg-white/30 transition-all"
             >
-              <Youtube size={20} />
-              Watch YouTube Together
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: isMatched ? 1.05 : 1 }}
-              whileTap={{ scale: isMatched ? 0.95 : 1 }}
-              onClick={handleListenSpotify}
-              disabled={!isMatched}
-              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
-                isMatched 
-                  ? 'bg-green-500 hover:bg-green-600 cursor-pointer' 
-                  : 'bg-gray-400 cursor-not-allowed opacity-50'
-              }`}
-            >
-              <Music size={20} />
-              Listen to Spotify
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: isMatched ? 1.05 : 1 }}
-              whileTap={{ scale: isMatched ? 0.95 : 1 }}
-              onClick={handleAskGemini}
-              disabled={!isMatched}
-              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
-                isMatched 
-                  ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer' 
-                  : 'bg-gray-400 cursor-not-allowed opacity-50'
-              }`}
-            >
-              <Sparkles size={20} />
-              Ask Gemini Together
+              Next Match →
             </motion.button>
           </motion.div>
-
-          {isMatched && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-              className="mt-8 text-center"
-            >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleNextMatch}
-                className="px-8 py-3 bg-white/50 backdrop-blur-sm text-fuchsia-700 font-bold rounded-full shadow-lg hover:bg-white/70 transition-all"
-              >
-                Next Match →
-              </motion.button>
-            </motion.div>
-          )}
-        </div>
+        )}
       </section>
     </main>
   );

@@ -1,0 +1,502 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import DailyIframe from '@daily-co/daily-js';
+import { auth, db } from '@/lib/firebaseClient';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Youtube, Music, Sparkles, X, Loader2 } from 'lucide-react';
+
+// --- Types ---
+interface UserData {
+  displayName: string;
+  interests: string[];
+  location?: string;
+}
+
+// --- Sound Effect ---
+const playConnectionChime = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const notes = [261.63, 329.63, 392.00, 523.25];
+    
+    notes.forEach((freq, index) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      
+      const startTime = audioContext.currentTime + (index * 0.1);
+      const duration = 0.3;
+      
+      gain.gain.setValueAtTime(0.2, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    });
+  } catch (e) {
+    console.log('Audio not supported');
+  }
+};
+
+export default function MatchPage() {
+  const router = useRouter();
+  const localVideoRef = useRef<HTMLDivElement>(null);
+  const remoteVideoRef = useRef<HTMLDivElement>(null);
+  const callObject = useRef<any>(null);
+
+  const [myProfile, setMyProfile] = useState<UserData | null>(null);
+  const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
+  const [sharedInterests, setSharedInterests] = useState<string[]>([]);
+  const [showSharedAnimation, setShowSharedAnimation] = useState(false);
+  const [isMatched, setIsMatched] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+
+    const initMatch = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (!snap.exists()) {
+          console.error('Profile not found');
+          setError(true);
+          return;
+        }
+
+        const myData: UserData = {
+          displayName: snap.data().displayName || user.displayName || 'You',
+          interests: snap.data().interests || [],
+          location: snap.data().location || '',
+        };
+        setMyProfile(myData);
+
+        if (!myData.interests || myData.interests.length < 3) {
+          console.error('Not enough interests');
+          router.push('/profile');
+          return;
+        }
+
+        const matchRes = await fetch('/api/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            interests: myData.interests,
+            selectedMode: 'video',
+          }),
+        });
+
+        if (!matchRes.ok) {
+          const text = await matchRes.text();
+          console.error('Match API error:', text);
+          setError(true);
+          return;
+        }
+
+        const matchData = await matchRes.json();
+
+        if (matchData.matched) {
+          await handleMatch(matchData.partnerId, matchData.roomUrl, myData);
+          return;
+        }
+
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
+          const data = docSnap.data();
+          if (data?.status === 'matched' && data?.partnerId && data?.currentRoomUrl) {
+            await handleMatch(data.partnerId, data.currentRoomUrl, myData);
+            unsubscribe();
+          }
+        });
+
+      } catch (err: any) {
+        console.error('Match error:', err);
+        setError(true);
+      }
+    };
+
+    const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
+      const partnerSnap = await getDoc(doc(db, 'users', partnerId));
+      if (partnerSnap.exists()) {
+        const theirData: UserData = {
+          displayName: partnerSnap.data().displayName || 'Match',
+          interests: partnerSnap.data().interests || [],
+          location: partnerSnap.data().location || '',
+        };
+        setTheirProfile(theirData);
+
+        const shared = myData.interests.filter(i => 
+          theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
+        );
+        setSharedInterests(shared);
+
+        if (shared.length > 0) {
+          playConnectionChime();
+          setShowSharedAnimation(true);
+          setTimeout(() => setShowSharedAnimation(false), 2000);
+        }
+      }
+
+      setIsMatched(true);
+
+      if (localVideoRef.current && roomUrl) {
+        callObject.current = DailyIframe.createFrame(localVideoRef.current, {
+          showLeaveButton: false,
+          showFullscreenButton: false,
+          iframeStyle: {
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '20px',
+          },
+        });
+
+        await callObject.current.join({ url: roomUrl });
+      }
+    };
+
+    initMatch();
+
+    return () => {
+      if (callObject.current) {
+        try {
+          callObject.current.destroy();
+        } catch {}
+        callObject.current = null;
+      }
+    };
+  }, [router]);
+
+  const handleWatchYouTube = () => {
+    if (!isMatched) return;
+    alert('🎥 YouTube watch-together coming soon!');
+  };
+
+  const handleListenSpotify = () => {
+    if (!isMatched) return;
+    alert('🎵 Spotify listen-together coming soon!');
+  };
+
+  const handleAskGemini = () => {
+    if (!isMatched) return;
+    alert('🤖 Ask Gemini together coming soon!');
+  };
+
+  const handleEndCall = () => {
+    if (callObject.current) {
+      callObject.current.leave();
+    }
+    router.push('/');
+  };
+
+  const handleNextMatch = () => {
+    if (callObject.current) {
+      callObject.current.leave();
+    }
+    window.location.reload();
+  };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="text-6xl mb-6">😔</div>
+          <h2 className="text-3xl font-bold text-red-600 mb-4">Connection Error</h2>
+          <p className="text-lg text-purple-900 mb-8">Something went wrong. Please try again.</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push('/')}
+            className="px-8 py-3 bg-fuchsia-600 text-white font-bold rounded-full shadow-lg"
+          >
+            Go Home
+          </motion.button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!myProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
+        <Loader2 className="w-16 h-16 text-fuchsia-600 animate-spin" />
+      </div>
+    );
+  }
+
+  const otherInterests = myProfile?.interests.filter(i => 
+    !sharedInterests.some(si => si.toLowerCase() === i.toLowerCase())
+  ) || [];
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100">
+      
+      <div className="pointer-events-none absolute top-20 left-10 w-96 h-96 bg-fuchsia-300/20 rounded-full blur-3xl" />
+      <div className="pointer-events-none absolute bottom-20 right-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl" />
+
+      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-6 h-16 backdrop-blur-md bg-white/10">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-3xl font-extrabold text-fuchsia-600"
+        >
+          BAE
+        </motion.div>
+        
+        <motion.button
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleEndCall}
+          className="flex items-center gap-2 px-5 py-2 bg-red-500/80 hover:bg-red-600 text-white font-bold rounded-full shadow-lg transition-all"
+        >
+          <X size={18} />
+          End Call
+        </motion.button>
+      </header>
+
+      <section className="relative z-10 pt-24 pb-12 px-6">
+        
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-4xl md:text-5xl font-extrabold text-center mb-8 text-purple-900"
+        >
+          Your shared interests <span className="text-fuchsia-600">glow!</span> ✨
+        </motion.h1>
+
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+            
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative bg-white/40 backdrop-blur-xl rounded-3xl p-6 shadow-2xl"
+            >
+              <div className="aspect-[3/4] bg-gradient-to-br from-fuchsia-200/50 to-pink-200/50 rounded-2xl overflow-hidden shadow-lg">
+                <div ref={localVideoRef} className="w-full h-full" />
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-xl font-bold text-fuchsia-700">{myProfile?.displayName || 'You'}</h3>
+                {myProfile?.location && (
+                  <p className="text-sm text-purple-600">{myProfile.location}</p>
+                )}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
+              className="relative flex flex-col items-center justify-center py-8"
+            >
+              <AnimatePresence>
+                {showSharedAnimation && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0 }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div className="text-8xl">✨</div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {isMatched && sharedInterests.length > 0 ? (
+                <div className="flex flex-col gap-3 items-center">
+                  {sharedInterests.map((interest, idx) => (
+                    <motion.div
+                      key={interest}
+                      initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ 
+                        delay: 0.6 + (idx * 0.1),
+                        type: 'spring',
+                        stiffness: 300
+                      }}
+                      className="px-6 py-3 bg-gradient-to-r from-yellow-200 to-yellow-300 text-yellow-900 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(252,211,77,0.6)] border-2 border-yellow-400"
+                    >
+                      {interest}
+                    </motion.div>
+                  ))}
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1 }}
+                    className="text-sm font-semibold text-purple-700 mt-2"
+                  >
+                    {sharedInterests.length} shared interest{sharedInterests.length > 1 ? 's' : ''}
+                  </motion.p>
+                </div>
+              ) : (
+                <motion.div 
+                  animate={{ 
+                    opacity: [0.5, 1, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="text-center"
+                >
+                  <div className="text-5xl mb-3">💫</div>
+                  <p className="text-lg font-semibold text-purple-700">Finding your match...</p>
+                  <p className="text-sm text-purple-600 mt-2">Interests will glow here</p>
+                </motion.div>
+              )}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="relative bg-white/40 backdrop-blur-xl rounded-3xl p-6 shadow-2xl"
+            >
+              <div className="aspect-[3/4] bg-gradient-to-br from-indigo-200/50 to-purple-200/50 rounded-2xl overflow-hidden shadow-lg relative">
+                {!isMatched ? (
+                  <motion.div 
+                    animate={{ 
+                      opacity: [0.3, 0.6, 0.3],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">✨</div>
+                      <p className="text-lg font-bold text-indigo-700">Waiting for</p>
+                      <p className="text-lg font-bold text-indigo-700">someone special...</p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div ref={remoteVideoRef} className="w-full h-full" />
+                )}
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-xl font-bold text-fuchsia-700">
+                  {theirProfile?.displayName || '...'}
+                </h3>
+                {theirProfile?.location && (
+                  <p className="text-sm text-purple-600">{theirProfile.location}</p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+
+          {otherInterests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="mt-8 text-center"
+            >
+              <p className="text-sm font-semibold text-purple-700 mb-3">Other interests:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {otherInterests.map(interest => (
+                  <span
+                    key={interest}
+                    className="px-4 py-2 bg-white/50 backdrop-blur-sm text-fuchsia-700 rounded-full text-sm font-medium shadow-sm"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+            className="mt-10 flex flex-wrap justify-center gap-4"
+          >
+            <motion.button
+              whileHover={{ scale: isMatched ? 1.05 : 1 }}
+              whileTap={{ scale: isMatched ? 0.95 : 1 }}
+              onClick={handleWatchYouTube}
+              disabled={!isMatched}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
+                isMatched 
+                  ? 'bg-red-500 hover:bg-red-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
+            >
+              <Youtube size={20} />
+              Watch YouTube Together
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: isMatched ? 1.05 : 1 }}
+              whileTap={{ scale: isMatched ? 0.95 : 1 }}
+              onClick={handleListenSpotify}
+              disabled={!isMatched}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
+                isMatched 
+                  ? 'bg-green-500 hover:bg-green-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
+            >
+              <Music size={20} />
+              Listen to Spotify
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: isMatched ? 1.05 : 1 }}
+              whileTap={{ scale: isMatched ? 0.95 : 1 }}
+              onClick={handleAskGemini}
+              disabled={!isMatched}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
+                isMatched 
+                  ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
+            >
+              <Sparkles size={20} />
+              Ask Gemini Together
+            </motion.button>
+          </motion.div>
+
+          {isMatched && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="mt-8 text-center"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleNextMatch}
+                className="px-8 py-3 bg-white/50 backdrop-blur-sm text-fuchsia-700 font-bold rounded-full shadow-lg hover:bg-white/70 transition-all"
+              >
+                Next Match →
+              </motion.button>
+            </motion.div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
