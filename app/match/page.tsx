@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Youtube, Music, Sparkles, X, Loader2 } from 'lucide-react';
 
@@ -19,7 +19,7 @@ interface UserData {
 const playConnectionChime = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+    const notes = [261.63, 329.63, 392.00, 523.25];
     
     notes.forEach((freq, index) => {
       const osc = audioContext.createOscillator();
@@ -51,11 +51,12 @@ export default function MatchPage() {
   const remoteVideoRef = useRef<HTMLDivElement>(null);
   const callObject = useRef<any>(null);
 
-  const [status, setStatus] = useState<'loading' | 'waiting' | 'matched' | 'error'>('loading');
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
   const [sharedInterests, setSharedInterests] = useState<string[]>([]);
   const [showSharedAnimation, setShowSharedAnimation] = useState(false);
+  const [isMatched, setIsMatched] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -66,11 +67,10 @@ export default function MatchPage() {
 
     const initMatch = async () => {
       try {
-        // ✅ FIXED: Read from correct path
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (!snap.exists()) {
           console.error('Profile not found');
-          setStatus('error');
+          setError(true);
           return;
         }
 
@@ -87,7 +87,6 @@ export default function MatchPage() {
           return;
         }
 
-        // Call Match API
         const matchRes = await fetch('/api/match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -98,59 +97,72 @@ export default function MatchPage() {
           }),
         });
 
+        if (!matchRes.ok) {
+          const text = await matchRes.text();
+          console.error('Match API error:', text);
+          setError(true);
+          return;
+        }
+
         const matchData = await matchRes.json();
 
-        if (!matchRes.ok) {
-          if (matchData.message?.includes('Waiting')) {
-            setStatus('waiting');
-            return;
-          }
-          throw new Error(matchData.error || 'Match failed');
-        }
-
         if (matchData.matched) {
-          // ✅ FIXED: Load partner from correct path
-          const partnerSnap = await getDoc(doc(db, 'users', matchData.partnerId));
-          if (partnerSnap.exists()) {
-            const theirData: UserData = {
-              displayName: partnerSnap.data().displayName || 'Match',
-              interests: partnerSnap.data().interests || [],
-              location: partnerSnap.data().location || '',
-            };
-            setTheirProfile(theirData);
-
-            const shared = myData.interests.filter(i => 
-              theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
-            );
-            setSharedInterests(shared);
-
-            if (shared.length > 0) {
-              playConnectionChime();
-              setShowSharedAnimation(true);
-              setTimeout(() => setShowSharedAnimation(false), 2000);
-            }
-          }
-
-          setStatus('matched');
-
-          if (localVideoRef.current && matchData.roomUrl) {
-            callObject.current = DailyIframe.createFrame(localVideoRef.current, {
-              showLeaveButton: false,
-              showFullscreenButton: false,
-              iframeStyle: {
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: '20px',
-              },
-            });
-
-            await callObject.current.join({ url: matchData.roomUrl });
-          }
+          await handleMatch(matchData.partnerId, matchData.roomUrl, myData);
+          return;
         }
+
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
+          const data = docSnap.data();
+          if (data?.status === 'matched' && data?.partnerId && data?.currentRoomUrl) {
+            await handleMatch(data.partnerId, data.currentRoomUrl, myData);
+            unsubscribe();
+          }
+        });
+
       } catch (err: any) {
         console.error('Match error:', err);
-        setStatus('error');
+        setError(true);
+      }
+    };
+
+    const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
+      const partnerSnap = await getDoc(doc(db, 'users', partnerId));
+      if (partnerSnap.exists()) {
+        const theirData: UserData = {
+          displayName: partnerSnap.data().displayName || 'Match',
+          interests: partnerSnap.data().interests || [],
+          location: partnerSnap.data().location || '',
+        };
+        setTheirProfile(theirData);
+
+        const shared = myData.interests.filter(i => 
+          theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
+        );
+        setSharedInterests(shared);
+
+        if (shared.length > 0) {
+          playConnectionChime();
+          setShowSharedAnimation(true);
+          setTimeout(() => setShowSharedAnimation(false), 2000);
+        }
+      }
+
+      setIsMatched(true);
+
+      if (localVideoRef.current && roomUrl) {
+        callObject.current = DailyIframe.createFrame(localVideoRef.current, {
+          showLeaveButton: false,
+          showFullscreenButton: false,
+          iframeStyle: {
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '20px',
+          },
+        });
+
+        await callObject.current.join({ url: roomUrl });
       }
     };
 
@@ -167,14 +179,17 @@ export default function MatchPage() {
   }, [router]);
 
   const handleWatchYouTube = () => {
+    if (!isMatched) return;
     alert('🎥 YouTube watch-together coming soon!');
   };
 
   const handleListenSpotify = () => {
+    if (!isMatched) return;
     alert('🎵 Spotify listen-together coming soon!');
   };
 
   const handleAskGemini = () => {
+    if (!isMatched) return;
     alert('🤖 Ask Gemini together coming soon!');
   };
 
@@ -192,42 +207,7 @@ export default function MatchPage() {
     window.location.reload();
   };
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 text-fuchsia-600 animate-spin mx-auto mb-4" />
-          <p className="text-2xl font-bold text-fuchsia-700">Finding your match...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'waiting') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <div className="text-6xl mb-6 animate-pulse">✨</div>
-          <h2 className="text-3xl font-bold text-fuchsia-700 mb-4">Waiting for a match...</h2>
-          <p className="text-lg text-purple-900 mb-8">We're finding someone who shares your interests</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/')}
-            className="px-8 py-3 bg-white/50 backdrop-blur-sm text-fuchsia-700 font-bold rounded-full shadow-lg"
-          >
-            Go Back
-          </motion.button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (status === 'error') {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
         <motion.div 
@@ -247,6 +227,14 @@ export default function MatchPage() {
             Go Home
           </motion.button>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (!myProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
+        <Loader2 className="w-16 h-16 text-fuchsia-600 animate-spin" />
       </div>
     );
   }
@@ -332,7 +320,7 @@ export default function MatchPage() {
                 )}
               </AnimatePresence>
 
-              {sharedInterests.length > 0 ? (
+              {isMatched && sharedInterests.length > 0 ? (
                 <div className="flex flex-col gap-3 items-center">
                   {sharedInterests.map((interest, idx) => (
                     <motion.div
@@ -359,10 +347,21 @@ export default function MatchPage() {
                   </motion.p>
                 </div>
               ) : (
-                <div className="text-center">
+                <motion.div 
+                  animate={{ 
+                    opacity: [0.5, 1, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="text-center"
+                >
                   <div className="text-5xl mb-3">💫</div>
-                  <p className="text-lg font-semibold text-purple-700">Start connecting!</p>
-                </div>
+                  <p className="text-lg font-semibold text-purple-700">Finding your match...</p>
+                  <p className="text-sm text-purple-600 mt-2">Interests will glow here</p>
+                </motion.div>
               )}
             </motion.div>
 
@@ -372,11 +371,33 @@ export default function MatchPage() {
               transition={{ delay: 0.2 }}
               className="relative bg-white/40 backdrop-blur-xl rounded-3xl p-6 shadow-2xl"
             >
-              <div className="aspect-[3/4] bg-gradient-to-br from-indigo-200/50 to-purple-200/50 rounded-2xl overflow-hidden shadow-lg">
-                <div ref={remoteVideoRef} className="w-full h-full" />
+              <div className="aspect-[3/4] bg-gradient-to-br from-indigo-200/50 to-purple-200/50 rounded-2xl overflow-hidden shadow-lg relative">
+                {!isMatched ? (
+                  <motion.div 
+                    animate={{ 
+                      opacity: [0.3, 0.6, 0.3],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div className="text-center">
+                      <div className="text-6xl mb-4">✨</div>
+                      <p className="text-lg font-bold text-indigo-700">Waiting for</p>
+                      <p className="text-lg font-bold text-indigo-700">someone special...</p>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div ref={remoteVideoRef} className="w-full h-full" />
+                )}
               </div>
               <div className="mt-4 text-center">
-                <h3 className="text-xl font-bold text-fuchsia-700">{theirProfile?.displayName || 'Match'}</h3>
+                <h3 className="text-xl font-bold text-fuchsia-700">
+                  {theirProfile?.displayName || '...'}
+                </h3>
                 {theirProfile?.location && (
                   <p className="text-sm text-purple-600">{theirProfile.location}</p>
                 )}
@@ -412,51 +433,68 @@ export default function MatchPage() {
             className="mt-10 flex flex-wrap justify-center gap-4"
           >
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isMatched ? 1.05 : 1 }}
+              whileTap={{ scale: isMatched ? 0.95 : 1 }}
               onClick={handleWatchYouTube}
-              className="flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-full shadow-lg transition-all"
+              disabled={!isMatched}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
+                isMatched 
+                  ? 'bg-red-500 hover:bg-red-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
             >
               <Youtube size={20} />
               Watch YouTube Together
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isMatched ? 1.05 : 1 }}
+              whileTap={{ scale: isMatched ? 0.95 : 1 }}
               onClick={handleListenSpotify}
-              className="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full shadow-lg transition-all"
+              disabled={!isMatched}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
+                isMatched 
+                  ? 'bg-green-500 hover:bg-green-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
             >
               <Music size={20} />
               Listen to Spotify
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isMatched ? 1.05 : 1 }}
+              whileTap={{ scale: isMatched ? 0.95 : 1 }}
               onClick={handleAskGemini}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-full shadow-lg transition-all"
+              disabled={!isMatched}
+              className={`flex items-center gap-2 px-6 py-3 text-white font-bold rounded-full shadow-lg transition-all ${
+                isMatched 
+                  ? 'bg-blue-500 hover:bg-blue-600 cursor-pointer' 
+                  : 'bg-gray-400 cursor-not-allowed opacity-50'
+              }`}
             >
               <Sparkles size={20} />
               Ask Gemini Together
             </motion.button>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2 }}
-            className="mt-8 text-center"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleNextMatch}
-              className="px-8 py-3 bg-white/50 backdrop-blur-sm text-fuchsia-700 font-bold rounded-full shadow-lg hover:bg-white/70 transition-all"
+          {isMatched && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="mt-8 text-center"
             >
-              Next Match →
-            </motion.button>
-          </motion.div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleNextMatch}
+                className="px-8 py-3 bg-white/50 backdrop-blur-sm text-fuchsia-700 font-bold rounded-full shadow-lg hover:bg-white/70 transition-all"
+              >
+                Next Match →
+              </motion.button>
+            </motion.div>
+          )}
         </div>
       </section>
     </main>
