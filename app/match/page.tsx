@@ -71,16 +71,39 @@ export default function MatchPage() {
     }
 
     // Initialize local video immediately
-    const initializeLocalVideo = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          }, 
-          audio: true 
-        });
+  const initializeLocalVideo = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'user' },
+      audio: true 
+    });
+    
+    localStreamRef.current = stream;
+    
+    // Wait for container
+    for (let i = 0; i < 20; i++) {
+      if (localVideoRef.current) break;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    
+    if (!localVideoRef.current) return;
+    
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted = true;
+    video.style.cssText = 'width:100%;height:100%;object-fit:cover;transform:scaleX(-1)';
+    
+    localVideoRef.current.innerHTML = '';
+    localVideoRef.current.appendChild(video);
+    video.play();
+    
+  } catch (err: any) {
+    console.error('Camera error:', err);
+    setError(true);
+  }
+};
         
         localStreamRef.current = stream;
         
@@ -184,7 +207,7 @@ export default function MatchPage() {
           });
           setErrorMessage('Matching took too long. Please try again.');
           setError(true);
-        }, 30000);
+        }, 300000);
 
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeRef.current = onSnapshot(userDocRef, async (docSnap) => {
