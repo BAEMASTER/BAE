@@ -4,9 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Youtube, Music, Sparkles, X, Loader2 } from 'lucide-react';
+import { Youtube, Music, Sparkles, X, Loader2, RefreshCw } from 'lucide-react';
 
 // --- Types ---
 interface UserData {
@@ -50,6 +50,8 @@ export default function MatchPage() {
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
   const callObject = useRef<any>(null);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
@@ -57,6 +59,8 @@ export default function MatchPage() {
   const [showSharedAnimation, setShowSharedAnimation] = useState(false);
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('Something went wrong. Please try again.');
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -65,11 +69,32 @@ export default function MatchPage() {
       return;
     }
 
+    // FIX 1: Auto-cleanup on page load
+    const cleanupAndInit = async () => {
+      try {
+        // Clean up any stale state
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, {
+          status: 'idle',
+          queuedAt: null,
+          partnerId: null,
+          currentRoomUrl: null,
+        });
+
+        // Then initialize matching
+        await initMatch();
+      } catch (err) {
+        console.error('Cleanup error:', err);
+        setError(true);
+      }
+    };
+
     const initMatch = async () => {
       try {
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (!snap.exists()) {
           console.error('Profile not found');
+          setErrorMessage('Profile not found. Please complete your profile first.');
           setError(true);
           return;
         }
@@ -100,6 +125,7 @@ export default function MatchPage() {
         if (!matchRes.ok) {
           const text = await matchRes.text();
           console.error('Match API error:', text);
+          setErrorMessage('Failed to start matching. Please try again.');
           setError(true);
           return;
         }
@@ -111,77 +137,201 @@ export default function MatchPage() {
           return;
         }
 
+        // FIX 4: Add timeout protection (30 seconds)
+        timeoutIdRef.current = setTimeout(async () => {
+          console.warn('Match timeout - cleaning up');
+          const userRef = doc(db, 'users', user.uid);
+          await updateDoc(userRef, {
+            status: 'idle',
+            queuedAt: null,
+          });
+          setErrorMessage('Matching took too long. Please try again.');
+          setError(true);
+        }, 30000);
+
         const userDocRef = doc(db, 'users', user.uid);
-        const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
+        unsubscribeRef.current = onSnapshot(userDocRef, async (docSnap) => {
           const data = docSnap.data();
           if (data?.status === 'matched' && data?.partnerId && data?.currentRoomUrl) {
+            if (timeoutIdRef.current) {
+              clearTimeout(timeoutIdRef.current);
+            }
             await handleMatch(data.partnerId, data.currentRoomUrl, myData);
-            unsubscribe();
+            if (unsubscribeRef.current) {
+              unsubscribeRef.current();
+            }
           }
         });
 
       } catch (err: any) {
         console.error('Match error:', err);
+        setErrorMessage('An unexpected error occurred. Please try again.');
         setError(true);
       }
     };
 
+    // FIX 3: Validate room before joining
     const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
-      const partnerSnap = await getDoc(doc(db, 'users', partnerId));
-      if (partnerSnap.exists()) {
-        const theirData: UserData = {
-          displayName: partnerSnap.data().displayName || 'Match',
-          interests: partnerSnap.data().interests || [],
-          location: partnerSnap.data().location || '',
-        };
-        setTheirProfile(theirData);
+      try {
+        const partnerSnap = await getDoc(doc(db, 'users', partnerId));
+        if (partnerSnap.exists()) {
+          const theirData: UserData = {
+            displayName: partnerSnap.data().displayName || 'Match',
+            interests: partnerSnap.data().interests || [],
+            location: partnerSnap.data().location || '',
+          };
+          setTheirProfile(theirData);
 
-        const shared = myData.interests.filter(i => 
-          theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
-        );
-        setSharedInterests(shared);
+          const shared = myData.interests.filter(i => 
+            theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
+          );
+          setSharedInterests(shared);
 
-        if (shared.length > 0) {
-          playConnectionChime();
-          setShowSharedAnimation(true);
-          setTimeout(() => setShowSharedAnimation(false), 2000);
+          if (shared.length > 0) {
+            playConnectionChime();
+            setShowSharedAnimation(true);
+            setTimeout(() => setShowSharedAnimation(false), 2000);
+          }
         }
-      }
 
-      setIsMatched(true);
+        setIsMatched(true);
 
-      if (localVideoRef.current && roomUrl) {
-        callObject.current = DailyIframe.createFrame(localVideoRef.current, {
-          showLeaveButton: false,
-          showFullscreenButton: false,
-          showParticipantsBar: false,
-          customTrayButtons: {},
-          iframeStyle: {
-  position: 'absolute',
-  top: '0',
-  left: '0',
-  width: '100%',
-  height: '100%',
-  border: 'none',
-  borderRadius: '24px',
-},
-        });
+        if (localVideoRef.current && roomUrl) {
+          try {
+            callObject.current = DailyIframe.createFrame(localVideoRef.current, {
+              showLeaveButton: false,
+              showFullscreenButton: false,
+              showParticipantsBar: false,
+              customTrayButtons: {},
+              iframeStyle: {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '24px',
+              },
+            });
 
-        await callObject.current.join({ url: roomUrl });
+            // Validate room join
+            const joinResult = await callObject.current.join({ url: roomUrl });
+            
+            if (!joinResult) {
+              throw new Error('Failed to join video room');
+            }
+
+          } catch (videoError) {
+            console.error('Video room error:', videoError);
+            
+            // Cleanup failed connection
+            if (callObject.current) {
+              try {
+                callObject.current.destroy();
+              } catch {}
+              callObject.current = null;
+            }
+            
+            // Reset state
+            await updateDoc(doc(db, 'users', user.uid), {
+              status: 'idle',
+              currentRoomUrl: null,
+              partnerId: null,
+            });
+            
+            setErrorMessage('The video room is no longer available. Please try matching again.');
+            setError(true);
+          }
+        }
+      } catch (err) {
+        console.error('Handle match error:', err);
+        setErrorMessage('Failed to connect with your match. Please try again.');
+        setError(true);
       }
     };
 
-    initMatch();
+    cleanupAndInit();
+
+    // FIX 2: Cleanup on page unload
+    const handleBeforeUnload = () => {
+      if (auth.currentUser) {
+        // Use sendBeacon for reliable cleanup even on page close
+        const data = JSON.stringify({
+          userId: auth.currentUser.uid,
+          action: 'cleanup'
+        });
+        navigator.sendBeacon('/api/cleanup', data);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Cleanup timeout
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
+      
+      // Cleanup snapshot listener
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+      
+      // Cleanup video call
       if (callObject.current) {
         try {
           callObject.current.destroy();
         } catch {}
         callObject.current = null;
       }
+      
+      // Cleanup user state
+      if (auth.currentUser) {
+        updateDoc(doc(db, 'users', auth.currentUser.uid), {
+          status: 'idle',
+          currentRoomUrl: null,
+        }).catch(err => console.error('Cleanup error:', err));
+      }
     };
   }, [router]);
+
+  // FIX 6: Reset functionality
+  const handleReset = async () => {
+    setIsResetting(true);
+    
+    // Cleanup timeout
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+    }
+    
+    // Cleanup listener
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
+    
+    // Cleanup video
+    if (callObject.current) {
+      try {
+        callObject.current.destroy();
+      } catch {}
+      callObject.current = null;
+    }
+    
+    // Reset Firestore
+    if (auth.currentUser) {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        status: 'idle',
+        queuedAt: null,
+        partnerId: null,
+        currentRoomUrl: null,
+      });
+    }
+    
+    setIsResetting(false);
+    window.location.reload();
+  };
 
   const handleWatchYouTube = () => {
     if (!isMatched) return;
@@ -198,17 +348,41 @@ export default function MatchPage() {
     alert('✨ Ask Gemini together coming soon!');
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
     if (callObject.current) {
-      callObject.current.leave();
+      try {
+        await callObject.current.leave();
+      } catch {}
     }
+    
+    // Cleanup state
+    if (auth.currentUser) {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        status: 'idle',
+        currentRoomUrl: null,
+        partnerId: null,
+      });
+    }
+    
     router.push('/');
   };
 
-  const handleNextMatch = () => {
+  const handleNextMatch = async () => {
     if (callObject.current) {
-      callObject.current.leave();
+      try {
+        await callObject.current.leave();
+      } catch {}
     }
+    
+    // Cleanup state
+    if (auth.currentUser) {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        status: 'idle',
+        currentRoomUrl: null,
+        partnerId: null,
+      });
+    }
+    
     window.location.reload();
   };
 
@@ -218,19 +392,31 @@ export default function MatchPage() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+          className="text-center max-w-md"
         >
           <div className="text-6xl mb-6">😔</div>
           <h2 className="text-3xl font-bold text-red-600 mb-4">Connection Error</h2>
-          <p className="text-lg text-purple-900 mb-8">Something went wrong. Please try again.</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/')}
-            className="px-8 py-3 bg-fuchsia-600 text-white font-bold rounded-full shadow-lg"
-          >
-            Go Home
-          </motion.button>
+          <p className="text-lg text-purple-900 mb-8">{errorMessage}</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleReset}
+              disabled={isResetting}
+              className="flex items-center justify-center gap-2 px-8 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-full shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw size={20} className={isResetting ? 'animate-spin' : ''} />
+              {isResetting ? 'Resetting...' : 'Reset & Try Again'}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/')}
+              className="px-8 py-3 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold rounded-full shadow-lg"
+            >
+              Go Home
+            </motion.button>
+          </div>
         </motion.div>
       </div>
     );
