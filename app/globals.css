@@ -104,3 +104,38 @@
     animation: glowSoftIn 1.6s ease-out forwards;
   }
 }
+
+/* -----------------------------------------------------------
+   DAILY.CO VIDEO - FULL SCREEN, NO CONTROLS (LIKE OMEGLE)
+----------------------------------------------------------- */
+
+/* Make Daily.co video fill container completely */
+.daily-iframe-container iframe {
+  object-fit: cover !important;
+}
+
+.daily-iframe-container video {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Hide all Daily.co UI controls */
+[class*="DailyIframe"] [class*="NetworkStatus"],
+[class*="DailyIframe"] [class*="Controls"],
+[class*="DailyIframe"] [class*="ParticipantName"],
+[class*="DailyIframe"] [class*="Tray"],
+[class*="DailyIframe"] [class*="CallControls"] {
+  display: none !important;
+}
+
+/* Ensure video container is properly sized */
+[data-testid="daily-video-container"] {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Force video elements to fill their containers */
+video {
+  object-fit: cover;
+}
