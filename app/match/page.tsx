@@ -157,14 +157,14 @@ export default function MatchPage() {
           showParticipantsBar: false,
           customTrayButtons: {},
           iframeStyle: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            borderRadius: '24px',
-          },
+  position: 'absolute',
+  top: '0',
+  left: '0',
+  width: '100%',
+  height: '100%',
+  border: 'none',
+  borderRadius: '24px',
+},
         });
 
         await callObject.current.join({ url: roomUrl });
