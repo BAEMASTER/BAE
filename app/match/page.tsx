@@ -52,6 +52,7 @@ export default function MatchPage() {
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
@@ -69,9 +70,46 @@ export default function MatchPage() {
       return;
     }
 
-    // FIX 1: Auto-cleanup on page load
+    // Initialize local video immediately
+    const initializeLocalVideo = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          }, 
+          audio: true 
+        });
+        
+        localStreamRef.current = stream;
+        
+        if (localVideoRef.current) {
+          const videoEl = document.createElement('video');
+          videoEl.srcObject = stream;
+          videoEl.autoplay = true;
+          videoEl.playsInline = true;
+          videoEl.muted = true;
+          videoEl.style.width = '100%';
+          videoEl.style.height = '100%';
+          videoEl.style.objectFit = 'cover';
+          videoEl.style.borderRadius = '24px';
+          
+          localVideoRef.current.innerHTML = '';
+          localVideoRef.current.appendChild(videoEl);
+        }
+      } catch (err) {
+        console.error('Camera access error:', err);
+        setErrorMessage('Camera access required. Please allow camera permissions and refresh.');
+        setError(true);
+      }
+    };
+
     const cleanupAndInit = async () => {
       try {
+        // Start camera FIRST
+        await initializeLocalVideo();
+        
         // Clean up any stale state
         const userRef = doc(db, 'users', user.uid);
         await updateDoc(userRef, {
@@ -137,7 +175,6 @@ export default function MatchPage() {
           return;
         }
 
-        // FIX 4: Add timeout protection (30 seconds)
         timeoutIdRef.current = setTimeout(async () => {
           console.warn('Match timeout - cleaning up');
           const userRef = doc(db, 'users', user.uid);
@@ -170,7 +207,6 @@ export default function MatchPage() {
       }
     };
 
-    // FIX 3: Validate room before joining
     const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
       try {
         const partnerSnap = await getDoc(doc(db, 'users', partnerId));
@@ -198,6 +234,17 @@ export default function MatchPage() {
 
         if (localVideoRef.current && roomUrl) {
           try {
+            // Stop the local preview video first
+            if (localStreamRef.current) {
+              localStreamRef.current.getTracks().forEach(track => track.stop());
+            }
+            
+            // Clear the preview video element
+            if (localVideoRef.current) {
+              localVideoRef.current.innerHTML = '';
+            }
+
+            // Now create Daily.co call
             callObject.current = DailyIframe.createFrame(localVideoRef.current, {
               showLeaveButton: false,
               showFullscreenButton: false,
@@ -214,7 +261,6 @@ export default function MatchPage() {
               },
             });
 
-            // Validate room join
             const joinResult = await callObject.current.join({ url: roomUrl });
             
             if (!joinResult) {
@@ -224,7 +270,6 @@ export default function MatchPage() {
           } catch (videoError) {
             console.error('Video room error:', videoError);
             
-            // Cleanup failed connection
             if (callObject.current) {
               try {
                 callObject.current.destroy();
@@ -232,7 +277,6 @@ export default function MatchPage() {
               callObject.current = null;
             }
             
-            // Reset state
             await updateDoc(doc(db, 'users', user.uid), {
               status: 'idle',
               currentRoomUrl: null,
@@ -252,10 +296,8 @@ export default function MatchPage() {
 
     cleanupAndInit();
 
-    // FIX 2: Cleanup on page unload
     const handleBeforeUnload = () => {
       if (auth.currentUser) {
-        // Use sendBeacon for reliable cleanup even on page close
         const data = JSON.stringify({
           userId: auth.currentUser.uid,
           action: 'cleanup'
@@ -269,17 +311,18 @@ export default function MatchPage() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       
-      // Cleanup timeout
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current);
       }
       
-      // Cleanup snapshot listener
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
       }
       
-      // Cleanup video call
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
       if (callObject.current) {
         try {
           callObject.current.destroy();
@@ -287,7 +330,6 @@ export default function MatchPage() {
         callObject.current = null;
       }
       
-      // Cleanup user state
       if (auth.currentUser) {
         updateDoc(doc(db, 'users', auth.currentUser.uid), {
           status: 'idle',
@@ -297,21 +339,21 @@ export default function MatchPage() {
     };
   }, [router]);
 
-  // FIX 6: Reset functionality
   const handleReset = async () => {
     setIsResetting(true);
     
-    // Cleanup timeout
     if (timeoutIdRef.current) {
       clearTimeout(timeoutIdRef.current);
     }
     
-    // Cleanup listener
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
     }
     
-    // Cleanup video
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
     if (callObject.current) {
       try {
         callObject.current.destroy();
@@ -319,7 +361,6 @@ export default function MatchPage() {
       callObject.current = null;
     }
     
-    // Reset Firestore
     if (auth.currentUser) {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         status: 'idle',
@@ -355,7 +396,10 @@ export default function MatchPage() {
       } catch {}
     }
     
-    // Cleanup state
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
     if (auth.currentUser) {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         status: 'idle',
@@ -374,7 +418,6 @@ export default function MatchPage() {
       } catch {}
     }
     
-    // Cleanup state
     if (auth.currentUser) {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         status: 'idle',
@@ -490,15 +533,15 @@ export default function MatchPage() {
       {/* Main Content */}
       <section className="relative z-10 pt-20 sm:pt-28 pb-8 sm:pb-12 px-4 sm:px-8 min-h-screen flex flex-col">
         
-        {/* Video Grid - RESPONSIVE */}
+        {/* Video Grid - BIGGER VIDEOS (40% each) */}
         <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 max-w-7xl mx-auto w-full">
           
-          {/* Left Video - User */}
+          {/* Left Video - User - BIGGER */}
           <motion.div
             initial={{ opacity: 0, x: -100 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, type: 'spring' }}
-            className="relative w-full lg:w-[35%] max-w-md lg:max-w-none"
+            className="relative w-full lg:w-[40%] max-w-md lg:max-w-none"
           >
             <div className="relative aspect-[3/4] rounded-2xl lg:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(236,72,153,0.5)] lg:shadow-[0_0_60px_rgba(236,72,153,0.5)] ring-2 lg:ring-4 ring-pink-400/50">
               <div ref={localVideoRef} className="w-full h-full bg-gradient-to-br from-pink-900/20 to-purple-900/20" />
@@ -511,8 +554,8 @@ export default function MatchPage() {
             </div>
           </motion.div>
 
-          {/* Center - Interest Bridge - RESPONSIVE */}
-          <div className="w-full lg:w-[30%] flex flex-col items-center justify-center gap-4 sm:gap-6 relative py-6 sm:py-8">
+          {/* Center - Interest Bridge - SMALLER (20%) - NO LABEL */}
+          <div className="w-full lg:w-[20%] flex flex-col items-center justify-center gap-4 sm:gap-6 relative py-6 sm:py-8">
             
             {/* Floating particles */}
             {[...Array(15)].map((_, i) => (
@@ -551,9 +594,6 @@ export default function MatchPage() {
 
             {isMatched && sharedInterests.length > 0 ? (
               <>
-                <p className="text-xs font-bold text-yellow-200 uppercase tracking-wider mb-2">
-                  Interest Bridge
-                </p>
                 {sharedInterests.map((interest, idx) => (
                   <motion.div
                     key={interest}
@@ -577,7 +617,7 @@ export default function MatchPage() {
                     {/* Glow effect */}
                     <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-xl opacity-75 animate-pulse" />
                     
-                    {/* Main orb - RESPONSIVE SIZE */}
+                    {/* Main orb */}
                     <div className="relative px-6 py-4 sm:px-8 sm:py-5 lg:px-10 lg:py-6 bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-400 rounded-full shadow-[0_0_30px_rgba(251,191,36,0.8)] lg:shadow-[0_0_40px_rgba(251,191,36,0.8)] border-2 lg:border-4 border-yellow-200">
                       <p className="text-lg sm:text-xl lg:text-2xl font-black text-white drop-shadow-lg text-center whitespace-nowrap">
                         {interest}
@@ -630,12 +670,12 @@ export default function MatchPage() {
             )}
           </div>
 
-          {/* Right Video - Match - RESPONSIVE */}
+          {/* Right Video - Match - BIGGER */}
           <motion.div
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2, type: 'spring' }}
-            className="relative w-full lg:w-[35%] max-w-md lg:max-w-none"
+            className="relative w-full lg:w-[40%] max-w-md lg:max-w-none"
           >
             <div className="relative aspect-[3/4] rounded-2xl lg:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(236,72,153,0.5)] lg:shadow-[0_0_60px_rgba(236,72,153,0.5)] ring-2 lg:ring-4 ring-pink-400/50">
               {!isMatched ? (
@@ -671,7 +711,7 @@ export default function MatchPage() {
           </motion.div>
         </div>
 
-        {/* Action Buttons - RESPONSIVE */}
+        {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
