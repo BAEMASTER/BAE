@@ -105,29 +105,7 @@ export default function MatchPage() {
   }
 };
         
-        localStreamRef.current = stream;
         
-        if (localVideoRef.current) {
-          const videoEl = document.createElement('video');
-          videoEl.srcObject = stream;
-          videoEl.autoplay = true;
-          videoEl.playsInline = true;
-          videoEl.muted = true;
-          videoEl.style.width = '100%';
-          videoEl.style.height = '100%';
-          videoEl.style.objectFit = 'cover';
-          videoEl.style.borderRadius = '24px';
-          
-          localVideoRef.current.innerHTML = '';
-          localVideoRef.current.appendChild(videoEl);
-        }
-      } catch (err) {
-        console.error('Camera access error:', err);
-        setErrorMessage('Camera access required. Please allow camera permissions and refresh.');
-        setError(true);
-      }
-    };
-
     const cleanupAndInit = async () => {
       try {
         // Start camera FIRST
