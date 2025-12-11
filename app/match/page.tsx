@@ -98,7 +98,9 @@ export default function MatchPage() {
             });
 
             // 3. Start Camera IMMEDIATELY (Fixes Issue #1 - Local Video Not Loading)
-            await call.startCamera({ audio: true, video: true });
+        // 🟢 FIX: Call the methods to enable tracks (This handles starting the camera)
+        await call.setLocalVideo(true);
+        await call.setLocalAudio(true);
             
             // Manually trigger initial track display for instant preview
             const participants = call.participants();
