@@ -245,28 +245,46 @@ export default function MatchPage() {
               localVideoRef.current.innerHTML = '';
             }
 
-            // Now create Daily.co call
-            callObject.current = DailyIframe.createFrame(localVideoRef.current, {
-              showLeaveButton: false,
-              showFullscreenButton: false,
-              showParticipantsBar: false,
-              customTrayButtons: {},
-              iframeStyle: {
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                borderRadius: '24px',
-              },
-            });
+         // Now create Daily.co call
+callObject.current = DailyIframe.createFrame(localVideoRef.current, {
+  // Hide ALL UI
+  showLeaveButton: false,
+  showFullscreenButton: false,
+  showParticipantsBar: false,
+  customTrayButtons: {},
+  
+  // Additional UI hiding
+  showLocalVideo: true,
+  showUserNameChangeUI: false,
+  
+  // Styling to fill container
+  iframeStyle: {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    border: 'none',
+    borderRadius: '24px',
+  },
+  
+  // CRITICAL: Custom layout to show ONLY video
+  customLayout: true,
+});
 
-            const joinResult = await callObject.current.join({ url: roomUrl });
-            
-            if (!joinResult) {
-              throw new Error('Failed to join video room');
-            }
+           const joinResult = await callObject.current.join({ 
+  url: roomUrl,
+  startVideoOff: false,
+  startAudioOff: false,
+});
+
+if (!joinResult) {
+  throw new Error('Failed to join video room');
+}
+
+// Configure layout to hide UI
+await callObject.current.setShowNamesMode(false);
+await callObject.current.setActiveSpeakerMode(false);
 
           } catch (videoError) {
             console.error('Video room error:', videoError);
