@@ -108,10 +108,13 @@ export default function HomePage() {
       <section className="relative flex flex-col items-center justify-center text-center px-6 min-h-screen z-10">
         {/* TITLE */}
         <motion.h2
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="text-6xl sm:text-7xl font-extrabold mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.3)]"
-        >
-          Meet. Match.{" "}
- 
+  initial={{ opacity: 0, y: 18 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.7 }}
+  className="text-6xl sm:text-7xl font-extrabold mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.3)]"
+>
+  Meet. Match.{" "}
+  <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+    BAE.
+  </span>
+</motion.h2>
