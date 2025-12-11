@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         name: `bae-${userId}-${partnerId}`,
         properties: {
-          enable_prejoin_ui: true,
+          enable_prejoin_ui: false,
           enable_chat: true,
           enable_screenshare: true,
           start_audio_off: false,

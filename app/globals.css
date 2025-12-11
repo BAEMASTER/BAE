@@ -139,3 +139,48 @@
 video {
   object-fit: cover;
 }
+/* NUCLEAR DAILY.CO UI HIDING */
+
+/* Hide Daily.co iframe UI completely */
+iframe[src*="daily.co"] {
+  pointer-events: none !important;
+}
+
+/* Hide pre-join screen */
+[class*="PreJoin"],
+[class*="prejoin"],
+[data-testid*="prejoin"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide "Are you ready to join?" */
+[class*="ReadyToJoin"],
+[class*="ready-to-join"] {
+  display: none !important;
+}
+
+/* Hide all Daily controls */
+[class*="CallControls"],
+[class*="Tray"],
+[class*="SettingsPanel"],
+[class*="DeviceSelector"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Hide camera/mic/speaker selectors */
+button[class*="device"],
+select[class*="device"],
+[class*="DeviceSelect"] {
+  display: none !important;
+}
+
+/* Show only video */
+video {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}

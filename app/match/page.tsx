@@ -71,17 +71,26 @@ export default function MatchPage() {
     let mounted = true;
 
     // START NATIVE CAMERA IMMEDIATELY
-    const startNativeCamera = async () => {
-      try {
-        console.log('🎥 Starting native camera preview...');
-        
-        // Wait for container
-        for (let i = 0; i < 20; i++) {
-          if (localVideoContainerRef.current) break;
-          await new Promise(r => setTimeout(r, 50));
-        }
-        
-        if (!localVideoContainerRef.current || !mounted) return;
+ const startNativeCamera = async () => {
+  console.log('🎥 startNativeCamera called');
+  
+  try {
+    console.log('📹 Requesting camera access...');
+    
+    // Wait for container
+    for (let i = 0; i < 20; i++) {
+      console.log(`⏳ Waiting for container... attempt ${i + 1}/20`);
+      if (localVideoContainerRef.current) {
+        console.log('✅ Container ready!');
+        break;
+      }
+      await new Promise(r => setTimeout(r, 50));
+    }
+    
+    if (!localVideoContainerRef.current || !mounted) {
+      console.error('❌ Container not ready or unmounted');
+      return;
+    }
 
         // Get camera stream
         const stream = await navigator.mediaDevices.getUserMedia({ 
