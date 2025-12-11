@@ -46,6 +46,7 @@ const playConnectionChime = () => {
 export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -69,9 +70,60 @@ export default function MatchPage() {
 
     let mounted = true;
 
+    // START NATIVE CAMERA IMMEDIATELY
+    const startNativeCamera = async () => {
+      try {
+        console.log('🎥 Starting native camera preview...');
+        
+        // Wait for container
+        for (let i = 0; i < 20; i++) {
+          if (localVideoContainerRef.current) break;
+          await new Promise(r => setTimeout(r, 50));
+        }
+        
+        if (!localVideoContainerRef.current || !mounted) return;
+
+        // Get camera stream
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user' },
+          audio: true 
+        });
+        
+        localStreamRef.current = stream;
+        
+        // Create video element
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
+        video.style.cssText = 'width:100%;height:100%;object-fit:cover;transform:scaleX(-1)';
+        
+        // Add to container
+        localVideoContainerRef.current.innerHTML = '';
+        localVideoContainerRef.current.appendChild(video);
+        await video.play();
+        
+        if (mounted) {
+          setCameraReady(true);
+          console.log('✅ Native camera ready - you should see yourself!');
+        }
+        
+      } catch (err) {
+        console.error('❌ Camera access denied:', err);
+        if (mounted) {
+          setErrorMessage('Camera access required. Please allow camera permissions.');
+          setError(true);
+        }
+      }
+    };
+
     const initEverything = async () => {
       try {
-        // Get profile first
+        // Start camera FIRST
+        await startNativeCamera();
+        
+        // Get profile
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (!snap.exists()) {
           setErrorMessage('Profile not found');
@@ -92,43 +144,6 @@ export default function MatchPage() {
           router.push('/profile');
           return;
         }
-
-        // Wait for container to be ready
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        if (!localVideoContainerRef.current || !mounted) return;
-
-        // Start camera preview BEFORE matching
-        console.log('🎥 Starting camera preview...');
-        
-       const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
-  showLeaveButton: false,
-  showFullscreenButton: false,
-  showParticipantsBar: false,
-  showLocalVideo: false,
-  showUserNameChangeUI: false,
-  iframeStyle: {
-    position: 'absolute',
-    top: '0',
-    left: '0',
-    width: '100%',
-    height: '100%',
-    border: 'none',
-    borderRadius: '24px',
-  },
-});
-
-        callObject.current = daily;
-
-        // Start camera in preview mode (no room) with explicit sources
-        await daily.startCamera({
-          audioSource: true,
-          videoSource: true,
-        });
-        
-        if (!mounted) return;
-        setCameraReady(true);
-        console.log('✅ Camera preview ready');
 
         // Clean Firestore
         await updateDoc(doc(db, 'users', user.uid), {
@@ -219,12 +234,47 @@ export default function MatchPage() {
         if (!mounted) return;
         setIsMatched(true);
 
-        // Join room (camera already on)
-        if (callObject.current && roomUrl) {
-          console.log('🔗 Joining room...');
-          await callObject.current.join({ url: roomUrl });
-          console.log('✅ Joined!');
+        // Stop native camera
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => track.stop());
+          localStreamRef.current = null;
         }
+        
+        // Clear container
+        if (localVideoContainerRef.current) {
+          localVideoContainerRef.current.innerHTML = '';
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        if (!localVideoContainerRef.current || !mounted) return;
+
+        // NOW switch to Daily.co for the call
+        console.log('🔗 Switching to Daily.co...');
+        
+        const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
+          showLeaveButton: false,
+          showFullscreenButton: false,
+          showParticipantsBar: false,
+          showLocalVideo: false,
+          showUserNameChangeUI: false,
+          iframeStyle: {
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            borderRadius: '24px',
+          },
+        });
+
+        callObject.current = daily;
+
+        // Join room
+        await daily.join({ url: roomUrl });
+        console.log('✅ Daily call joined!');
+        
       } catch (err: any) {
         console.error('Match error:', err);
         if (mounted) {
@@ -247,6 +297,10 @@ export default function MatchPage() {
         unsubscribeRef.current();
       }
       
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
       if (callObject.current) {
         try {
           callObject.current.destroy();
@@ -265,6 +319,10 @@ export default function MatchPage() {
     
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
+    }
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
     }
     
     if (callObject.current) {
@@ -291,6 +349,10 @@ export default function MatchPage() {
       try {
         await callObject.current.destroy();
       } catch {}
+    }
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
     }
     
     if (auth.currentUser) {
