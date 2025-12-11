@@ -113,4 +113,5 @@ export default function HomePage() {
           transition={{ duration: 0.7 }}
           className="text-6xl sm:text-7xl font-extrabold mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.3)]"
         >
-          Meet. Match.{" 
+          Meet. Match.{" "}
+ 
