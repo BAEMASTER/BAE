@@ -101,27 +101,22 @@ export default function MatchPage() {
         // Start camera preview BEFORE matching
         console.log('🎥 Starting camera preview...');
         
-        const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
-          showLeaveButton: false,
-          showFullscreenButton: false,
-          showParticipantsBar: false,
-          showLocalVideo: false,
-          showUserNameChangeUI: false,
-          showRecordingUI: false,
-          showNewParticipantsPanel: false,
-          showVideoSourcePicker: false,
-          audioSource: false,
-          videoSource: false,
-          iframeStyle: {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            borderRadius: '24px',
-          },
-        });
+       const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
+  showLeaveButton: false,
+  showFullscreenButton: false,
+  showParticipantsBar: false,
+  showLocalVideo: false,
+  showUserNameChangeUI: false,
+  iframeStyle: {
+    position: 'absolute',
+    top: '0',
+    left: '0',
+    width: '100%',
+    height: '100%',
+    border: 'none',
+    borderRadius: '24px',
+  },
+});
 
         callObject.current = daily;
 
