@@ -128,39 +128,45 @@ export default function MatchPage() {
     };
 
     const initEverything = async () => {
-      try {
-        // Start camera FIRST
-        await startNativeCamera();
-        
-        // Get profile
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (!snap.exists()) {
-          setErrorMessage('Profile not found');
-          setError(true);
-          return;
-        }
+  try {
+    // Get profile FIRST
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) {
+      setErrorMessage('Profile not found');
+      setError(true);
+      return;
+    }
 
-        const myData: UserData = {
-          displayName: snap.data().displayName || user.displayName || 'You',
-          interests: snap.data().interests || [],
-          location: snap.data().location || '',
-        };
-        
-        if (!mounted) return;
-        setMyProfile(myData);
+    const myData: UserData = {
+      displayName: snap.data().displayName || user.displayName || 'You',
+      interests: snap.data().interests || [],
+      location: snap.data().location || '',
+    };
+    
+    if (!mounted) return;
+    setMyProfile(myData);
 
-        if (!myData.interests || myData.interests.length < 3) {
-          router.push('/profile');
-          return;
-        }
+    if (!myData.interests || myData.interests.length < 3) {
+      router.push('/profile');
+      return;
+    }
 
-        // Clean Firestore
-        await updateDoc(doc(db, 'users', user.uid), {
-          status: 'idle',
-          queuedAt: null,
-          partnerId: null,
-          currentRoomUrl: null,
-        });
+    // WAIT LONGER - Let React fully render the DOM
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Changed from 500 to 1500
+    
+    // NOW start camera
+    await startNativeCamera();
+    
+    // Clean Firestore
+    await updateDoc(doc(db, 'users', user.uid), {
+      status: 'idle',
+      queuedAt: null,
+      partnerId: null,
+      currentRoomUrl: null,
+    });
+
+    // Start matching...
+    // (rest of your code stays the same)
 
         // Start matching
         const matchRes = await fetch('/api/match', {
