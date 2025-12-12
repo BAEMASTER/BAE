@@ -11,22 +11,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 const ROTATING_WORDS = ['UPLIFT', 'ELEVATE', 'INSPIRE', 'CHANGE']; 
 const MIN_REQUIRED = 3;
 
-// --- STATIC ORB DATA ---
-// Select a few key interests and define their fixed positions
-const STATIC_ORBS = [
-  { interest: 'Music', top: '25%', left: '10%' },
-  { interest: 'Travel', top: '75%', left: '15%' },
-  { interest: 'Art', top: '20%', right: '15%' },
-  { interest: 'Meditation', top: '65%', right: '8%' },
-  { interest: 'AI', top: '45%', left: '3%' },
-  { interest: 'Cooking', top: '85%', right: '30%' },
-];
-
+// --- FEATURED INTERESTS (Top Row) ---
+const FEATURED_INTERESTS = ['Music', 'Travel', 'Cooking', 'AI', 'Art'];
 
 export default function HomePage() {
   const router = useRouter();
 
-  // Firebase, State, and Logic (All unchanged)
+  // Firebase Initialization
   const [app] = useState(() => {
     const configEnv = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
     const config = configEnv ? JSON.parse(configEnv) : {};
@@ -36,12 +27,14 @@ export default function HomePage() {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
+  // State definitions
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isChecking, setIsChecking] = useState(true);
   const [wordIndex, setWordIndex] = useState(0);
 
+  // Auth + profile load
   useEffect(() => {
     const initAuth = async () => {
       if (!auth.currentUser) {
@@ -49,6 +42,7 @@ export default function HomePage() {
       }
     };
     initAuth();
+
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (!u) {
@@ -68,6 +62,7 @@ export default function HomePage() {
     return () => unsub();
   }, []);
 
+  // Rotate words ticker
   useEffect(() => {
     const id = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
@@ -75,6 +70,7 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, []);
 
+  // BAE CTA behavior
   const handleBAEClick = () => {
     if (isChecking) return;
     if (!user) return router.push('/auth');
@@ -88,45 +84,14 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
 
-      {/* Deep-Space Gradient & Aurora remains */}
+      {/* --- BACKGROUND (UNCHANGED) --- */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] opacity-95"></div>
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
           <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
           <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
       
-      {/* 1. STATIC, GOLD GLOWING ORBS (New Feature) */}
-      <div className="absolute inset-0 pointer-events-none opacity-90 z-0">
-        {STATIC_ORBS.map(({ interest, ...pos }, index) => (
-          <motion.div
-            key={interest}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1 + index * 0.2, duration: 1.5, type: 'spring' }}
-            // Styles for the gold glow and static positioning
-            className="absolute bg-yellow-400/20 backdrop-blur-sm px-5 py-2 rounded-full text-sm font-extrabold text-yellow-300 transform -translate-x-1/2 -translate-y-1/2 border border-yellow-300/50"
-            style={{ 
-              ...pos, 
-              boxShadow: '0 0 20px rgba(252, 211, 77, 0.6)', // Gold glow effect
-              animation: 'pulsate 3s ease-in-out infinite alternate', // Subtle pulse animation
-              minWidth: '60px',
-              textAlign: 'center'
-            }}
-          >
-            {interest}
-          </motion.div>
-        ))}
-      </div>
-      
-      {/* Add pulsate keyframes to your global CSS or inject a style tag if needed for the animation */}
-      {/* @keyframes pulsate {
-          0% { opacity: 0.8; }
-          100% { opacity: 1; }
-        }
-      */}
-
-
-      {/* Header (Unchanged) */}
+      {/* Header */}
       <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-md bg-black/50 border-b border-fuchsia-500/20">
         <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
           BAE
@@ -134,31 +99,58 @@ export default function HomePage() {
         <div className="text-white/80 text-sm">{userName}</div>
       </header>
 
-      {/* HERO SECTION - The centerpiece */}
-      <section className="relative flex flex-col items-center justify-center text-center px-6 min-h-screen z-10">
+      {/* HERO SECTION */}
+      <section className="relative flex flex-col items-center justify-center text-center px-4 min-h-screen z-10 pt-20">
 
-        {/* HUGE, BRIGHT, SHINING TAGLINE (Unchanged) */}
+        {/* 1. HORIZONTAL INTEREST ROW (New Feature) */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+          className="flex flex-wrap justify-center gap-3 mb-8 sm:mb-12 max-w-3xl"
+        >
+          {FEATURED_INTERESTS.map((interest, i) => (
+            <div 
+              key={interest}
+              className="px-5 py-2 rounded-full text-sm sm:text-base font-semibold text-white/90 backdrop-blur-md border border-white/10 bg-white/5 shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:border-yellow-300/50 hover:shadow-[0_0_20px_rgba(253,224,71,0.3)] transition-all cursor-default"
+              style={{
+                // Subtle gradient hints
+                background: `linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)`
+              }}
+            >
+              {interest}
+            </div>
+          ))}
+          {/* "+ and more" Bubble */}
+          <div className="px-5 py-2 rounded-full text-sm sm:text-base font-semibold text-white/60 border border-white/5 bg-transparent italic">
+            + and more
+          </div>
+        </motion.div>
+
+
+        {/* 2. HUGE, BRIGHT, SHINING TAGLINE (Responsive Fix Applied) */}
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-7xl sm:text-8xl lg:text-[10rem] font-extrabold mb-8 drop-shadow-[0_0_50px_rgba(255,160,255,1)] leading-none" 
+          // text-5xl on mobile -> text-9xl on desktop
+          className="text-6xl sm:text-7xl lg:text-9xl font-extrabold mb-6 sm:mb-8 drop-shadow-[0_0_50px_rgba(255,160,255,0.8)] leading-tight" 
         >
           Meet. Match.
-          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent ml-4">
+          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent ml-2 sm:ml-4">
             BAE.
           </span>
         </motion.h2>
 
-        {/* 2. EMOTIONAL TAGLINE (Your Beloved Line - Restored) */}
+        {/* 3. EMOTIONAL TAGLINE (Beloved Line) */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="text-3xl sm:text-4xl font-medium mb-3 text-white/95 drop-shadow-lg"
+          className="text-2xl sm:text-3xl lg:text-4xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl"
         >
           One great conversation can{' '}
-          <span className="inline-block min-w-[12rem] relative align-baseline">
+          <span className="inline-block min-w-[8rem] sm:min-w-[12rem] relative align-baseline">
             <AnimatePresence mode="wait">
               <motion.span
                 key={wordIndex}
@@ -175,17 +167,28 @@ export default function HomePage() {
           YOUR WHOLE DAY.
         </motion.p>
         
-        {/* 3. DEFINITION LINE (The Simple, Straightforward Statement) */}
+        {/* 4. SEPARATOR LINE */}
+        <motion.div 
+           initial={{ scaleX: 0, opacity: 0 }}
+           animate={{ scaleX: 1, opacity: 0.5 }}
+           transition={{ delay: 0.3, duration: 0.8 }}
+           className="w-24 sm:w-32 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
+        />
+
+        {/* 5. DEFINITION LINE (Refined) */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.8 }}
-          className="text-xl sm:text-2xl font-light mb-16 text-white/70 drop-shadow-md max-w-2xl tracking-wide"
+          className="text-lg sm:text-xl font-light mb-12 sm:mb-16 text-white/80 drop-shadow-md max-w-2xl tracking-wide leading-relaxed"
         >
-          BAE is instant video conversations where your shared interests glow.
+          BAE is instant video conversations where your shared interests{' '}
+          <span className="font-bold text-yellow-300 drop-shadow-[0_0_12px_rgba(253,224,71,0.8)] animate-pulse">
+            glow
+          </span>.
         </motion.p>
 
-        {/* CTA Button (Unchanged) */}
+        {/* CTA Button */}
         <motion.button
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -194,7 +197,7 @@ export default function HomePage() {
           whileTap={{ scale: 0.95 }}
           onClick={handleBAEClick}
           disabled={isChecking}
-          className="relative px-16 sm:px-20 py-6 sm:py-7 rounded-full text-white font-black transition-all disabled:opacity-50"
+          className="relative px-12 sm:px-20 py-5 sm:py-7 rounded-full text-white font-black transition-all disabled:opacity-50 mb-12"
           style={{
             background: "linear-gradient(90deg, #FF6F91, #FF9B85)",
             boxShadow: "0 10px 30px rgba(255, 65, 108, 0.4)",
