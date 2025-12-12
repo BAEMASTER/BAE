@@ -11,16 +11,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 const ROTATING_WORDS = ['UPLIFT', 'ELEVATE', 'INSPIRE', 'CHANGE']; 
 const MIN_REQUIRED = 3;
 
-// --- FEATURED INTERESTS (Specific & Lux) ---
+// --- FEATURED INTERESTS (Neutral + One Glowing) ---
 const FEATURED_INTERESTS = [
   'Indian Food', 'Art Museums', 'Running', 
-  'AI', 'Physics', 'Standup Comedy'
+  'AI', // <-- This will be the glowing pill
+  'Physics', 'Standup Comedy'
 ];
 
 export default function HomePage() {
   const router = useRouter();
 
-  // Firebase Initialization
+  // Firebase/Auth/State/Logic (Unchanged)
+  // ... (Code for Firebase, useState, useEffects, and handleBAEClick is unchanged) ...
+  
   const [app] = useState(() => {
     const configEnv = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
     const config = configEnv ? JSON.parse(configEnv) : {};
@@ -30,14 +33,12 @@ export default function HomePage() {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // State definitions
   const [user, setUser] = useState<User | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isChecking, setIsChecking] = useState(true);
   const [wordIndex, setWordIndex] = useState(0);
 
-  // Auth + profile load
   useEffect(() => {
     const initAuth = async () => {
       if (!auth.currentUser) {
@@ -65,7 +66,6 @@ export default function HomePage() {
     return () => unsub();
   }, []);
 
-  // Rotate words ticker
   useEffect(() => {
     const id = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
@@ -73,7 +73,6 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, []);
 
-  // BAE CTA behavior
   const handleBAEClick = () => {
     if (isChecking) return;
     if (!user) return router.push('/auth');
@@ -87,14 +86,14 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
 
-      {/* --- BACKGROUND --- */}
+      {/* --- BACKGROUND (Unchanged) --- */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] opacity-95"></div>
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
           <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
           <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
       
-      {/* Header */}
+      {/* Header (Unchanged) */}
       <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-md bg-black/50 border-b border-fuchsia-500/20">
         <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
           BAE
@@ -103,9 +102,41 @@ export default function HomePage() {
       </header>
 
       {/* HERO SECTION */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 min-h-screen z-10 pt-16">
+      <section className="relative flex flex-col items-center justify-center text-center px-4 min-h-screen z-10 pt-20"> {/* Increased pt-20 for space */}
 
-        {/* 1. HUGE, BRIGHT HEADLINE (Top of hierarchy) */}
+        {/* 1. ELEGANT INTEREST ROW (Jewelry Style, Now on Top) */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-12 sm:mb-16 max-w-4xl"
+        >
+          {FEATURED_INTERESTS.map((interest, i) => {
+            const isGlow = interest === 'AI'; // Check for the glowing pill
+            return (
+              <div 
+                key={interest}
+                // Pill size: Adjusted to text-sm/base (slightly smaller, more elegant)
+                className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-all cursor-default ${
+                  isGlow 
+                    // GLOWING GOLD STYLE (High-reflectivity jewelry look)
+                    ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse' 
+                    // NEUTRAL STYLE (Translucent, sleek white/glass)
+                    : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm'
+                }`}
+              >
+                {interest}
+              </div>
+            );
+          })}
+          {/* "+ and more" Bubble */}
+          <div className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white/40 border border-white/10 bg-transparent italic">
+            + and more
+          </div>
+        </motion.div>
+
+
+        {/* 2. HUGE, BRIGHT HEADLINE (Unchanged size/responsive) */}
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -118,12 +149,14 @@ export default function HomePage() {
           </span>
         </motion.h2>
 
-        {/* 2. EMOTIONAL TAGLINE */}
+        {/* 3. EMOTIONAL TAGLINE (Adjusted for single line on desktop) */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="text-2xl sm:text-3xl lg:text-4xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl"
+          // Reduced size slightly on desktop to encourage single line
+          className="text-2xl sm:text-3xl lg:text-3xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl whitespace-nowrap lg:whitespace-normal" 
+          style={{ whiteSpace: 'nowrap' }} // Using inline style to force single line where possible
         >
           One great conversation can{' '}
           <span className="inline-block min-w-[8rem] sm:min-w-[12rem] relative align-baseline">
@@ -148,44 +181,22 @@ export default function HomePage() {
            initial={{ scaleX: 0, opacity: 0 }}
            animate={{ scaleX: 1, opacity: 0.5 }}
            transition={{ delay: 0.3, duration: 0.8 }}
-           className="w-24 sm:w-32 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
+           className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
         />
 
-        {/* 3. DEFINITION (Bolder, Bigger) */}
+        {/* 4. DEFINITION LINE (Styled and Bolder) */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.8 }}
-          // Increased size to text-xl/2xl and weight to font-medium
-          className="text-xl sm:text-2xl font-medium mb-10 text-white/90 drop-shadow-md max-w-3xl tracking-wide leading-relaxed"
+          // Increased size to text-lg/xl and reduced weight to font-light for elegance
+          className="text-xl sm:text-xl font-light mb-16 text-white/80 drop-shadow-md max-w-2xl tracking-wide leading-relaxed"
         >
           BAE is instant video conversations where your shared interests{' '}
           <span className="font-bold text-yellow-300 drop-shadow-[0_0_12px_rgba(253,224,71,0.8)] animate-pulse">
             glow
           </span>.
         </motion.p>
-
-        {/* 4. LUX GOLD INTEREST ROW (Now above the button) */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="flex flex-wrap justify-center gap-3 mb-10 max-w-4xl px-2"
-        >
-          {FEATURED_INTERESTS.map((interest, i) => (
-            <div 
-              key={interest}
-              // LUX GOLD STYLE: High opacity amber gradient, gold border, shadow glow
-              className="px-6 py-3 rounded-full text-base sm:text-lg font-bold text-yellow-50 border border-yellow-400/60 bg-gradient-to-br from-amber-600/80 to-yellow-600/60 shadow-[0_0_15px_rgba(234,179,8,0.4)] hover:scale-105 hover:shadow-[0_0_25px_rgba(234,179,8,0.6)] hover:border-yellow-200 transition-all cursor-default"
-            >
-              {interest}
-            </div>
-          ))}
-          {/* "+ and more" Bubble - Subtle contrast */}
-          <div className="px-6 py-3 rounded-full text-base sm:text-lg font-semibold text-white/70 border border-white/20 bg-white/5 italic">
-            + and more
-          </div>
-        </motion.div>
 
         {/* 5. CTA Button */}
         <motion.button
