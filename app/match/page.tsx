@@ -6,7 +6,7 @@ import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Youtube, Music, Sparkles, X, Loader2, RefreshCw } from 'lucide-react';
+import { X, Loader2, RefreshCw } from 'lucide-react';
 
 interface UserData {
   displayName: string;
@@ -17,27 +17,42 @@ interface UserData {
 const playConnectionChime = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const notes = [261.63, 329.63, 392.00, 523.25];
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
     
-    notes.forEach((freq, index) => {
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      
-      osc.connect(gain);
-      gain.connect(audioContext.destination);
-      
-      osc.frequency.value = freq;
-      osc.type = 'sine';
-      
-      const startTime = audioContext.currentTime + (index * 0.1);
-      const duration = 0.3;
-      
-      gain.gain.setValueAtTime(0.2, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-      
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    });
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    osc.frequency.value = 523.25; // Quick ping
+    osc.type = 'sine';
+    
+    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    osc.start(audioContext.currentTime);
+    osc.stop(audioContext.currentTime + 0.2);
+  } catch (e) {
+    console.log('Audio not supported');
+  }
+};
+
+const playAddSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    osc.frequency.value = 800;
+    osc.type = 'sine';
+    
+    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+    
+    osc.start(audioContext.currentTime);
+    osc.stop(audioContext.currentTime + 0.15);
   } catch (e) {
     console.log('Audio not supported');
   }
@@ -54,12 +69,12 @@ export default function MatchPage() {
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
   const [sharedInterests, setSharedInterests] = useState<string[]>([]);
-  const [showSharedAnimation, setShowSharedAnimation] = useState(false);
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('Something went wrong. Please try again.');
   const [isResetting, setIsResetting] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [addNotification, setAddNotification] = useState<string | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -70,29 +85,26 @@ export default function MatchPage() {
 
     let mounted = true;
 
-    // START NATIVE CAMERA IMMEDIATELY
- const startNativeCamera = async () => {
-  console.log('🎥 startNativeCamera called');
-  
-  try {
-    console.log('📹 Requesting camera access...');
-    
-    // Wait for container
-    for (let i = 0; i < 20; i++) {
-      console.log(`⏳ Waiting for container... attempt ${i + 1}/20`);
-      if (localVideoContainerRef.current) {
-        console.log('✅ Container ready!');
-        break;
-      }
-      await new Promise(r => setTimeout(r, 50));
-    }
-    
-    if (!localVideoContainerRef.current || !mounted) {
-      console.error('❌ Container not ready or unmounted');
-      return;
-    }
+    const startNativeCamera = async () => {
+      console.log('🎥 startNativeCamera called');
+      
+      try {
+        console.log('📹 Requesting camera access...');
+        
+        for (let i = 0; i < 20; i++) {
+          console.log(`⏳ Waiting for container... attempt ${i + 1}/20`);
+          if (localVideoContainerRef.current) {
+            console.log('✅ Container ready!');
+            break;
+          }
+          await new Promise(r => setTimeout(r, 50));
+        }
+        
+        if (!localVideoContainerRef.current || !mounted) {
+          console.error('❌ Container not ready or unmounted');
+          return;
+        }
 
-        // Get camera stream
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: 'user' },
           audio: true 
@@ -100,7 +112,6 @@ export default function MatchPage() {
         
         localStreamRef.current = stream;
         
-        // Create video element
         const video = document.createElement('video');
         video.srcObject = stream;
         video.autoplay = true;
@@ -108,14 +119,13 @@ export default function MatchPage() {
         video.muted = true;
         video.style.cssText = 'width:100%;height:100%;object-fit:cover;transform:scaleX(-1)';
         
-        // Add to container
         localVideoContainerRef.current.innerHTML = '';
         localVideoContainerRef.current.appendChild(video);
         await video.play();
         
         if (mounted) {
           setCameraReady(true);
-          console.log('✅ Native camera ready - you should see yourself!');
+          console.log('✅ Native camera ready');
         }
         
       } catch (err) {
@@ -128,47 +138,38 @@ export default function MatchPage() {
     };
 
     const initEverything = async () => {
-  try {
-    // Get profile FIRST
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists()) {
-      setErrorMessage('Profile not found');
-      setError(true);
-      return;
-    }
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (!snap.exists()) {
+          setErrorMessage('Profile not found');
+          setError(true);
+          return;
+        }
 
-    const myData: UserData = {
-      displayName: snap.data().displayName || user.displayName || 'You',
-      interests: snap.data().interests || [],
-      location: snap.data().location || '',
-    };
-    
-    if (!mounted) return;
-    setMyProfile(myData);
+        const myData: UserData = {
+          displayName: snap.data().displayName || user.displayName || 'You',
+          interests: snap.data().interests || [],
+          location: snap.data().location || '',
+        };
+        
+        if (!mounted) return;
+        setMyProfile(myData);
 
-    if (!myData.interests || myData.interests.length < 3) {
-      router.push('/profile');
-      return;
-    }
+        if (!myData.interests || myData.interests.length < 3) {
+          router.push('/profile');
+          return;
+        }
 
-    // WAIT LONGER - Let React fully render the DOM
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Changed from 500 to 1500
-    
-    // NOW start camera
-    await startNativeCamera();
-    
-    // Clean Firestore
-    await updateDoc(doc(db, 'users', user.uid), {
-      status: 'idle',
-      queuedAt: null,
-      partnerId: null,
-      currentRoomUrl: null,
-    });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await startNativeCamera();
+        
+        await updateDoc(doc(db, 'users', user.uid), {
+          status: 'idle',
+          queuedAt: null,
+          partnerId: null,
+          currentRoomUrl: null,
+        });
 
-    // Start matching...
-    // (rest of your code stays the same)
-
-        // Start matching
         const matchRes = await fetch('/api/match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -192,7 +193,6 @@ export default function MatchPage() {
           return;
         }
 
-        // Wait for match
         timeoutIdRef.current = setTimeout(async () => {
           await updateDoc(doc(db, 'users', user.uid), {
             status: 'idle',
@@ -234,28 +234,24 @@ export default function MatchPage() {
           if (!mounted) return;
           setTheirProfile(theirData);
 
-          const shared = myData.interests.filter(i => 
-            theirData.interests.some(ti => ti.toLowerCase() === i.toLowerCase())
+          const shared = myData.interests.filter((i: string) => 
+            theirData.interests.some((ti: string) => ti.toLowerCase() === i.toLowerCase())
           );
           setSharedInterests(shared);
 
           if (shared.length > 0) {
             playConnectionChime();
-            setShowSharedAnimation(true);
-            setTimeout(() => setShowSharedAnimation(false), 2000);
           }
         }
 
         if (!mounted) return;
         setIsMatched(true);
 
-        // Stop native camera
         if (localStreamRef.current) {
           localStreamRef.current.getTracks().forEach(track => track.stop());
           localStreamRef.current = null;
         }
         
-        // Clear container
         if (localVideoContainerRef.current) {
           localVideoContainerRef.current.innerHTML = '';
         }
@@ -264,7 +260,6 @@ export default function MatchPage() {
         
         if (!localVideoContainerRef.current || !mounted) return;
 
-        // NOW switch to Daily.co for the call
         console.log('🔗 Switching to Daily.co...');
         
         const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
@@ -280,13 +275,11 @@ export default function MatchPage() {
             width: '100%',
             height: '100%',
             border: 'none',
-            borderRadius: '24px',
+            borderRadius: '1.5rem',
           },
         });
 
         callObject.current = daily;
-
-        // Join room
         await daily.join({ url: roomUrl });
         console.log('✅ Daily call joined!');
         
@@ -324,6 +317,26 @@ export default function MatchPage() {
       }
     };
   }, [router]);
+
+  const handleAddInterest = async (interest: string) => {
+    if (!auth.currentUser || !myProfile) return;
+    
+    playAddSound();
+    
+    const newInterests = [...myProfile.interests, interest];
+    setMyProfile({ ...myProfile, interests: newInterests });
+    
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+        interests: newInterests,
+      });
+      
+      setAddNotification(`Added ${interest}! 🎉`);
+      setTimeout(() => setAddNotification(null), 3000);
+    } catch (err) {
+      console.error('Failed to add interest:', err);
+    }
+  };
 
   const handleReset = async () => {
     setIsResetting(true);
@@ -387,15 +400,15 @@ export default function MatchPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md"
         >
           <div className="text-6xl mb-6">😔</div>
-          <h2 className="text-3xl font-bold text-red-600 mb-4">Connection Error</h2>
-          <p className="text-lg text-purple-900 mb-8">{errorMessage}</p>
+          <h2 className="text-3xl font-bold text-red-400 mb-4">Connection Error</h2>
+          <p className="text-lg text-white/70 mb-8">{errorMessage}</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -423,49 +436,27 @@ export default function MatchPage() {
 
   if (!myProfile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
-        <Loader2 className="w-16 h-16 text-fuchsia-600 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
+        <Loader2 className="w-16 h-16 text-fuchsia-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-700">
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
       
-      <div className="pointer-events-none absolute inset-0">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute top-20 left-10 w-96 h-96 bg-pink-400/30 rounded-full blur-3xl"
-        />
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.3, 1],
-            x: [0, -50, 0],
-            y: [0, -30, 0],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-400/30 rounded-full blur-3xl"
-        />
+      {/* Background Effects */}
+      <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
+        <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
+        <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
 
-      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 backdrop-blur-md bg-white/5">
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 shadow-[0_1px_20px_rgba(168,85,247,0.1)]">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-3xl sm:text-4xl font-extrabold text-white"
+          className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]"
         >
           BAE
         </motion.div>
@@ -484,132 +475,159 @@ export default function MatchPage() {
         </motion.button>
       </header>
 
-      <section className="relative z-10 pt-20 sm:pt-28 pb-8 sm:pb-12 px-4 sm:px-8 min-h-screen flex flex-col">
-        
-        <div className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 max-w-7xl mx-auto w-full">
-          
-          {/* Your Video */}
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {addNotification && (
           <motion.div
-            initial={{ opacity: 0, x: -100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, type: 'spring' }}
-            className="relative w-full lg:w-[40%] max-w-md lg:max-w-none"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-24 inset-x-0 z-40 flex justify-center px-4"
           >
-            <div className="relative aspect-[3/4] rounded-2xl lg:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(236,72,153,0.5)] ring-2 lg:ring-4 ring-pink-400/50">
+            <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold">
+              {addNotification}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <section className="relative z-10 pt-20 sm:pt-24 pb-8 px-4 sm:px-6 min-h-screen flex flex-col items-center">
+        
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 sm:gap-6">
+          
+          {/* YOUR VIDEO */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="relative w-full"
+          >
+            <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
               <div 
                 ref={localVideoContainerRef} 
-                className="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-900/20 to-purple-900/20"
+                className="absolute inset-0 w-full h-full"
               />
               {!cameraReady && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="w-12 h-12 text-white animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-indigo-900/20">
+                  <Loader2 className="w-12 h-12 text-white/70 animate-spin" />
                 </div>
               )}
             </div>
-            <div className="mt-3 sm:mt-4 text-center">
-              <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">{myProfile?.displayName || 'You'}</h3>
+            <div className="mt-3 text-center">
+              <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
+                {myProfile?.displayName || 'You'}
+              </h3>
             </div>
           </motion.div>
 
-          {/* Interest Bridge */}
-          <div className="w-full lg:w-[20%] flex flex-col items-center justify-center gap-4 sm:gap-6 relative py-6 sm:py-8">
-            
-            {[...Array(15)].map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  y: [0, -100, 0],
-                  x: [0, Math.random() * 40 - 20, 0],
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 3 + Math.random() * 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                }}
-                className="absolute w-1 h-1 bg-yellow-300 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                }}
-              />
-            ))}
-
-            <AnimatePresence>
-              {showSharedAnimation && (
-                <motion.div
-                  initial={{ scale: 0, rotate: 0 }}
-                  animate={{ scale: 1.5, rotate: 360 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  className="absolute text-7xl sm:text-9xl"
-                >
-                  ✨
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {isMatched && sharedInterests.length > 0 ? (
-              <>
-                {sharedInterests.map((interest, idx) => (
-                  <motion.div
-                    key={interest}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ 
-                      scale: 1, 
-                      opacity: 1,
-                      y: [0, -10, 0],
-                    }}
-                    transition={{ 
-                      delay: 0.5 + (idx * 0.2),
-                      y: {
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: idx * 0.3,
-                      }
-                    }}
-                    className="relative"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-xl opacity-75 animate-pulse" />
-                    <div className="relative px-6 py-4 sm:px-8 sm:py-5 lg:px-10 lg:py-6 bg-gradient-to-br from-yellow-300 via-yellow-400 to-orange-400 rounded-full shadow-[0_0_30px_rgba(251,191,36,0.8)] border-2 lg:border-4 border-yellow-200">
-                      <p className="text-lg sm:text-xl lg:text-2xl font-black text-white drop-shadow-lg text-center whitespace-nowrap">
-                        {interest}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-                <p className="text-sm font-bold text-yellow-200 mt-4">
-                  {sharedInterests.length} shared interest{sharedInterests.length > 1 ? 's' : ''}
-                </p>
-              </>
-            ) : (
-              <motion.div
-                animate={{ 
-                  opacity: [0.5, 1, 0.5],
-                  scale: [0.95, 1.05, 0.95],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="text-center"
-              >
-                <div className="text-5xl sm:text-7xl mb-4">💫</div>
-                <p className="text-lg sm:text-xl font-bold text-white drop-shadow-lg">Finding your match...</p>
-                <p className="text-xs sm:text-sm text-pink-200 mt-2">Interests will glow here</p>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Match Video */}
+          {/* INTEREST STRIP */}
           <motion.div
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, type: 'spring' }}
-            className="relative w-full lg:w-[40%] max-w-md lg:max-w-none"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="relative w-full bg-white/5 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl p-4 sm:p-6"
           >
-            <div className="relative aspect-[3/4] rounded-2xl lg:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(236,72,153,0.5)] ring-2 lg:ring-4 ring-pink-400/50">
+            {!isMatched ? (
+              <div className="text-center py-8">
+                <motion.div
+                  animate={{ 
+                    opacity: [0.5, 1, 0.5],
+                    scale: [0.95, 1.05, 0.95],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <div className="text-5xl mb-3">💫</div>
+                  <p className="text-lg font-bold text-white/90">Finding your match...</p>
+                  <p className="text-sm text-white/60 mt-2">Interests will appear here</p>
+                </motion.div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* YOUR INTERESTS */}
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-white/70 mb-2 uppercase tracking-wide">Your Interests</p>
+                  <div className="flex flex-wrap gap-2">
+                    {myProfile?.interests.map((interest: string) => {
+                      const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
+                      return (
+                        <motion.div
+                          key={interest}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md transition-all ${
+                            isShared
+                              ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse scale-110'
+                              : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm'
+                          }`}
+                        >
+                          {interest}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* THEIR INTERESTS */}
+                <div>
+                  <p className="text-xs sm:text-sm font-bold text-white/70 mb-2 uppercase tracking-wide">
+                    Their Interests <span className="text-yellow-300">(tap to add)</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {theirProfile?.interests.map((interest: string) => {
+                      const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
+                      const isAlreadyAdded = myProfile?.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase());
+                      
+                      return (
+                        <motion.button
+                          key={interest}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          whileHover={{ scale: isAlreadyAdded ? 1 : 1.05 }}
+                          whileTap={{ scale: isAlreadyAdded ? 1 : 0.95 }}
+                          disabled={isAlreadyAdded}
+                          onClick={() => handleAddInterest(interest)}
+                          className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md transition-all ${
+                            isShared
+                              ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse scale-110'
+                              : isAlreadyAdded
+                              ? 'bg-white/50 text-black/60 border-white/50 cursor-default opacity-80'
+                              : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm hover:bg-white/20'
+                          }`}
+                        >
+                          {interest}
+                          {isAlreadyAdded && <span className="ml-1.5 text-xs">✓</span>}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Shared Count */}
+                {sharedInterests.length > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center text-sm font-bold text-yellow-300 pt-2"
+                  >
+                    ⭐ {sharedInterests.length} shared interest{sharedInterests.length > 1 ? 's' : ''}
+                  </motion.p>
+                )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* THEIR VIDEO */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="relative w-full"
+          >
+            <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
               {!isMatched ? (
                 <motion.div 
                   animate={{ 
@@ -623,7 +641,7 @@ export default function MatchPage() {
                   className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
                 >
                   <div className="text-center px-4">
-                    <div className="text-5xl sm:text-7xl mb-4">✨</div>
+                    <div className="text-5xl sm:text-6xl mb-3">✨</div>
                     <p className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">Waiting for</p>
                     <p className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">someone special...</p>
                   </div>
@@ -632,39 +650,36 @@ export default function MatchPage() {
                 <div className="w-full h-full bg-gradient-to-br from-indigo-900/20 to-purple-900/20" />
               )}
             </div>
-            <div className="mt-3 sm:mt-4 text-center">
+            <div className="mt-3 text-center">
               <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
                 {theirProfile?.displayName || '...'}
+                {theirProfile?.location && (
+                  <span className="text-base font-semibold text-white/70"> • {theirProfile.location}</span>
+                )}
               </h3>
             </div>
           </motion.div>
+
+          {/* NEXT BUTTON */}
+          {isMatched && (
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex justify-center mt-4"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleNextMatch}
+                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:brightness-110 transition-all"
+              >
+                Next Match
+                <RefreshCw size={18} />
+              </motion.button>
+            </motion.div>
+          )}
         </div>
-
-        {/* Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4"
-        >
-          <button disabled className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white font-bold rounded-full opacity-40 cursor-not-allowed">
-            <Youtube size={20} /> Watch YouTube Together
-          </button>
-          <button disabled className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white font-bold rounded-full opacity-40 cursor-not-allowed">
-            <Music size={20} /> Listen to Spotify
-          </button>
-          <button disabled className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white font-bold rounded-full opacity-40 cursor-not-allowed">
-            <Sparkles size={20} /> Ask Gemini Together
-          </button>
-        </motion.div>
-
-        {isMatched && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-center">
-            <button onClick={handleNextMatch} className="px-10 py-3 bg-white/20 text-white font-bold rounded-full">
-              Next Match →
-            </button>
-          </motion.div>
-        )}
       </section>
     </main>
   );
