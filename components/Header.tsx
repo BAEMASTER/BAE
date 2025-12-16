@@ -51,6 +51,17 @@ export default function Header() {
           >
             BAE
           </Link>
+          
+          {/* Guide link for logged out users */}
+          <nav className="flex-1 flex justify-center">
+            <Link 
+              href="/guide" 
+              className="text-white/70 hover:text-white transition-colors text-base font-semibold"
+            >
+              Guide
+            </Link>
+          </nav>
+
           <button
             onClick={doSignIn}
             disabled={busy}
@@ -89,6 +100,12 @@ export default function Header() {
               className="text-white/70 hover:text-white transition-colors"
             >
               Profile
+            </Link>
+            <Link 
+              href="/guide" 
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              Guide
             </Link>
             <Link 
               href="/devcheck" 
