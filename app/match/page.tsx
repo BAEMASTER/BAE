@@ -23,7 +23,7 @@ const playConnectionChime = () => {
     osc.connect(gain);
     gain.connect(audioContext.destination);
     
-    osc.frequency.value = 523.25; // Quick ping
+    osc.frequency.value = 523.25;
     osc.type = 'sine';
     
     gain.gain.setValueAtTime(0.2, audioContext.currentTime);
@@ -36,23 +36,34 @@ const playConnectionChime = () => {
   }
 };
 
-const playAddSound = () => {
+const playTeleportSound = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
     
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
+    // Whoosh sound
+    const whoosh = audioContext.createOscillator();
+    const whooshGain = audioContext.createGain();
+    whoosh.connect(whooshGain);
+    whooshGain.connect(audioContext.destination);
+    whoosh.type = 'sawtooth';
+    whoosh.frequency.setValueAtTime(200, audioContext.currentTime);
+    whoosh.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.3);
+    whooshGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+    whooshGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    whoosh.start(audioContext.currentTime);
+    whoosh.stop(audioContext.currentTime + 0.3);
     
-    osc.frequency.value = 800;
-    osc.type = 'sine';
-    
-    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-    
-    osc.start(audioContext.currentTime);
-    osc.stop(audioContext.currentTime + 0.15);
+    // Chime on arrival
+    const chime = audioContext.createOscillator();
+    const chimeGain = audioContext.createGain();
+    chime.connect(chimeGain);
+    chimeGain.connect(audioContext.destination);
+    chime.type = 'sine';
+    chime.frequency.value = 800;
+    chimeGain.gain.setValueAtTime(0.15, audioContext.currentTime + 0.35);
+    chimeGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    chime.start(audioContext.currentTime + 0.35);
+    chime.stop(audioContext.currentTime + 0.5);
   } catch (e) {
     console.log('Audio not supported');
   }
@@ -61,6 +72,7 @@ const playAddSound = () => {
 export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
+  const remoteVideoContainerRef = useRef<HTMLDivElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -75,6 +87,7 @@ export default function MatchPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [addNotification, setAddNotification] = useState<string | null>(null);
+  const [teleportingInterest, setTeleportingInterest] = useState<{interest: string, fromX: number, fromY: number} | null>(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -86,24 +99,15 @@ export default function MatchPage() {
     let mounted = true;
 
     const startNativeCamera = async () => {
-      console.log('🎥 startNativeCamera called');
+      console.log('🎥 Starting camera...');
       
       try {
-        console.log('📹 Requesting camera access...');
-        
         for (let i = 0; i < 20; i++) {
-          console.log(`⏳ Waiting for container... attempt ${i + 1}/20`);
-          if (localVideoContainerRef.current) {
-            console.log('✅ Container ready!');
-            break;
-          }
+          if (localVideoContainerRef.current) break;
           await new Promise(r => setTimeout(r, 50));
         }
         
-        if (!localVideoContainerRef.current || !mounted) {
-          console.error('❌ Container not ready or unmounted');
-          return;
-        }
+        if (!localVideoContainerRef.current || !mounted) return;
 
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: 'user' },
@@ -125,11 +129,11 @@ export default function MatchPage() {
         
         if (mounted) {
           setCameraReady(true);
-          console.log('✅ Native camera ready');
+          console.log('✅ Camera ready');
         }
         
       } catch (err) {
-        console.error('❌ Camera access denied:', err);
+        console.error('❌ Camera error:', err);
         if (mounted) {
           setErrorMessage('Camera access required. Please allow camera permissions.');
           setError(true);
@@ -275,7 +279,7 @@ export default function MatchPage() {
             width: '100%',
             height: '100%',
             border: 'none',
-            borderRadius: '1.5rem',
+            borderRadius: '1rem',
           },
         });
 
@@ -318,13 +322,30 @@ export default function MatchPage() {
     };
   }, [router]);
 
-  const handleAddInterest = async (interest: string) => {
+  const handleTeleportInterest = async (interest: string, event: React.MouseEvent) => {
     if (!auth.currentUser || !myProfile) return;
     
-    playAddSound();
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    setTeleportingInterest({
+      interest,
+      fromX: rect.left + rect.width / 2,
+      fromY: rect.top + rect.height / 2,
+    });
+    
+    playTeleportSound();
+    
+    setTimeout(() => {
+      setTeleportingInterest(null);
+    }, 500);
     
     const newInterests = [...myProfile.interests, interest];
     setMyProfile({ ...myProfile, interests: newInterests });
+    
+    // Check if it's now shared
+    const isNowShared = theirProfile?.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase());
+    if (isNowShared && !sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase())) {
+      setSharedInterests([...sharedInterests, interest]);
+    }
     
     try {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
@@ -452,11 +473,11 @@ export default function MatchPage() {
       </div>
 
       {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 h-16 sm:h-20 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 shadow-[0_1px_20px_rgba(168,85,247,0.1)]">
+      <header className="fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-8 h-16 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 shadow-[0_1px_20px_rgba(168,85,247,0.1)]">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]"
+          className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]"
         >
           BAE
         </motion.div>
@@ -467,11 +488,10 @@ export default function MatchPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleEndCall}
-          className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm sm:text-base"
+          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm"
         >
-          <X size={18} />
-          <span className="hidden sm:inline">End Call</span>
-          <span className="sm:hidden">End</span>
+          <X size={16} />
+          End
         </motion.button>
       </header>
 
@@ -479,30 +499,67 @@ export default function MatchPage() {
       <AnimatePresence>
         {addNotification && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 inset-x-0 z-40 flex justify-center px-4"
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-20 inset-x-0 z-40 flex justify-center px-4"
           >
-            <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold">
+            <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm">
               {addNotification}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <section className="relative z-10 pt-20 sm:pt-24 pb-8 px-4 sm:px-6 min-h-screen flex flex-col items-center">
+      {/* Teleporting Pill Animation */}
+      <AnimatePresence>
+        {teleportingInterest && (
+          <motion.div
+            initial={{ 
+              x: teleportingInterest.fromX, 
+              y: teleportingInterest.fromY,
+              scale: 1,
+              opacity: 1 
+            }}
+            animate={{ 
+              x: window.innerWidth / 2, 
+              y: window.innerHeight - 100,
+              scale: 0.8,
+              opacity: 0.5
+            }}
+            exit={{ opacity: 0, scale: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="fixed z-50 px-4 py-2 bg-yellow-300 text-black rounded-full text-sm font-semibold shadow-lg pointer-events-none"
+            style={{ position: 'fixed', left: 0, top: 0 }}
+          >
+            {teleportingInterest.interest}
+            <motion.div
+              animate={{
+                opacity: [0, 1, 0],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{
+                duration: 0.5,
+                repeat: Infinity,
+              }}
+              className="absolute -inset-2 bg-yellow-400 rounded-full -z-10 blur-md"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <section className="relative z-10 pt-16 pb-4 px-2 sm:px-4 min-h-screen">
         
-        <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 sm:gap-6">
+        {/* DESKTOP: Side-by-side | MOBILE: Vertical Stack */}
+        <div className="h-[calc(100vh-5rem)] flex flex-col lg:flex-row gap-2 sm:gap-3 max-w-7xl mx-auto">
           
           {/* YOUR VIDEO */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="relative w-full"
+            className="relative flex-1 flex flex-col min-h-0"
           >
-            <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
+            <div className="relative flex-1 rounded-2xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
               <div 
                 ref={localVideoContainerRef} 
                 className="absolute inset-0 w-full h-full"
@@ -513,109 +570,92 @@ export default function MatchPage() {
                 </div>
               )}
             </div>
-            <div className="mt-3 text-center">
-              <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
+            
+            {/* YOUR NAME */}
+            <div className="mt-2 text-center">
+              <h3 className="text-base sm:text-lg font-bold text-white/90">
                 {myProfile?.displayName || 'You'}
               </h3>
             </div>
+            
+            {/* YOUR INTERESTS BAR */}
+            <div className="mt-2 bg-white/5 backdrop-blur-md rounded-xl p-2 border border-white/10">
+              <div className="flex flex-wrap gap-1.5 justify-center max-h-16 overflow-y-auto">
+                {myProfile?.interests.map((interest: string) => {
+                  const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
+                  return (
+                    <motion.div
+                      key={interest}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        isShared
+                          ? 'bg-yellow-300/20 text-yellow-300 border border-yellow-300/50'
+                          : 'bg-white/10 text-white/70 border border-white/20'
+                      }`}
+                    >
+                      {interest}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
           </motion.div>
 
-          {/* INTEREST STRIP */}
+          {/* SHARED INTERESTS ZONE (Middle on Desktop) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            className="relative w-full bg-white/5 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl p-4 sm:p-6"
+            className="hidden lg:flex lg:w-64 flex-col items-center justify-center gap-3 px-2"
           >
             {!isMatched ? (
-              <div className="text-center py-8">
-                <motion.div
-                  animate={{ 
-                    opacity: [0.5, 1, 0.5],
-                    scale: [0.95, 1.05, 0.95],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                >
-                  <div className="text-5xl mb-3">💫</div>
-                  <p className="text-lg font-bold text-white/90">Finding your match...</p>
-                  <p className="text-sm text-white/60 mt-2">Interests will appear here</p>
-                </motion.div>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {/* YOUR INTERESTS */}
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-white/70 mb-2 uppercase tracking-wide">Your Interests</p>
-                  <div className="flex flex-wrap gap-2">
-                    {myProfile?.interests.map((interest: string) => {
-                      const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
-                      return (
+              <motion.div
+                animate={{ 
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                }}
+                className="text-center"
+              >
+                <div className="text-4xl mb-2">💫</div>
+                <p className="text-sm font-bold text-white/70">Finding match...</p>
+              </motion.div>
+            ) : sharedInterests.length > 0 ? (
+              <>
+                <p className="text-xs font-bold text-yellow-300 uppercase tracking-wider">⭐ Shared ⭐</p>
+                <div className="flex flex-col gap-2 items-center">
+                  <AnimatePresence>
+                    {sharedInterests.map((interest: string, idx: number) => (
+                      <motion.div
+                        key={interest}
+                        initial={{ opacity: 0, scale: 0, y: -20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="relative px-4 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(253,224,71,0.8)]"
+                      >
+                        {interest}
                         <motion.div
-                          key={interest}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md transition-all ${
-                            isShared
-                              ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse scale-110'
-                              : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm'
-                          }`}
-                        >
-                          {interest}
-                        </motion.div>
-                      );
-                    })}
-                  </div>
+                          animate={{
+                            opacity: [0.3, 0.6, 0.3],
+                            scale: [1, 1.1, 1],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                          }}
+                          className="absolute -inset-1 bg-yellow-400 rounded-full -z-10 blur-md"
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
-
-                {/* THEIR INTERESTS */}
-                <div>
-                  <p className="text-xs sm:text-sm font-bold text-white/70 mb-2 uppercase tracking-wide">
-                    Their Interests <span className="text-yellow-300">(tap to add)</span>
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {theirProfile?.interests.map((interest: string) => {
-                      const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
-                      const isAlreadyAdded = myProfile?.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase());
-                      
-                      return (
-                        <motion.button
-                          key={interest}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          whileHover={{ scale: isAlreadyAdded ? 1 : 1.05 }}
-                          whileTap={{ scale: isAlreadyAdded ? 1 : 0.95 }}
-                          disabled={isAlreadyAdded}
-                          onClick={() => handleAddInterest(interest)}
-                          className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md transition-all ${
-                            isShared
-                              ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse scale-110'
-                              : isAlreadyAdded
-                              ? 'bg-white/50 text-black/60 border-white/50 cursor-default opacity-80'
-                              : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm hover:bg-white/20'
-                          }`}
-                        >
-                          {interest}
-                          {isAlreadyAdded && <span className="ml-1.5 text-xs">✓</span>}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Shared Count */}
-                {sharedInterests.length > 0 && (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center text-sm font-bold text-yellow-300 pt-2"
-                  >
-                    ⭐ {sharedInterests.length} shared interest{sharedInterests.length > 1 ? 's' : ''}
-                  </motion.p>
-                )}
+                <p className="text-xs text-white/60 mt-2">{sharedInterests.length} match{sharedInterests.length > 1 ? 'es' : ''}</p>
+              </>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-white/50">Tap their interests<br/>to discover matches!</p>
               </div>
             )}
           </motion.div>
@@ -624,62 +664,131 @@ export default function MatchPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="relative w-full"
+            className="relative flex-1 flex flex-col min-h-0"
           >
-            <div className="relative aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
+            <div className="relative flex-1 rounded-2xl overflow-hidden bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
               {!isMatched ? (
                 <motion.div 
-                  animate={{ 
-                    opacity: [0.4, 0.7, 0.4],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
+                  animate={{ opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
                   className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
                 >
                   <div className="text-center px-4">
-                    <div className="text-5xl sm:text-6xl mb-3">✨</div>
-                    <p className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">Waiting for</p>
-                    <p className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">someone special...</p>
+                    <div className="text-5xl mb-3">✨</div>
+                    <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
                   </div>
                 </motion.div>
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-indigo-900/20 to-purple-900/20" />
+                <div 
+                  ref={remoteVideoContainerRef}
+                  className="w-full h-full bg-gradient-to-br from-indigo-900/20 to-purple-900/20"
+                />
               )}
             </div>
-            <div className="mt-3 text-center">
-              <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
+            
+            {/* THEIR NAME */}
+            <div className="mt-2 text-center">
+              <h3 className="text-base sm:text-lg font-bold text-white/90">
                 {theirProfile?.displayName || '...'}
                 {theirProfile?.location && (
-                  <span className="text-base font-semibold text-white/70"> • {theirProfile.location}</span>
+                  <span className="text-sm font-semibold text-white/60"> • {theirProfile.location}</span>
                 )}
               </h3>
             </div>
+            
+            {/* THEIR INTERESTS BAR (Tappable!) */}
+            {isMatched && theirProfile && (
+              <div className="mt-2 bg-white/5 backdrop-blur-md rounded-xl p-2 border border-white/10">
+                <p className="text-xs text-yellow-300 font-bold text-center mb-1">Tap to add ⬇️</p>
+                <div className="flex flex-wrap gap-1.5 justify-center max-h-16 overflow-y-auto">
+                  {theirProfile.interests.map((interest: string) => {
+                    const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
+                    const isAlreadyAdded = myProfile?.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase());
+                    
+                    return (
+                      <motion.button
+                        key={interest}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ scale: isAlreadyAdded ? 1 : 1.1 }}
+                        whileTap={{ scale: isAlreadyAdded ? 1 : 0.9 }}
+                        disabled={isAlreadyAdded}
+                        onClick={(e) => !isAlreadyAdded && handleTeleportInterest(interest, e)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                          isShared
+                            ? 'bg-yellow-300/20 text-yellow-300 border border-yellow-300/50 cursor-default'
+                            : isAlreadyAdded
+                            ? 'bg-white/30 text-white/50 border border-white/30 cursor-default'
+                            : 'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20 cursor-pointer'
+                        }`}
+                      >
+                        {interest}
+                        {isAlreadyAdded && <span className="ml-1">✓</span>}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </motion.div>
-
-          {/* NEXT BUTTON */}
-          {isMatched && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="flex justify-center mt-4"
-            >
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleNextMatch}
-                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:brightness-110 transition-all"
-              >
-                Next Match
-                <RefreshCw size={18} />
-              </motion.button>
-            </motion.div>
-          )}
         </div>
+
+        {/* SHARED INTERESTS ZONE (Mobile Only - Below Videos) */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="lg:hidden mt-3 flex flex-col items-center gap-2 pb-4"
+        >
+          {isMatched && sharedInterests.length > 0 && (
+            <>
+              <p className="text-xs font-bold text-yellow-300 uppercase tracking-wider">⭐ Shared Interests ⭐</p>
+              <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+                <AnimatePresence>
+                  {sharedInterests.map((interest: string, idx: number) => (
+                    <motion.div
+                      key={interest}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="relative px-4 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(253,224,71,0.8)]"
+                    >
+                      {interest}
+                      <motion.div
+                        animate={{
+                          opacity: [0.3, 0.6, 0.3],
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                        }}
+                        className="absolute -inset-1 bg-yellow-400 rounded-full -z-10 blur-md"
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </>
+          )}
+        </motion.div>
+
+        {/* NEXT BUTTON */}
+        {isMatched && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }}
+            className="flex justify-center mt-4 pb-4"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleNextMatch}
+              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:brightness-110 transition-all"
+            >
+              Next Match
+              <RefreshCw size={18} />
+            </motion.button>
+          </motion.div>
+        )}
       </section>
     </main>
   );
