@@ -1,5 +1,4 @@
 'use client';
-
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebaseClient';
@@ -37,10 +36,10 @@ export default function Header() {
     <header
       className="
         fixed top-0 z-40 w-full
-        bg-gradient-to-r from-rose-200/80 via-fuchsia-200/80 to-rose-200/80
-        backdrop-blur-xl border-b border-white/30 shadow-md transition-all duration-500
+        bg-[#1A0033]/80 backdrop-blur-xl
+        border-b border-purple-400/20 shadow-[0_1px_20px_rgba(168,85,247,0.1)]
         h-[72px] flex items-center
-        px-6
+        px-6 transition-all duration-500
       "
     >
       {/* LOGGED OUT HEADER */}
@@ -48,20 +47,19 @@ export default function Header() {
         <div className="w-full flex items-center justify-between">
           <Link
             href="/"
-            className="text-3xl font-extrabold text-fuchsia-600"
-            style={{ textShadow: '0 0 16px rgba(236,72,153,0.18)' }}
+            className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)] hover:scale-105 transition-transform"
           >
             BAE
           </Link>
-
           <button
             onClick={doSignIn}
             disabled={busy}
             className="
               px-6 py-2 rounded-full text-xl font-extrabold text-white
-              bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-400
-              shadow-[0_10px_26px_rgba(236,72,153,0.30)]
-              hover:opacity-90 transition-all disabled:opacity-60
+              bg-gradient-to-r from-pink-500 to-fuchsia-600
+              shadow-[0_10px_26px_rgba(236,72,153,0.40)]
+              hover:brightness-110 hover:shadow-[0_10px_30px_rgba(255,100,150,0.6)]
+              transition-all disabled:opacity-60
             "
           >
             {busy ? '…' : 'Sign in'}
@@ -71,41 +69,47 @@ export default function Header() {
 
       {/* LOGGED IN HEADER */}
       {user && (
-        <div className="mx-auto flex max-w-6xl w-full items-center gap-6 text-fuchsia-700 leading-normal">
+        <div className="mx-auto flex max-w-6xl w-full items-center gap-6 text-white leading-normal">
           {/* LOGO */}
           <Link
             href="/"
             className="
-              text-3xl font-extrabold text-fuchsia-600
-              hover:text-fuchsia-700 transition-colors
+              text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 
+              bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]
+              hover:scale-105 transition-transform
             "
-            style={{ textShadow: '0 0 16px rgba(236,72,153,0.18)' }}
           >
             BAE
           </Link>
 
-          {/* NAV (Profile stays, Interests removed, DevCheck kept) */}
-          <nav className="flex items-center gap-6 text-lg font-semibold text-fuchsia-700/90">
-            <Link href="/profile" className="hover:text-fuchsia-800 transition-colors">
+          {/* NAV */}
+          <nav className="flex items-center gap-6 text-base font-semibold">
+            <Link 
+              href="/profile" 
+              className="text-white/70 hover:text-white transition-colors"
+            >
               Profile
             </Link>
-            <Link href="/devcheck" className="hover:text-fuchsia-800 transition-colors">
+            <Link 
+              href="/devcheck" 
+              className="text-white/70 hover:text-white transition-colors"
+            >
               DevCheck
             </Link>
           </nav>
 
           {/* RIGHT SIDE: NAME + SIGN OUT */}
           <div className="ml-auto flex items-center gap-3">
-            <span className="text-base font-medium text-fuchsia-800/90">
+            <span className="text-sm font-bold text-white/90">
               {user.displayName || user.email}
             </span>
-
             <button
               onClick={doSignOut}
               disabled={busy}
               className="
-                px-4 py-2 rounded-xl border border-white/40 text-base font-semibold
-                text-fuchsia-700 hover:bg-white/40 transition-all disabled:opacity-50
+                px-4 py-2 rounded-full border border-white/20 text-sm font-semibold
+                text-white/80 hover:text-white hover:bg-white/10 hover:border-white/40
+                transition-all disabled:opacity-50
               "
             >
               {busy ? '…' : 'Sign out'}

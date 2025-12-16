@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebaseClient';
+import { auth, db } from '@/lib/firebaseClient'; 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, XCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, XCircle, CheckCircle, RefreshCw, Star } from 'lucide-react';
 
 // Copy + config
 const MAIN_INSTRUCTION_COPY = 'Your shared interests will glow during conversations - the more you add, the better!';
@@ -18,6 +18,10 @@ const useSimpleRouter = () => {
   };
   return { push };
 };
+
+// Custom Styles for Glow - Matching Homepage Exactly
+const GOLD_GLOW_CLASSES = 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse';
+const NEUTRAL_PILL_CLASSES = 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm';
 
 // Interest Pill Component (for user's own interests)
 function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: string) => void }) {
@@ -36,7 +40,7 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
       whileHover={{ scale: 1.05 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative px-5 py-2.5 rounded-full bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 text-sm sm:text-base font-bold shadow-md hover:shadow-lg transition-all cursor-default"
+      className={`relative px-4 py-2 sm:px-5 sm:py-2.5 rounded-full ${NEUTRAL_PILL_CLASSES} text-xs sm:text-sm font-semibold shadow-md hover:shadow-lg transition-all cursor-default`}
     >
       {interest}
       <AnimatePresence>
@@ -48,7 +52,7 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
             transition={{ duration: 0.15 }}
             onClick={() => onRemove(interest)}
             whileHover={{ backgroundColor: "#ef4444" }}
-            className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-fuchsia-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm z-10 leading-none"
+            className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm z-10 leading-none"
             aria-label="Remove interest"
           >
             ×
@@ -63,17 +67,18 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
 function ExplorerInterestPill({ 
   interest, 
   isAlreadyAdded, 
+  isShared,
   onAdd 
 }: { 
   interest: string; 
   isAlreadyAdded: boolean; 
+  isShared: boolean;
   onAdd: (interest: string) => void;
 }) {
   const playPopShimmer = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       
-      // Part 1: Soft Pop (warm bubble pop)
       const popOsc = audioContext.createOscillator();
       const popGain = audioContext.createGain();
       
@@ -90,7 +95,6 @@ function ExplorerInterestPill({
       popOsc.start(audioContext.currentTime);
       popOsc.stop(audioContext.currentTime + 0.05);
       
-      // Part 2: Rising Shimmer (ascending sparkles)
       const shimmerFreqs = [800, 1000, 1200, 1400];
       const shimmerStart = audioContext.currentTime + 0.05;
       
@@ -119,6 +123,18 @@ function ExplorerInterestPill({
     }
   };
 
+  let pillClasses = NEUTRAL_PILL_CLASSES;
+  if (isShared && isAlreadyAdded) {
+    // Gold glow for shared interests - EXACT match to homepage AI pill
+    pillClasses = 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse cursor-default';
+  } else if (isAlreadyAdded) {
+    // Non-shared interests that are added (just muted)
+    pillClasses = 'bg-white/50 text-black/60 border-white/50 cursor-default opacity-80';
+  } else {
+    // Not added yet - neutral style
+    pillClasses = NEUTRAL_PILL_CLASSES;
+  }
+
   return (
     <motion.button
       onClick={() => {
@@ -130,11 +146,7 @@ function ExplorerInterestPill({
       whileHover={{ scale: isAlreadyAdded ? 1 : 1.05 }}
       whileTap={{ scale: isAlreadyAdded ? 1 : 0.95 }}
       disabled={isAlreadyAdded}
-      className={`relative px-4 py-2 rounded-full text-sm font-bold shadow-md transition-all ${
-        isAlreadyAdded
-          ? 'bg-fuchsia-100 text-fuchsia-400 border-2 border-fuchsia-200 cursor-default opacity-60'
-          : 'bg-gradient-to-r from-fuchsia-50 to-pink-50 border-2 border-fuchsia-300/60 text-fuchsia-700 hover:shadow-lg cursor-pointer'
-      }`}
+      className={`relative px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md transition-all ${pillClasses}`}
     >
       {interest}
       {isAlreadyAdded && (
@@ -213,23 +225,25 @@ function InterestExplorer({
 
   if (loading) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-12 text-white/70">
         <div className="animate-spin text-4xl">✨</div>
+        <p className="mt-2">Loading BAE Profiles...</p>
       </div>
     );
   }
 
   if (!currentProfile && allProfiles.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-fuchsia-600 font-semibold">No profiles available yet</p>
+      <div className="text-center py-12 text-white/70">
+        <p className="font-semibold">No profiles available yet. Be the first to add interests!</p>
       </div>
     );
   }
 
-  const sharedCount = currentProfile?.interests?.filter((i: string) => 
+  const sharedInterests = currentProfile?.interests?.filter((i: string) => 
     userInterests.some(userInt => userInt.toLowerCase() === i.toLowerCase())
-  ).length || 0;
+  ) || [];
+  const sharedCount = sharedInterests.length;
 
   return (
     <div className="relative">
@@ -243,8 +257,8 @@ function InterestExplorer({
             transition={{ duration: 0.3 }}
           >
             <div className="mb-4">
-              <h4 className="text-lg font-bold text-fuchsia-700">
-                {currentProfile.displayName || 'Anonymous'} • {currentProfile.location || 'Unknown'}
+              <h4 className="text-xl font-bold text-white/90">
+                {currentProfile.displayName || 'Anonymous'} • {currentProfile.location || 'The Cosmos'}
               </h4>
             </div>
 
@@ -254,14 +268,16 @@ function InterestExplorer({
                   key={interest}
                   interest={interest}
                   isAlreadyAdded={userInterests.some(i => i.toLowerCase() === interest.toLowerCase())}
+                  isShared={sharedInterests.some(i => i.toLowerCase() === interest.toLowerCase())} 
                   onAdd={onAddInterest}
                 />
               ))}
             </div>
 
             {sharedCount > 0 && (
-              <p className="text-sm text-fuchsia-600 font-semibold mb-4">
-                {sharedCount} shared interest{sharedCount > 1 ? 's' : ''} ✨
+              <p className="text-sm font-semibold mb-4 text-yellow-300 drop-shadow-md">
+                <Star size={14} className="inline-block mr-1 align-text-bottom animate-ping-slow" fill="#FDE047" stroke="#CA8A04"/>
+                {sharedCount} shared interest{sharedCount > 1 ? 's' : ''} found!
               </p>
             )}
 
@@ -269,7 +285,7 @@ function InterestExplorer({
               onClick={showNextProfile}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/20 text-white/90 font-bold shadow-lg hover:shadow-xl hover:bg-white/30 transition-all border border-white/10"
             >
               <RefreshCw size={18} />
               Next Profile
@@ -305,7 +321,6 @@ export default function ProfilePage() {
       }
 
       try {
-        // ✅ FIXED: Read from correct path
         const ref = doc(db, 'users', u.uid);
         const snap = await getDoc(ref);
         const data = snap.exists() ? snap.data() as any : null;
@@ -332,7 +347,6 @@ export default function ProfilePage() {
       setShowCelebration(true);
       setHasSeenCelebration(true);
       
-      // ✅ FIXED: Write to correct path
       const ref = doc(db, 'users', user.uid);
       setDoc(ref, { hasSeenCelebration: true }, { merge: true }).catch(console.error);
       
@@ -340,7 +354,6 @@ export default function ProfilePage() {
     }
   }, [interests.length, hasSeenCelebration, user]);
 
-  // AUTO-SAVE: Manual interest add
   const handleAddInterest = async () => {
     const i = newInterest.trim();
     if (!i || !user) return;
@@ -351,7 +364,6 @@ export default function ProfilePage() {
       const newInterests = [...interests, normalized];
       setInterests(newInterests);
       
-      // ✅ FIXED: Save to correct path
       try {
         const ref = doc(db, 'users', user.uid);
         await setDoc(
@@ -370,7 +382,6 @@ export default function ProfilePage() {
     setNewInterest('');
   };
 
-  // AUTO-SAVE: Interest add from Explorer
   const handleAddInterestFromExplorer = async (interest: string) => {
     const interestLower = interest.toLowerCase();
     const alreadyExists = interests.some(i => i.toLowerCase() === interestLower);
@@ -379,7 +390,6 @@ export default function ProfilePage() {
       const newInterests = [...interests, interest];
       setInterests(newInterests);
       
-      // ✅ FIXED: Save to correct path
       try {
         const ref = doc(db, 'users', user.uid);
         await setDoc(
@@ -412,9 +422,9 @@ export default function ProfilePage() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 flex items-center justify-center">
-        <p className="text-xl font-black text-fuchsia-600 animate-pulse">
-          Loading Profile...
+      <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
+        <p className="text-xl font-black text-white/90 animate-pulse">
+          Initializing BAE...
         </p>
       </div>
     );
@@ -424,14 +434,26 @@ export default function ProfilePage() {
   const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
 
   return (
-    <main className="relative min-h-screen w-full bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 px-5 py-10 text-gray-900 flex flex-col items-center overflow-hidden">
+    <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] px-5 py-10 text-white flex flex-col items-center overflow-hidden">
       
-      <div className="pointer-events-none absolute inset-0 opacity-30">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-fuchsia-300/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-80 h-80 bg-indigo-300/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-300/10 rounded-full blur-3xl" />
+      {/* HEADER */}
+      <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-md bg-black/50 border-b border-fuchsia-500/20 text-white">
+        <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
+          BAE
+        </div>
+        <div className="flex gap-4 text-white/80 text-sm">
+          <a href="/" className="hover:text-white transition-colors">Home</a>
+          <span className="font-bold text-white/90">{displayName}</span>
+        </div>
+      </header>
+
+      {/* Background Effects */}
+      <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
+        <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
+        <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
 
+      {/* Celebration Modal */}
       <AnimatePresence>
         {showCelebration && (
           <motion.div
@@ -440,7 +462,7 @@ export default function ProfilePage() {
             exit={{ opacity: 0, scale: 0.8 }}
             className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white px-8 py-6 rounded-3xl shadow-2xl flex items-center gap-3">
+            <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-black px-8 py-6 rounded-3xl shadow-2xl flex items-center gap-3">
               <CheckCircle size={32} className="animate-bounce" />
               <div>
                 <p className="text-2xl font-black">You're Ready to BAE! 🎉</p>
@@ -451,79 +473,46 @@ export default function ProfilePage() {
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 w-full max-w-7xl flex flex-col items-center">
-    
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-5xl sm:text-6xl font-black text-fuchsia-700 mb-4 text-center drop-shadow-sm"
-        >
-          Your Interests Profile
-        </motion.h1>
-
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-base sm:text-lg font-semibold text-purple-900 mb-8 text-center max-w-2xl px-4"
-        >
-          {MAIN_INSTRUCTION_COPY}
-        </motion.p>
-
-        <AnimatePresence>
-          {minInterestWarning && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="bg-red-200 text-red-900 border-2 border-red-500 px-4 py-2.5 rounded-xl text-sm font-bold text-center shadow-md mb-5"
-            >
-              <XCircle size={16} className="inline-block mr-1.5 align-text-bottom" />
-              Add at least {MIN_REQUIRED} interests to unlock matching
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="flex w-full max-w-xl gap-3 mb-8"
-        >
-          <input
-            value={newInterest}
-            onChange={(e) => setNewInterest(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
-            placeholder="Add Your Interests Here!"
-            className="flex-1 px-5 py-3.5 rounded-full bg-white/80 backdrop-blur-sm ring-2 ring-fuchsia-300/50 shadow-md focus:outline-none focus:ring-fuchsia-500 focus:ring-2 text-gray-900 placeholder-gray-500 text-base font-medium transition-all"
-            maxLength={40}
-          />
-          <motion.button
-            onClick={handleAddInterest}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.96 }}
-            disabled={!newInterest.trim()}
-            className="px-6 py-3.5 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed"
+      {/* Main Content */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto pt-2">
+        
+        {/* Title Section */}
+        <div className="text-center mb-4">
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-6xl sm:text-7xl font-black bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,160,255,0.4)] mb-2"
           >
-            Add
-          </motion.button>
-        </motion.div>
+            Your Interests Profile
+          </motion.h1>
 
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-lg sm:text-xl font-semibold text-white/70 max-w-2xl mx-auto px-4 drop-shadow-md"
+          >
+            {MAIN_INSTRUCTION_COPY}
+          </motion.p>
+        </div>
+
+        {/* TWO COLUMN GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full mb-8">
           
+          {/* Left Column - Your Interests */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl"
+            className="bg-white/5 backdrop-blur-lg p-8 rounded-3xl border border-white/10 shadow-2xl"
           >
-            <h3 className="text-xl font-bold text-fuchsia-800 mb-5 text-center">
+            <h3 className="text-xl font-bold text-white/90 mb-5 text-center">
               What You're Really Into
             </h3>
 
             {interests.length === 0 && (
-              <p className="text-sm italic opacity-50 text-center text-purple-700 mb-4">
+              <p className="text-sm italic opacity-50 text-center text-white/70 mb-4">
                 No interests yet — add a few to get started! ✨
               </p>
             )}
@@ -540,21 +529,58 @@ export default function ProfilePage() {
               </AnimatePresence>
             </div>
 
-            <p className="text-center text-sm text-fuchsia-600 font-semibold">
+            <p className="text-center text-sm text-white/70 font-semibold mb-4">
               You've added {interests.length} interest{interests.length !== 1 ? 's' : ''}
             </p>
+
+            {/* Input Section - Moved here! */}
+            <div className="flex w-full gap-3 mb-4">
+              <input
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
+                placeholder="Add Your Interests Here!"
+                className="flex-1 px-5 py-3 rounded-full bg-white/10 backdrop-blur-md ring-2 ring-fuchsia-500/50 shadow-inner focus:outline-none focus:ring-fuchsia-400 focus:ring-2 text-white placeholder-white/50 text-sm font-medium transition-all"
+                maxLength={40}
+              />
+              <motion.button
+                onClick={handleAddInterest}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                disabled={!newInterest.trim()}
+                className="px-5 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg hover:shadow-xl hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                Add
+              </motion.button>
+            </div>
+
+            {/* Warning Message - Moved here too! */}
+            <AnimatePresence>
+              {minInterestWarning && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="bg-red-900/50 text-red-300 border-2 border-red-500/70 px-4 py-2.5 rounded-xl text-xs font-bold text-center shadow-md"
+                >
+                  <XCircle size={14} className="inline-block mr-1.5 align-text-bottom" />
+                  Add at least {MIN_REQUIRED} interests to unlock matching
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
+          {/* Right Column - Get Inspired */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl"
+            className="bg-white/5 backdrop-blur-lg p-8 rounded-3xl border border-white/10 shadow-2xl"
           >
-            <h3 className="text-xl font-bold text-fuchsia-800 mb-2 text-center">
+            <h3 className="text-xl font-bold text-white/90 mb-2 text-center">
               ✨ Get Inspired
             </h3>
-            <p className="text-base font-semibold text-purple-900 mb-6 text-center">
+            <p className="text-base font-semibold text-white/70 mb-6 text-center">
               Explore others' interests - tap to add them to yours!
             </p>
             
@@ -569,32 +595,35 @@ export default function ProfilePage() {
 
         </div>
 
-       <motion.div 
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.6, duration: 0.6 }}
-  className="flex justify-center w-full max-w-xl"
->
-  <motion.button
-    onClick={handleGoBAE}
-    whileHover={{ scale: canBae ? 1.045 : 1 }}
-    whileTap={{ scale: canBae ? 0.97 : 1 }}
-    disabled={!canBae}
-    className={`relative flex items-center justify-center gap-2 px-10 sm:px-14 py-5 sm:py-6 rounded-full text-white text-xl sm:text-2xl font-black shadow-lg transition-all ${
-      canBae 
-        ? 'bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 hover:shadow-xl' 
-        : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-    }`}
-  >
-    <Sparkles size={24} />
-    <span className="relative z-10">
-      {canBae ? 'BAE SOMEONE NOW!' : `Need ${requiredRemaining} more`}
-    </span>
-    {canBae && (
-      <span className="absolute inset-0 bg-white/10 blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-700"></span>
-    )}
-  </motion.button>
-</motion.div>
+        {/* CTA Button */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
+          className="flex justify-center w-full"
+        >
+          <motion.button
+            onClick={handleGoBAE}
+            whileHover={{ scale: canBae ? 1.045 : 1 }}
+            whileTap={{ scale: canBae ? 0.97 : 1 }}
+            disabled={!canBae}
+            className={`relative flex items-center justify-center gap-2 px-10 sm:px-14 py-5 sm:py-6 rounded-full text-white text-xl sm:text-2xl font-black shadow-lg transition-all ${
+              canBae 
+                ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] hover:shadow-[0_10px_30px_rgba(255,100,150,0.6)]' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+            }`}
+            style={canBae ? { boxShadow: "0 10px 30px rgba(255, 65, 108, 0.4)" } : {}}
+          >
+            <Sparkles size={24} />
+            <span className="relative z-10">
+              {canBae ? 'BAE SOMEONE NOW!' : `Need ${requiredRemaining} more`}
+            </span>
+            {canBae && (
+              <span className="absolute inset-0 bg-white/10 blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-700"></span>
+            )}
+          </motion.button>
+        </motion.div>
+
       </div>
     </main>
   );
