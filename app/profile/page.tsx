@@ -267,8 +267,8 @@ function InterestExplorer({
                 <ExplorerInterestPill
                   key={interest}
                   interest={interest}
-                  isAlreadyAdded={userInterests.some(i => i.toLowerCase() === interest.toLowerCase())}
-                  isShared={sharedInterests.some(i => i.toLowerCase() === interest.toLowerCase())} 
+                  isAlreadyAdded={userInterests.some((i: string) => i.toLowerCase() === interest.toLowerCase())}
+                  isShared={sharedInterests.some((i: string) => i.toLowerCase() === interest.toLowerCase())} 
                   onAdd={onAddInterest}
                 />
               ))}
@@ -437,12 +437,14 @@ export default function ProfilePage() {
     <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] px-5 py-10 text-white flex flex-col items-center overflow-hidden">
       
       {/* HEADER */}
-      <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-md bg-black/50 border-b border-fuchsia-500/20 text-white">
-        <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
+      <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 text-white shadow-[0_1px_20px_rgba(168,85,247,0.1)]">
+        <a href="/" className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)] hover:scale-105 transition-transform">
           BAE
-        </div>
-        <div className="flex gap-4 text-white/80 text-sm">
-          <a href="/" className="hover:text-white transition-colors">Home</a>
+        </a>
+        <div className="flex gap-6 items-center text-sm">
+          <a href="/" className="text-white/70 hover:text-white font-semibold transition-colors">Home</a>
+          <a href="/profile" className="text-yellow-300 font-semibold">Profile</a>
+          <a href="/devcheck" className="text-white/70 hover:text-white font-semibold transition-colors">DevCheck</a>
           <span className="font-bold text-white/90">{displayName}</span>
         </div>
       </header>
