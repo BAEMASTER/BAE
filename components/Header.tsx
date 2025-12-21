@@ -102,6 +102,12 @@ export default function Header() {
               Profile
             </Link>
             <Link 
+              href="/explorer" 
+              className="text-white/70 hover:text-white transition-colors"
+            >
+              Explorer
+            </Link>
+            <Link 
               href="/guide" 
               className="text-white/70 hover:text-white transition-colors"
             >
