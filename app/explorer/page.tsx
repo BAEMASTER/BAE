@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Star, Save, Video, ChevronDown, X } from 'lucide-react';
+import { RefreshCw, Star, Video, ChevronDown, X } from 'lucide-react';
 
 const GOLD_GLOW_CLASSES = 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse';
 const NEUTRAL_PILL_CLASSES = 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm';
@@ -17,8 +17,8 @@ const useSimpleRouter = () => {
   return { push };
 };
 
-// Sound effect for adding interest
-const playTeleportSound = () => {
+// Add sound
+const playAddSound = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     
@@ -65,41 +65,62 @@ const playTeleportSound = () => {
   }
 };
 
+// Remove sound (whoosh down)
+const playRemoveSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    
+    // Descending whoosh
+    osc.frequency.setValueAtTime(600, audioContext.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.15);
+    osc.type = 'sine';
+    
+    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+    
+    osc.start(audioContext.currentTime);
+    osc.stop(audioContext.currentTime + 0.15);
+  } catch (e) {
+    console.log('Audio not supported');
+  }
+};
+
 // Interest Pill in Explorer
 function ExplorerInterestPill({
   interest,
   isAlreadyAdded,
   isShared,
-  onAdd
+  onToggle
 }: {
   interest: string;
   isAlreadyAdded: boolean;
   isShared: boolean;
-  onAdd: (interest: string) => void;
+  onToggle: (interest: string) => void;
 }) {
   let pillClasses = NEUTRAL_PILL_CLASSES;
   
   if (isShared && isAlreadyAdded) {
-    pillClasses = GOLD_GLOW_CLASSES + ' cursor-default';
+    pillClasses = GOLD_GLOW_CLASSES + ' cursor-pointer';
   } else if (isAlreadyAdded) {
-    pillClasses = 'bg-white/50 text-black/60 border-white/50 cursor-default opacity-80';
+    pillClasses = 'bg-white/50 text-black/60 border-white/50 cursor-pointer opacity-80';
   }
 
   return (
     <motion.button
-      onClick={() => {
-        if (!isAlreadyAdded) {
-          playTeleportSound();
-          onAdd(interest);
-        }
-      }}
-      whileHover={{ scale: isAlreadyAdded ? 1 : 1.05 }}
-      whileTap={{ scale: isAlreadyAdded ? 1 : 0.95 }}
-      disabled={isAlreadyAdded}
+      onClick={() => onToggle(interest)}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       className={`px-5 py-2.5 rounded-full text-sm font-semibold shadow-md transition-all ${pillClasses}`}
     >
       {interest}
       {isAlreadyAdded && <span className="ml-1.5">✓</span>}
+      {!isAlreadyAdded && <span className="ml-1.5 opacity-60">+</span>}
     </motion.button>
   );
 }
@@ -186,8 +207,6 @@ export default function ExplorerPage() {
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
 
   const router = useSimpleRouter();
 
@@ -277,36 +296,57 @@ export default function ExplorerPage() {
     }
   };
 
-  const handleAddInterest = async (interest: string) => {
+  const handleToggleInterest = async (interest: string) => {
     const interestLower = interest.toLowerCase();
     const alreadyExists = userInterests.some((i) => i.toLowerCase() === interestLower);
 
-    if (!alreadyExists && user) {
+    if (alreadyExists) {
+      // Remove
+      playRemoveSound();
+      const newInterests = userInterests.filter((i) => i.toLowerCase() !== interestLower);
+      setUserInterests(newInterests);
+
+      if (user) {
+        try {
+          const ref = doc(db, 'users', user.uid);
+          await setDoc(
+            ref,
+            {
+              interests: newInterests,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (e) {
+          console.error('Remove failed', e);
+        }
+      }
+    } else {
+      // Add
+      playAddSound();
       const newInterests = [...userInterests, interest];
       setUserInterests(newInterests);
 
-      try {
-        const ref = doc(db, 'users', user.uid);
-        await setDoc(
-          ref,
-          {
-            interests: newInterests,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-
-        // Show toast
-        setToastMessage(`✨ ${interest} added!`);
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
-      } catch (e) {
-        console.error('Auto-save failed', e);
+      if (user) {
+        try {
+          const ref = doc(db, 'users', user.uid);
+          await setDoc(
+            ref,
+            {
+              interests: newInterests,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (e) {
+          console.error('Add failed', e);
+        }
       }
     }
   };
 
   const handleRemoveInterest = async (interest: string) => {
+    playRemoveSound();
     const newInterests = userInterests.filter((i) => i !== interest);
     setUserInterests(newInterests);
 
@@ -365,20 +405,6 @@ export default function ExplorerPage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
 
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {showToast && (
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            className="fixed top-24 right-6 z-50 bg-green-500 text-white px-6 py-3 rounded-full font-bold shadow-lg"
-          >
-            {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Your Interests Badge */}
       <motion.button
         onClick={() => setDrawerOpen(true)}
@@ -413,9 +439,14 @@ export default function ExplorerPage() {
           Interest Explorer ✨
         </motion.h1>
 
-        <p className="text-center text-lg text-white/70 mb-8">
-          Discover people through what they love
-        </p>
+        <div className="text-center mb-8">
+          <p className="text-lg sm:text-xl text-white/90 font-semibold">
+            Explore Other People's Interests Here!
+          </p>
+          <p className="text-lg sm:text-xl text-white/90 font-semibold">
+            Tap to Add any Interest to Your Profile!
+          </p>
+        </div>
 
         {!currentProfile && allProfiles.length === 0 ? (
           <div className="text-center py-12">
@@ -456,7 +487,7 @@ export default function ExplorerPage() {
                     isShared={sharedInterests.some(
                       (i: string) => i.toLowerCase() === interest.toLowerCase()
                     )}
-                    onAdd={handleAddInterest}
+                    onToggle={handleToggleInterest}
                   />
                 ))}
               </div>
@@ -498,8 +529,4 @@ export default function ExplorerPage() {
       </div>
     </main>
   );
-}
-
-function setDoc(ref: any, arg1: { interests: string[]; updatedAt: string; }, arg2: { merge: boolean; }) {
-  throw new Error('Function not implemented.');
 }
