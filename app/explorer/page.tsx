@@ -135,12 +135,6 @@ export default function ExplorerPage() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[140px] animate-pulse-reverse"></div>
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-8 h-20 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 shrink-0">
-        <span className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent tracking-tighter cursor-pointer">BAE</span>
-        <span className="font-bold text-xs uppercase tracking-widest text-white/70">{displayName}</span>
-      </header>
-
       {/* Main */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2">
 
