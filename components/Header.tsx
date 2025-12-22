@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebaseClient';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
@@ -31,6 +32,8 @@ export default function Header() {
       setUser(null);
     }
   };
+
+  const isActive = (path: string) => pathname === path;
 
   return (
     <header
@@ -56,9 +59,22 @@ export default function Header() {
           <nav className="flex-1 flex justify-center">
             <Link 
               href="/guide" 
-              className="text-white/70 hover:text-white transition-colors text-base font-semibold"
+              className={`text-base font-semibold transition-colors ${
+                isActive('/guide')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
             >
-              Guide
+              {isActive('/guide') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Guide
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Guide'
+              )}
             </Link>
           </nav>
 
@@ -97,27 +113,82 @@ export default function Header() {
           <nav className="flex items-center gap-6 text-base font-semibold">
             <Link 
               href="/profile" 
-              className="text-white/70 hover:text-white transition-colors"
+              className={`transition-colors ${
+                isActive('/profile')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
             >
-              Profile
+              {isActive('/profile') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Profile
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Profile'
+              )}
             </Link>
+            
             <Link 
               href="/explorer" 
-              className="text-white/70 hover:text-white transition-colors"
+              className={`transition-colors ${
+                isActive('/explorer')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
             >
-              Explorer
+              {isActive('/explorer') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Explorer
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Explorer'
+              )}
             </Link>
+            
             <Link 
               href="/guide" 
-              className="text-white/70 hover:text-white transition-colors"
+              className={`transition-colors ${
+                isActive('/guide')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
             >
-              Guide
+              {isActive('/guide') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Guide
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Guide'
+              )}
             </Link>
+            
             <Link 
               href="/devcheck" 
-              className="text-white/70 hover:text-white transition-colors"
+              className={`transition-colors ${
+                isActive('/devcheck')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
             >
-              DevCheck
+              {isActive('/devcheck') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    DevCheck
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'DevCheck'
+              )}
             </Link>
           </nav>
 

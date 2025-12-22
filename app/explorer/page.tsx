@@ -127,7 +127,7 @@ export default function ExplorerPage() {
   if (loading) return <div className="h-screen bg-[#1A0033] flex items-center justify-center text-white font-black text-2xl">IGNITING...</div>;
 
   return (
-    <main className="fixed inset-0 w-full h-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-hidden flex flex-col font-sans">
+    <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
 
       {/* Background aura */}
       <div className="pointer-events-none absolute inset-0 opacity-30">
