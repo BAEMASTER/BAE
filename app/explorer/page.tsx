@@ -149,9 +149,9 @@ export default function ExplorerPage() {
             <h1 className="text-4xl sm:text-6xl font-black mb-3">
               Interest <span className={BAE_GRADIENT}>Explorer</span>
             </h1>
-            <div className="text-lg sm:text-xl font-bold leading-tight space-y-1">
-              <p className="text-white/90"><span className={BAE_GRADIENT}>Expand your interests</span> by seeing what others love!</p>
-              <p className="text-white/90"><span className={BAE_GRADIENT}>Tap an interest</span> to add it to your profile!</p>
+            <div className="text-xl sm:text-2xl font-bold leading-snug space-y-2">
+              <p className="text-white/95"><span className={BAE_GRADIENT}>Expand your interests</span> by seeing what others love</p>
+              <p className="text-white/90"><span className={BAE_GRADIENT}>Tap an interest</span> to add it to your profile</p>
             </div>
           </div>
 
@@ -159,9 +159,9 @@ export default function ExplorerPage() {
           <div className="flex flex-col items-center">
             <button
               onClick={() => setDrawerOpen(true)}
-              className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 text-white shadow-[0_0_25px_rgba(255,160,255,0.7)] border-2 border-white/30 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform duration-300"
+              className="relative w-32 h-32 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 text-white shadow-[0_0_25px_rgba(255,160,255,0.7)] border-2 border-white/30 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform duration-300"
             >
-              <span className="text-4xl font-extrabold">{userInterests.length}</span>
+              <span className="text-5xl font-extrabold">{userInterests.length}</span>
               <span className="text-sm font-semibold mt-1">Interests</span>
             </button>
             <span className="text-xs mt-2 text-white/70">tap to view/edit</span>
@@ -208,6 +208,22 @@ export default function ExplorerPage() {
               </div>
             </div>
 
+            {/* Shared Count */}
+            {(() => {
+              const sharedCount = currentProfile.interests.filter((i: string) => 
+                userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())
+              ).length;
+              return sharedCount > 0 ? (
+                <div className="text-center mb-4 shrink-0">
+                  <span className="inline-flex items-center gap-2 text-yellow-300 font-bold text-lg">
+                    ⭐ {sharedCount} shared interest{sharedCount > 1 ? 's' : ''}!
+                  </span>
+                </div>
+              ) : null;
+            })()}
+
+            {/* Next Button */}
+
             {/* Next Button */}
             <div className="pt-2 flex justify-center shrink-0">
               <motion.button 
@@ -237,7 +253,11 @@ export default function ExplorerPage() {
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 50, opacity: 0 }}
-        className="w-full max-w-3xl bg-gradient-to-tr from-[#4D004D]/60 via-[#1A0033]/80 to-[#000033]/90 rounded-3xl p-8 shadow-[0_0_40px_rgba(255,160,255,0.5)] border border-white/20 flex flex-col items-center relative"
+        className="w-full max-w-3xl max-h-[85vh] overflow-hidden
+           bg-gradient-to-tr from-[#4D004D]/60 via-[#1A0033]/80 to-[#000033]/90
+           rounded-3xl p-8 shadow-[0_0_40px_rgba(255,160,255,0.5)]
+           border border-white/20 flex flex-col items-center relative"
+
       >
         {/* Close Button at top-right */}
         <button
@@ -270,7 +290,8 @@ export default function ExplorerPage() {
         </div>
 
         {/* Interests - clickable to delete */}
-        <div className="flex flex-wrap gap-4 justify-center mt-2">
+        <div className="flex flex-wrap gap-4 justify-center mt-4
+                overflow-y-auto max-h-[45vh] pr-2 custom-scrollbar">
           {userInterests.map((i) => (
             <motion.span
   key={i}
