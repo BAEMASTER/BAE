@@ -158,8 +158,8 @@ export default function HomePage() {
           className="text-2xl sm:text-3xl lg:text-3xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl whitespace-nowrap lg:whitespace-normal" 
           style={{ whiteSpace: 'nowrap' }} // Using inline style to force single line where possible
         >
-          One great conversation can{' '}
-          <span className="inline-block min-w-[8rem] sm:min-w-[12rem] relative align-baseline">
+          <span className="block sm:inline">One great conversation can{' '}</span>
+          <span className="inline-block min-w-[7rem] sm:min-w-[12rem] relative align-baseline">
             <AnimatePresence mode="wait">
               <motion.span
                 key={wordIndex}
@@ -173,8 +173,9 @@ export default function HomePage() {
               </motion.span>
             </AnimatePresence>
           </span>{' '}
-          YOUR WHOLE DAY.
+          <span className="block sm:inline">YOUR WHOLE DAY.</span>
         </motion.p>
+
         
         {/* SEPARATOR */}
         <motion.div 
