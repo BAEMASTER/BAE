@@ -70,14 +70,15 @@ export default function ExplorerPage() {
 
       const snap = await getDoc(doc(db, 'users', u.uid));
       if (snap.exists()) {
-        setDisplayName(snap.data().displayName || 'Mystery BAE');
-        setUserInterests(snap.data().interests || []);
+        const data = snap.data();
+        setDisplayName(data?.displayName || 'Mystery BAE');
+        setUserInterests(data?.interests || []);
       }
 
       const snapshot = await getDocs(collection(db, 'users'));
       const profiles = snapshot.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(p => p.id !== u.uid && Array.isArray(p.interests) && p.interests.length > 0);
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter((p: any) => p.id !== u.uid && Array.isArray(p.interests) && p.interests.length > 0);
       setAllProfiles(profiles);
       setUnseenProfiles(profiles);
       if (profiles.length) {
