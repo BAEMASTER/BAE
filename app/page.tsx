@@ -189,9 +189,9 @@ export default function HomePage() {
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   transition={{ delay: 0.4, duration: 0.8 }}
-  className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-16 text-white/90 drop-shadow-lg max-w-3xl tracking-tight"
+  className="text-xl sm:text-2xl lg:text-3xl font-bold mb-16 text-white/90 drop-shadow-lg max-w-3xl tracking-tight"
 >
-  Your interests are what make you interesting.
+  Your interests are what make you interesting!
 </motion.p>
         {/* 5. CTA Button */}
         <motion.button
