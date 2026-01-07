@@ -184,15 +184,7 @@ export default function HomePage() {
            transition={{ delay: 0.3, duration: 0.8 }}
            className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
         />
-{/* NEW: Simple Truth Statement */}
-<motion.p
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.4, duration: 0.8 }}
-  className="text-xl sm:text-2xl lg:text-3xl font-bold mb-16 text-white/90 drop-shadow-lg max-w-3xl tracking-tight"
->
-  Your interests are what make you interesting!
-</motion.p>
+
         {/* 5. CTA Button */}
         <motion.button
           initial={{ opacity: 0, scale: 0.7 }}
