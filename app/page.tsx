@@ -185,20 +185,6 @@ export default function HomePage() {
            className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
         />
 
-        {/* 4. DEFINITION LINE (Styled and Bolder) */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          // Increased size to text-lg/xl and reduced weight to font-light for elegance
-          className="text-xl sm:text-xl font-light mb-16 text-white/80 drop-shadow-md max-w-2xl tracking-wide leading-relaxed"
-        >
-          BAE is instant video conversations where your shared interests{' '}
-          <span className="font-bold text-yellow-300 drop-shadow-[0_0_12px_rgba(253,224,71,0.8)] animate-pulse">
-            glow
-          </span>.
-        </motion.p>
-
         {/* 5. CTA Button */}
         <motion.button
           initial={{ opacity: 0, scale: 0.7 }}
