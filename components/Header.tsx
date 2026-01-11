@@ -55,25 +55,25 @@ export default function Header() {
             BAE
           </Link>
           
-          {/* Guide link for logged out users */}
+          {/* How BAE Works link for logged out users */}
           <nav className="flex-1 flex justify-center">
             <Link 
-              href="/guide" 
+              href="/how-bae-works" 
               className={`text-base font-semibold transition-colors ${
-                isActive('/guide')
+                isActive('/how-bae-works')
                   ? 'relative'
                   : 'text-white/70 hover:text-white'
               }`}
             >
-              {isActive('/guide') ? (
+              {isActive('/how-bae-works') ? (
                 <>
                   <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Guide
+                    How BAE Works
                   </span>
                   <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
                 </>
               ) : (
-                'Guide'
+                'How BAE Works'
               )}
             </Link>
           </nav>
@@ -152,22 +152,22 @@ export default function Header() {
             </Link>
             
             <Link 
-              href="/guide" 
+              href="/how-bae-works" 
               className={`transition-colors ${
-                isActive('/guide')
+                isActive('/how-bae-works')
                   ? 'relative'
                   : 'text-white/70 hover:text-white'
               }`}
             >
-              {isActive('/guide') ? (
+              {isActive('/how-bae-works') ? (
                 <>
                   <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Guide
+                    How BAE Works
                   </span>
                   <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
                 </>
               ) : (
-                'Guide'
+                'How BAE Works'
               )}
             </Link>
             
