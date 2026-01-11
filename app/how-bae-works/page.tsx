@@ -42,32 +42,15 @@ export default function GuidePage() {
       <div className="relative z-10 max-w-4xl mx-auto px-6 sm:px-12 py-16">
         
         {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-20"
-        >
-          <motion.div
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0]
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className="text-7xl mb-6"
-          >
-            ✨
-          </motion.div>
-          <h1 className="text-5xl sm:text-6xl font-black text-white mb-6">
-            The BAE Guide
-          </h1>
-          <p className="text-xl sm:text-2xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-            Video chat where your shared interests glow
-          </p>
-        </motion.div>
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="text-center mb-20"
+>
+  <h1 className="text-4xl sm:text-6xl font-black text-white mb-6">
+    How <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">BAE</span> Works
+  </h1>
+</motion.div>
 
         {/* What is BAE Section */}
         <motion.section
