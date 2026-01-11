@@ -41,14 +41,23 @@ export default function GuidePage() {
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 sm:px-12 py-16">
         
-        {/* Hero Section */}
+     {/* Hero Section */}
 <motion.div
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   className="text-center mb-20"
 >
-  <h1 className="text-4xl sm:text-6xl font-black text-white mb-6">
-    How <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">BAE</span> Works
+  <h1 className="text-4xl sm:text-6xl font-black text-white mb-6 flex items-center justify-center gap-4 flex-wrap drop-shadow-[0_0_30px_rgba(255,160,255,0.6)]">
+    <span>How BAE</span>
+    <motion.span
+      animate={{ 
+        boxShadow: ['0 0 15px rgba(253,224,71,0.6)', '0 0 25px rgba(253,224,71,0.9)', '0 0 15px rgba(253,224,71,0.6)']
+      }}
+      transition={{ duration: 2, repeat: Infinity }}
+      className="px-8 py-3 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-3xl sm:text-5xl"
+    >
+      Works
+    </motion.span>
   </h1>
 </motion.div>
 
