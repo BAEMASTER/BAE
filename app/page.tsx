@@ -206,7 +206,7 @@ export default function HomePage() {
       </section>
 
       <footer className="absolute bottom-6 inset-x-0 text-center text-white/20 text-sm font-medium z-10">
-        Your Interests Make You Interesting.
+        Your interests make you interesting
       </footer>
 
     </main>
