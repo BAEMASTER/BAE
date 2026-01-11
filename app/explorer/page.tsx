@@ -11,7 +11,7 @@ import { X, ChevronRight } from 'lucide-react';
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
 
 // --- PILL STYLES ---
-const GOLD_PILL = 'text-black bg-gradient-to-r from-yellow-300 to-yellow-500 border border-yellow-200 shadow-[0_0_20px_rgba(253,224,71,0.6)] font-bold';
+const GOLD_PILL = 'text-black bg-gradient-to-r from-yellow-300 to-yellow-500 border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.8)] font-bold';
 const NEUTRAL_PILL = 'text-white bg-white/10 border border-white/20 backdrop-blur-md hover:bg-white/20 hover:border-white/40 font-semibold';
 
 // --- SOUND EFFECT ---
@@ -29,25 +29,33 @@ const playSound = (freqs: number[]) => {
   } catch {}
 };
 
-// --- INTEREST PILL ---
-function InterestPill({ interest, isAdded, isShared, onToggle }: { interest: string; isAdded: boolean; isShared: boolean; onToggle: (i: string) => void }) {
-  const classes = isShared && isAdded 
-    ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold border-yellow-300 shadow-[0_0_20px_rgba(253,224,71,0.7)]'
+function InterestPill({
+  interest,
+  isAdded,
+  isShared,
+  onToggle,
+}: {
+  interest: string;
+  isAdded: boolean;
+  isShared: boolean;
+  onToggle: (i: string) => void;
+}) {
+  // Logic updated to remove 'shadow-...' and 'backdrop-blur'
+  const classes = isShared && isAdded
+    ? 'bg-gradient-to-r from-yellow-300 to-yellow-400 text-black font-bold border border-yellow-200' 
     : isAdded
     ? 'bg-white/40 text-black border-white/40 font-bold'
     : isShared
-    ? GOLD_PILL
-    : NEUTRAL_PILL;
+    ? 'text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 font-bold' 
+    : 'text-white bg-white/10 border border-white/20 font-semibold hover:bg-white/20 hover:border-white/40';
 
   return (
-    <motion.button
+    <button
       onClick={() => onToggle(interest)}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className={`relative px-5 py-2 rounded-full text-sm transition-all duration-300 ${classes}`}
+      className={`relative px-5 py-2 rounded-full text-sm transition-all duration-200 cursor-pointer ${classes}`}
     >
       {interest} {isAdded ? '✓' : '+'}
-    </motion.button>
+    </button>
   );
 }
 
@@ -235,77 +243,75 @@ export default function ExplorerPage() {
         )}
       </div>
 
-      {/* Interest Collection Drawer */}
+    {/* Interest Collection Drawer */}
 <AnimatePresence>
   {drawerOpen && (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-2xl p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
     >
+      <div className="absolute inset-0" onClick={() => setDrawerOpen(false)} />
+
       <motion.div
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 50, opacity: 0 }}
-        className="w-full max-w-3xl max-h-[85vh] overflow-hidden
-           bg-gradient-to-tr from-[#4D004D]/60 via-[#1A0033]/80 to-[#000033]/90
-           rounded-3xl p-8 shadow-[0_0_40px_rgba(255,160,255,0.5)]
-           border border-white/20 flex flex-col items-center relative"
-
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="relative w-full max-w-2xl bg-[#1A0033]/95 border border-white/20 rounded-[32px] p-10 shadow-2xl overflow-hidden"
       >
-        {/* Close Button at top-right */}
-        <button
-          onClick={() => setDrawerOpen(false)}
-          className="absolute top-4 right-4 text-white/70 hover:text-white z-20"
-        >
-          <X size={36} />
-        </button>
+    {/* CLOSE BUTTON: Clean, High-Contrast White X */}
+<button
+  onClick={() => setDrawerOpen(false)}
+  className="absolute top-6 right-6 p-2 flex items-center justify-center hover:scale-110 transition-all z-[110]"
+>
+  <X 
+    size={32} 
+    strokeWidth={2.5} 
+    className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" 
+  />
+</button>
 
-        <h2 className="text-4xl sm:text-5xl font-extrabold mb-6 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,160,255,0.7)]">
-          Your Collection
-        </h2>
+        <h3 className="text-xl font-bold text-white mb-6 text-center tracking-tight uppercase tracking-widest">Your Interests</h3>
 
-        {/* Add new interest */}
-        <div className="flex w-full max-w-md mb-6 gap-2">
-          <input 
+        <div className="flex gap-2 mb-8">
+          <input
             type="text"
-            placeholder="Add new interest"
-            className="flex-1 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            placeholder="Add new interest…"
+            className="flex-1 px-5 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm transition-all"
             value={newInterest}
             onChange={(e) => setNewInterest(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
           />
           <button
             onClick={handleAddInterest}
-            className="px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold hover:scale-105 transition-transform"
+            className="px-6 py-3 rounded-full bg-yellow-400 text-black font-bold text-sm hover:bg-yellow-500 transition-colors"
           >
             Add
           </button>
         </div>
 
-        {/* Interests - clickable to delete */}
-        <div className="flex flex-wrap gap-4 justify-center mt-4
-                overflow-y-auto max-h-[45vh] pr-2 custom-scrollbar">
+        <div className="flex flex-wrap gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+          {userInterests.length === 0 && (
+            <p className="text-white/30 text-sm italic py-6 text-center w-full">No interests yet.</p>
+          )}
           {userInterests.map((i) => (
-            <motion.span
-  key={i}
-  onClick={() => handleDeleteInterest(i)}
-  className="px-6 py-3 rounded-full text-sm sm:text-base font-bold text-black bg-gradient-to-r from-yellow-300 to-pink-300 shadow-md cursor-pointer"
-  initial={{ scale: 0.8, opacity: 0 }}
-  animate={{ scale: 1, opacity: 1 }}
-  whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(255,160,255,0.5)" }}
-  transition={{ duration: 0.3 }}
->
-  {i}
-</motion.span>
-
+            <button
+              key={i}
+              onClick={() => handleDeleteInterest(i)}
+              /* Hover effect: brightness only, no scaling (prevent bleed) */
+              className="px-4 py-2 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 flex items-center gap-2 hover:brightness-125 transition-all active:scale-95"
+            >
+              {i}
+              <span className="opacity-40">✕</span>
+            </button>
           ))}
         </div>
       </motion.div>
     </motion.div>
   )}
 </AnimatePresence>
+
 
 
     </main>
