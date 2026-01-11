@@ -1,10 +1,11 @@
+'use client';
+
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Sparkles, Heart, Zap, Globe, Brain, Youtube, Music, ArrowRight } from 'lucide-react';
 
 export default function GuidePage() {
-  const handleNavigation = (path) => {
-    console.log(`Navigate to: ${path}`);
-  };
+  const router = useRouter();
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] relative overflow-hidden">
@@ -20,7 +21,7 @@ export default function GuidePage() {
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          onClick={() => handleNavigation('/')}
+          onClick={() => router.push('/')}
           className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent cursor-pointer"
         >
           BAE
@@ -30,7 +31,7 @@ export default function GuidePage() {
           animate={{ opacity: 1, x: 0 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => handleNavigation('/')}
+          onClick={() => router.push('/')}
           className="px-6 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg"
         >
           Start Matching
@@ -403,7 +404,7 @@ export default function GuidePage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => handleNavigation('/')}
+            onClick={() => router.push('/')}
             className="group inline-flex items-center gap-3 px-12 py-5 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-black text-xl rounded-full shadow-2xl hover:shadow-[0_0_40px_rgba(236,72,153,0.6)] transition-all"
           >
             Start Your First Match
