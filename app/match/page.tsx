@@ -164,13 +164,9 @@ function VibeToast({ interest, newCount }: { interest: string; newCount: number 
   );
 }
 
-function GoldenTicketCelebration({
-  theirProfile,
-  sharedInterests,
+function MegaVibeCelebration({
   onClose,
 }: {
-  theirProfile: UserData;
-  sharedInterests: string[];
   onClose: () => void;
 }) {
   return (
@@ -180,42 +176,38 @@ function GoldenTicketCelebration({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+        transition={{ duration: 0.3 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm pointer-events-none"
       >
         <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.5, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-          className="px-8 py-10 bg-gradient-to-br from-yellow-400 via-pink-400 to-fuchsia-500 rounded-3xl text-center max-w-md shadow-2xl"
+          initial={{ scale: 0, y: 100 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0, y: -100 }}
+          transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+          className="text-center"
         >
-          <div className="text-6xl mb-4">🎫</div>
-          <h2 className="text-4xl font-black text-white mb-2">MEGA VIBE</h2>
-          <p className="text-xl text-white/95 font-bold mb-6">
-            You share 5 passions with {theirProfile.displayName}
-          </p>
-          <div className="flex flex-wrap gap-2 justify-center mb-8">
-            {sharedInterests.slice(0, 5).map((interest) => (
-              <motion.div
-                key={interest}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: sharedInterests.indexOf(interest) * 0.1 }}
-                className="px-4 py-2 bg-white/90 text-black font-bold rounded-full text-sm"
-              >
-                {interest}
-              </motion.div>
-            ))}
-          </div>
-          <p className="text-white/80 font-semibold mb-6">This is special. Let's talk about it.</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onClose}
-            className="px-8 py-3 bg-white text-black font-black rounded-full hover:bg-white/90"
+          <motion.h1
+            animate={{ 
+              scale: [1, 1.05, 1],
+              textShadow: [
+                '0 0 20px rgba(253,224,71,0.5)',
+                '0 0 40px rgba(253,224,71,0.8)',
+                '0 0 20px rgba(253,224,71,0.5)'
+              ]
+            }}
+            transition={{ duration: 1, repeat: Infinity }}
+            className="text-9xl font-black text-yellow-300 drop-shadow-2xl tracking-tighter mb-4"
           >
-            Keep Vibing
-          </motion.button>
+            MEGA VIBE
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-white font-bold text-xl tracking-widest"
+          >
+            5 SHARED PASSIONS
+          </motion.p>
         </motion.div>
       </motion.div>
     </>
@@ -342,6 +334,8 @@ export default function MatchPage() {
       playBellDing();
       setShowGoldenTicket(true);
       setMegaVibeTriggered(true);
+      // Auto-close after 2 seconds
+      setTimeout(() => setShowGoldenTicket(false), 2000);
     }
   }, [sharedInterests.length, showGoldenTicket]);
 
@@ -846,10 +840,8 @@ export default function MatchPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showGoldenTicket && theirProfile && (
-          <GoldenTicketCelebration
-            theirProfile={theirProfile}
-            sharedInterests={sharedInterests}
+        {showGoldenTicket && (
+          <MegaVibeCelebration
             onClose={() => setShowGoldenTicket(false)}
           />
         )}
