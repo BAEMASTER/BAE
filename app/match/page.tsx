@@ -6,7 +6,7 @@ import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { X, Loader2, RefreshCw, ChevronUp } from 'lucide-react';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -265,6 +265,96 @@ function GoldenTicketCelebration({
   );
 }
 
+// --- VIEW ALL INTERESTS DRAWER ---
+function ViewAllInterestsDrawer({
+  theirInterests,
+  myInterests,
+  sharedInterests,
+  onClose,
+  onTeleport,
+}: {
+  theirInterests: string[];
+  myInterests: string[];
+  sharedInterests: string[];
+  onClose: () => void;
+  onTeleport: (interest: string) => void;
+}) {
+  // Filter out shared interests (they're already glowing in center)
+  const otherInterests = theirInterests.filter(
+    (i) => !sharedInterests.some((s) => s.toLowerCase() === i.toLowerCase())
+  );
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+      />
+
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/10 rounded-t-3xl"
+      >
+        {/* Handle bar + Close */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <div className="w-12 h-1 rounded-full bg-white/30" />
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-full transition-all"
+          >
+            <X size={24} className="text-white/70" />
+          </button>
+        </div>
+
+        {/* Interests Grid */}
+        <div className="max-h-[80vh] overflow-y-auto interests-scroll p-6">
+          <h3 className="text-lg font-black text-white mb-6">All Their Interests</h3>
+
+          <div className="flex flex-wrap gap-3">
+            {otherInterests.map((interest: string) => {
+              const isAdded = myInterests.some(
+                (i: string) => i.toLowerCase() === interest.toLowerCase()
+              );
+
+              return (
+                <motion.button
+                  key={interest}
+                  whileHover={!isAdded ? { scale: 1.08 } : {}}
+                  whileTap={!isAdded ? { scale: 0.95 } : {}}
+                  onClick={() => {
+                    if (!isAdded) {
+                      onTeleport(interest);
+                      onClose();
+                    }
+                  }}
+                  disabled={isAdded}
+                  className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                    isAdded
+                      ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
+                      : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                  }`}
+                >
+                  {interest} {isAdded ? '✓' : '+'}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-white/50 mt-8 text-center">
+            Tap any to add to your profile
+          </p>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
@@ -277,7 +367,6 @@ export default function MatchPage() {
 
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
-  const [floatingInterests, setFloatingInterests] = useState<string[]>([]);
   const [vibeCount, setVibeCount] = useState(0);
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
@@ -286,6 +375,7 @@ export default function MatchPage() {
   const [toastData, setToastData] = useState<{ interest: string; newCount: number } | null>(null);
   const [showGoldenTicket, setShowGoldenTicket] = useState(false);
   const [megaVibeTriggered, setMegaVibeTriggered] = useState(false);
+  const [showViewAll, setShowViewAll] = useState(false);
 
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
@@ -535,6 +625,7 @@ export default function MatchPage() {
     const newInterests = [...myProfile.interests, interest];
     setMyProfile(prev => prev ? { ...prev, interests: newInterests } : null);
 
+    // Single chime on tap
     playVibe(vibeCount + 1);
     const newCount = sharedInterests.length + 1;
     setToastData({ interest, newCount });
@@ -571,6 +662,7 @@ export default function MatchPage() {
     setMegaVibeTriggered(false);
     setToastData(null);
     setCameraReady(false);
+    setShowViewAll(false);
 
     if (localVideoContainerRef.current) {
       localVideoContainerRef.current.innerHTML = '';
@@ -656,6 +748,13 @@ export default function MatchPage() {
     );
   }
 
+  // Get first 6 of their interests (excluding shared ones)
+  const displayedInterests = theirProfile
+    ? theirProfile.interests.filter(
+        (i) => !sharedInterests.some((s) => s.toLowerCase() === i.toLowerCase())
+      ).slice(0, 6)
+    : [];
+
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
       
@@ -680,8 +779,10 @@ export default function MatchPage() {
 
         <div className="flex-1 flex flex-col min-w-0">
           
+          {/* VIDEO SECTION WITH OVERLAID INTERESTS */}
           <div className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
             
+            {/* Screen Flash on MEGA */}
             <AnimatePresence>
               {megaVibeTriggered && (
                 <motion.div
@@ -709,6 +810,7 @@ export default function MatchPage() {
               }
             `}</style>
             
+            {/* YOUR VIDEO */}
             <div className="relative flex-1 bg-black">
               <div 
                 ref={localVideoContainerRef} 
@@ -729,6 +831,7 @@ export default function MatchPage() {
               </div>
             </div>
 
+            {/* SHARED INTERESTS GLOW CENTER */}
             <AnimatePresence>
               {isMatched && sharedInterests.length > 0 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
@@ -760,6 +863,7 @@ export default function MatchPage() {
               )}
             </AnimatePresence>
 
+            {/* THEIR VIDEO */}
             <div className="relative flex-1 bg-black">
               {!isMatched ? (
                 <motion.div 
@@ -792,69 +896,63 @@ export default function MatchPage() {
                 </>
               )}
             </div>
-          </div>
 
-          {isMatched && theirProfile && (
-            <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-3 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto interests-scroll">
-              <div className="max-w-full mx-auto">
-                <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
-                
-                <div className="flex gap-4 min-h-0">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
-                    <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
-                      {myProfile?.interests.map((interest: string) => (
-                        <div
+            {/* OVERLAID INTERESTS AT BOTTOM (15% of video) - WITH SHELF BACKDROP */}
+            {isMatched && theirProfile && (
+              <div className="absolute bottom-0 left-0 right-0 z-15 flex items-end justify-center pb-6 px-4">
+                {/* The Shelf Container */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="relative w-full max-w-3xl bg-black/40 backdrop-blur-2xl rounded-[32px] border border-white/10 p-6 pt-8 pb-10 shadow-2xl"
+                >
+                  {/* 2 rows x 3 cols grid of interests (excludes shared) */}
+                  <div className="grid grid-cols-3 gap-3 mb-6">
+                    {displayedInterests.slice(0, 6).map((interest: string) => {
+                      const isAdded = myProfile?.interests.some(
+                        (i: string) => i.toLowerCase() === interest.toLowerCase()
+                      );
+
+                      return (
+                        <motion.button
                           key={interest}
-                          className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
-                          title={interest}
+                          whileHover={!isAdded ? { scale: 1.08 } : {}}
+                          whileTap={!isAdded ? { scale: 0.95 } : {}}
+                          onClick={() => !isAdded && handleTeleportInterest(interest)}
+                          disabled={isAdded}
+                          className={`px-3 py-2 rounded-full text-xs font-semibold transition-all ${
+                            isAdded
+                              ? 'bg-white/20 text-white/50 border border-white/20'
+                              : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                          }`}
                         >
                           {interest}
-                        </div>
-                      ))}
-                    </div>
+                        </motion.button>
+                      );
+                    })}
                   </div>
 
-                  <div className="w-px bg-white/20"></div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
-                    <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
-                      {theirProfile?.interests.map((interest: string) => {
-                        const isAdded = myProfile?.interests.some(
-                          (i: string) => i.toLowerCase() === interest.toLowerCase()
-                        );
-                        const isShared = sharedInterests.some(
-                          (s: string) => s.toLowerCase() === interest.toLowerCase()
-                        );
-
-                        return (
-                          <motion.button
-                            key={interest}
-                            whileHover={!isAdded ? { scale: 1.08 } : {}}
-                            whileTap={!isAdded ? { scale: 0.95 } : {}}
-                            onClick={() => !isAdded && handleTeleportInterest(interest)}
-                            disabled={isAdded}
-                            className={`px-1.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap text-center truncate overflow-hidden ${
-                              isShared
-                                ? 'bg-yellow-300 text-black border border-yellow-200'
-                                : isAdded
-                                ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
-                                : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
-                            }`}
-                            title={interest}
-                          >
-                            {interest}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                  {/* View All Button - Centered, half on/half off shelf */}
+                  {displayedInterests.length > 6 && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowViewAll(true)}
+                      className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-8 py-3 bg-gradient-to-r from-yellow-400 to-pink-400 text-black font-black rounded-full text-xs uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all"
+                    >
+                      View All
+                    </motion.button>
+                  )}
+                </motion.div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
+          {/* MOBILE: Vibe-O-Meter */}
           {isMatched && (
             <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-r from-black/60 to-transparent px-4 py-2 backdrop-blur-sm border-b border-white/10">
               <FluidVibeOMeter count={vibeCount} />
@@ -863,10 +961,12 @@ export default function MatchPage() {
         </div>
       </div>
 
+      {/* VIBE TOAST */}
       <AnimatePresence>
         {toastData && <VibeToast interest={toastData.interest} newCount={toastData.newCount} />}
       </AnimatePresence>
 
+      {/* GOLDEN TICKET */}
       <AnimatePresence>
         {showGoldenTicket && theirProfile && (
           <GoldenTicketCelebration
@@ -877,6 +977,20 @@ export default function MatchPage() {
         )}
       </AnimatePresence>
 
+      {/* VIEW ALL INTERESTS DRAWER */}
+      <AnimatePresence>
+        {showViewAll && theirProfile && (
+          <ViewAllInterestsDrawer
+            theirInterests={theirProfile.interests}
+            myInterests={myProfile?.interests || []}
+            sharedInterests={sharedInterests}
+            onClose={() => setShowViewAll(false)}
+            onTeleport={handleTeleportInterest}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING BUTTONS */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
         {isMatched && (
           <motion.button
