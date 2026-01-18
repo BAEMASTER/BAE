@@ -711,68 +711,85 @@ export default function MatchPage() {
         </div>
       </div>
 
-      {/* SECTION 3: INTEREST PILLS (Bottom) */}
-      {isMatched && theirProfile && (
-        <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto">
-          <div className="max-w-full mx-auto">
-            <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
-            
-            <div className="flex gap-4 min-h-0">
-              {/* YOUR INTERESTS (Left) */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Your Interests</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {myProfile?.interests.slice(0, 4).map((interest: string) => (
-                    <div
-                      key={interest}
-                      className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
-                    >
-                      {interest} ✓
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* SEPARATOR */}
-              <div className="w-px bg-white/20"></div>
-
-              {/* THEIR INTERESTS (Right - Tappable) */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Their Interests</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {theirProfile?.interests.slice(0, 4).map((interest: string) => {
-                    const isAdded = myProfile?.interests.some(
-                      (i: string) => i.toLowerCase() === interest.toLowerCase()
-                    );
-                    const isShared = sharedInterests.some(
-                      (s: string) => s.toLowerCase() === interest.toLowerCase()
-                    );
-
-                    return (
-                      <motion.button
+      {/* SECTION 3: INTEREST PILLS (Bottom) - Always visible */}
+      <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto">
+        <div className="max-w-full mx-auto">
+          {isMatched && theirProfile ? (
+            <>
+              <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
+              
+              <div className="flex gap-4 min-h-0">
+                {/* YOUR INTERESTS (Left) */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Your Interests</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {myProfile?.interests.slice(0, 4).map((interest: string) => (
+                      <div
                         key={interest}
-                        whileHover={!isAdded ? { scale: 1.08 } : {}}
-                        whileTap={!isAdded ? { scale: 0.95 } : {}}
-                        onClick={() => !isAdded && handleTeleportInterest(interest)}
-                        disabled={isAdded}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                          isShared
-                            ? 'bg-yellow-300 text-black border border-yellow-200'
-                            : isAdded
-                            ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
-                            : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
-                        }`}
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
                       >
-                        {interest} {isAdded ? '✓' : '+'}
-                      </motion.button>
-                    );
-                  })}
+                        {interest} ✓
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* SEPARATOR */}
+                <div className="w-px bg-white/20"></div>
+
+                {/* THEIR INTERESTS (Right - Tappable) */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Their Interests</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {theirProfile?.interests.slice(0, 4).map((interest: string) => {
+                      const isAdded = myProfile?.interests.some(
+                        (i: string) => i.toLowerCase() === interest.toLowerCase()
+                      );
+                      const isShared = sharedInterests.some(
+                        (s: string) => s.toLowerCase() === interest.toLowerCase()
+                      );
+
+                      return (
+                        <motion.button
+                          key={interest}
+                          whileHover={!isAdded ? { scale: 1.08 } : {}}
+                          whileTap={!isAdded ? { scale: 0.95 } : {}}
+                          onClick={() => !isAdded && handleTeleportInterest(interest)}
+                          disabled={isAdded}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                            isShared
+                              ? 'bg-yellow-300 text-black border border-yellow-200'
+                              : isAdded
+                              ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
+                              : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                          }`}
+                        >
+                          {interest} {isAdded ? '✓' : '+'}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            /* Waiting state - show only your interests */
+            <>
+              <p className="text-xs text-white/60 font-bold text-center mb-3">Your Interests</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {myProfile?.interests.map((interest: string) => (
+                  <div
+                    key={interest}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20"
+                  >
+                    {interest}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {/* VIBE TOAST */}
       <AnimatePresence>
