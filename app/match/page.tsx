@@ -109,80 +109,105 @@ function Confetti() {
   );
 }
 
-// --- RESONANCE METER COMPONENT ---
-function ResonanceMeter({ count }: { count: number }) {
-  const maxVibe = 5;
-  const percentage = (count / maxVibe) * 100;
+// --- VIBE-O-METER COMPONENT ---
+function VibeOMeter({ count }: { count: number }) {
+  const vibeNames = ['', 'Connected', 'Vibing', 'Deep Vibe', 'Super Vibe', 'MEGA VIBE'];
+  
+  // Continuous scaling and glow based on count (no discrete steps)
+  const orbSize = 24 + count * 12; // Grows smoothly: 24px → 84px
+  const glowIntensity = count * 0.2; // 0 → 1.0
+  const pulseSpeed = 5 - count * 0.5; // Pulses faster as vibe increases
+  
+  // Color progression: gray → blue → peachy → gold → intense gold → rainbow
+  const getOrbColor = () => {
+    if (count === 0) return 'from-white/30 to-white/20';
+    if (count < 1.5) return 'from-blue-400/50 to-blue-300/40';
+    if (count < 2.5) return 'from-orange-300/50 to-orange-200/40';
+    if (count < 3.5) return 'from-yellow-300/60 to-yellow-200/50';
+    if (count < 4.5) return 'from-yellow-300/80 to-pink-300/70';
+    return 'from-yellow-300 via-pink-400 to-fuchsia-500';
+  };
+  
+  const getGlowColor = () => {
+    if (count === 0) return 'rgba(255,255,255,0.1)';
+    if (count < 1.5) return 'rgba(96,165,250,0.4)';
+    if (count < 2.5) return 'rgba(253,186,116,0.5)';
+    if (count < 3.5) return 'rgba(253,224,71,0.6)';
+    if (count < 4.5) return 'rgba(253,224,71,0.8)';
+    return 'rgba(253,224,71,1), 0 0 80px rgba(236,72,153,0.8)';
+  };
 
   return (
-    <div className="w-full px-4 py-3 bg-gradient-to-r from-black/40 to-transparent">
+    <div className="w-full px-4 py-4 bg-gradient-to-r from-black/40 to-transparent">
       <div className="max-w-full mx-auto">
-        {/* Vibe Level Labels - Simplified */}
-        <div className="flex justify-between text-[10px] sm:text-xs font-bold text-white/60 mb-2 tracking-tight">
-          <span>1</span>
-          <span>2</span>
-          <span>3</span>
-          <span>4</span>
-          <span>5</span>
+        {/* Label */}
+        <div className="text-center mb-4">
+          <p className="text-xs sm:text-sm font-bold text-white/80 tracking-widest">VIBE-O-METER</p>
         </div>
 
-        {/* Progress Bar + Orb */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="flex-1 relative h-2 bg-white/10 rounded-full overflow-hidden border border-white/20">
-            {/* Progress Fill */}
-            <motion.div
-              animate={{ width: `${percentage}%` }}
-              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-              className="h-full bg-gradient-to-r from-yellow-300 via-pink-400 to-yellow-300 rounded-full"
-            />
-            
-            {/* Moving Indicator Dot */}
-            <motion.div
-              animate={{ left: `${percentage}%` }}
-              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-300 rounded-full shadow-[0_0_12px_rgba(253,224,71,0.8)] -translate-x-1/2"
-            />
-          </div>
-
-          {/* ORB on Right */}
+        {/* Orb Container */}
+        <div className="flex items-center justify-center mb-4">
+          {/* Comet Aura Background */}
           <motion.div
             animate={{
-              boxShadow:
-                count === 0
-                  ? '0 0 10px rgba(255,255,255,0.2)'
-                  : count === 1
-                  ? '0 0 15px rgba(147,197,253,0.5)'
-                  : count === 2
-                  ? '0 0 20px rgba(253,224,71,0.6)'
-                  : count === 3
-                  ? '0 0 25px rgba(253,224,71,0.8)'
-                  : count === 4
-                  ? '0 0 30px rgba(253,224,71,1)'
-                  : '0 0 50px rgba(253,224,71,1), 0 0 80px rgba(236,72,153,0.8)',
-              scale: count === 0 ? 1 : count === 1 ? 1.1 : count === 2 ? 1.15 : count === 3 ? 1.2 : count === 4 ? 1.3 : 1.5,
+              boxShadow: `0 0 ${40 + count * 20}px ${getGlowColor()}`,
+              scale: 1 + glowIntensity * 0.2,
             }}
-            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-black text-white text-sm sm:text-lg shrink-0 border-2 ${
-              count === 0
-                ? 'bg-white/20 border-white/40'
-                : count === 1
-                ? 'bg-blue-500/40 border-blue-300'
-                : count === 2
-                ? 'bg-yellow-300/40 border-yellow-200'
-                : count === 3
-                ? 'bg-yellow-400/50 border-yellow-300'
-                : count === 4
-                ? 'bg-yellow-300/70 border-yellow-200'
-                : 'bg-gradient-to-br from-yellow-300 to-pink-400 border-yellow-200'
-            }`}
+            transition={{ type: 'spring', stiffness: 60, damping: 15 }}
+            className="absolute w-32 h-32 rounded-full blur-3xl"
+          />
+
+          {/* Main Orb */}
+          <motion.div
+            animate={{
+              scale: 1 + glowIntensity * 0.15,
+              boxShadow: `0 0 ${20 + count * 15}px ${getGlowColor()}`,
+            }}
+            transition={{ type: 'spring', stiffness: 80, damping: 20 }}
+            className={`relative z-10 rounded-full flex items-center justify-center border-2 border-white/40 bg-gradient-to-br ${getOrbColor()}`}
+            style={{
+              width: `${orbSize}px`,
+              height: `${orbSize}px`,
+            }}
           >
-            {count}/5
+            {/* Pulsing inner glow */}
+            <motion.div
+              animate={{
+                opacity: [0.3, 0.8, 0.3],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{
+                duration: pulseSpeed,
+                repeat: Infinity,
+              }}
+              className="absolute inset-2 rounded-full bg-gradient-to-br from-white/40 to-transparent"
+            />
+
+            {/* Vibe count (small, subtle) */}
+            {count > 0 && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative z-20 text-xs sm:text-sm font-black text-white"
+              >
+                {count}/5
+              </motion.span>
+            )}
           </motion.div>
         </div>
 
-        {/* Current Vibe Name */}
-        <div className="text-center mt-2 text-xs sm:text-sm font-bold text-white/80">
-          {VIBE_LEVELS[count as keyof typeof VIBE_LEVELS]?.name || 'No Connection'}
+        {/* Vibe Name */}
+        <div className="text-center">
+          <motion.p
+            key={count}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.3 }}
+            className="text-sm sm:text-base font-bold text-white/90"
+          >
+            {vibeNames[count] || 'No Connection'}
+          </motion.p>
         </div>
       </div>
     </div>
@@ -627,9 +652,9 @@ export default function MatchPage() {
         </button>
       </header>
 
-      {/* SECTION 1: RESONANCE METER */}
+      {/* SECTION 1: VIBE-O-METER */}
       <div className="relative z-10 flex-shrink-0 bg-gradient-to-r from-black/40 to-transparent">
-        <ResonanceMeter count={vibeCount} />
+        <VibeOMeter count={vibeCount} />
       </div>
 
       {/* SECTION 2: VIDEO SECTION WITH FLOATING INTERESTS */}
@@ -725,22 +750,24 @@ export default function MatchPage() {
         </div>
       </div>
 
-      {/* SECTION 3: INTEREST PILLS (Bottom) - Grid layout with vertical scroll */}
-      <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[18vh] overflow-y-auto scrollbar-hide">
-        <div className="max-w-full mx-auto">
+      {/* SECTION 3: INTEREST PILLS (Bottom) */}
+      
+      {/* DESKTOP VERSION - 2x5 Grid */}
+      <div className="hidden lg:flex relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto scrollbar-hide">
+        <div className="max-w-full mx-auto w-full">
           {isMatched && theirProfile ? (
             <>
               <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
               
               <div className="flex gap-4 min-h-0">
-                {/* YOUR INTERESTS (Left) - Grid 5 columns */}
+                {/* YOUR INTERESTS (Left) - Grid 5 columns, 2 rows */}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
                     {myProfile?.interests.map((interest: string) => (
                       <div
                         key={interest}
-                        className="px-2 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate"
+                        className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
                         title={interest}
                       >
                         {interest}
@@ -752,10 +779,10 @@ export default function MatchPage() {
                 {/* SEPARATOR */}
                 <div className="w-px bg-white/20"></div>
 
-                {/* THEIR INTERESTS (Right - Tappable) - Grid 5 columns */}
+                {/* THEIR INTERESTS (Right - Tappable) - Grid 5 columns, 2 rows */}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
                     {theirProfile?.interests.map((interest: string) => {
                       const isAdded = myProfile?.interests.some(
                         (i: string) => i.toLowerCase() === interest.toLowerCase()
@@ -771,7 +798,7 @@ export default function MatchPage() {
                           whileTap={!isAdded ? { scale: 0.95 } : {}}
                           onClick={() => !isAdded && handleTeleportInterest(interest)}
                           disabled={isAdded}
-                          className={`px-2 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap text-center truncate ${
+                          className={`px-1.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap text-center truncate overflow-hidden ${
                             isShared
                               ? 'bg-yellow-300 text-black border border-yellow-200'
                               : isAdded
@@ -792,11 +819,89 @@ export default function MatchPage() {
             /* Waiting state - show only your interests in grid */
             <>
               <p className="text-xs text-white/60 font-bold text-center mb-3">Your Interests</p>
-              <div className="grid grid-cols-10 gap-2">
+              <div className="grid grid-cols-10 gap-1.5 auto-rows-max">
                 {myProfile?.interests.map((interest: string) => (
                   <div
                     key={interest}
-                    className="px-2 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate"
+                    className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
+                    title={interest}
+                  >
+                    {interest}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* MOBILE VERSION - Collapsible sections */}
+      <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-3 py-3 backdrop-blur-sm border-t border-white/10 max-h-[25vh] overflow-y-auto scrollbar-hide">
+        <div className="max-w-full mx-auto w-full space-y-3">
+          {isMatched && theirProfile ? (
+            <>
+              <p className="text-xs text-yellow-300 font-bold text-center mb-2">Tap to add their interests ⬇️</p>
+              
+              {/* YOUR INTERESTS - Collapsible on mobile */}
+              <div>
+                <p className="text-xs text-white/60 font-bold mb-1.5 text-center">Your Interests (showing first 5)</p>
+                <div className="flex flex-wrap gap-1 justify-center">
+                  {myProfile?.interests.slice(0, 5).map((interest: string) => (
+                    <div
+                      key={interest}
+                      className="px-1.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
+                      title={interest}
+                    >
+                      {interest}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* THEIR INTERESTS - Collapsible on mobile */}
+              <div>
+                <p className="text-xs text-white/60 font-bold mb-1.5 text-center">Their Interests (showing first 5)</p>
+                <div className="flex flex-wrap gap-1 justify-center">
+                  {theirProfile?.interests.slice(0, 5).map((interest: string) => {
+                    const isAdded = myProfile?.interests.some(
+                      (i: string) => i.toLowerCase() === interest.toLowerCase()
+                    );
+                    const isShared = sharedInterests.some(
+                      (s: string) => s.toLowerCase() === interest.toLowerCase()
+                    );
+
+                    return (
+                      <motion.button
+                        key={interest}
+                        whileHover={!isAdded ? { scale: 1.08 } : {}}
+                        whileTap={!isAdded ? { scale: 0.95 } : {}}
+                        onClick={() => !isAdded && handleTeleportInterest(interest)}
+                        disabled={isAdded}
+                        className={`px-1.5 py-0.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                          isShared
+                            ? 'bg-yellow-300 text-black border border-yellow-200'
+                            : isAdded
+                            ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
+                            : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                        }`}
+                        title={interest}
+                      >
+                        {interest}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Waiting state - show first 8 interests */
+            <>
+              <p className="text-xs text-white/60 font-bold text-center mb-2">Your Interests (showing first 8)</p>
+              <div className="flex flex-wrap gap-1 justify-center">
+                {myProfile?.interests.slice(0, 8).map((interest: string) => (
+                  <div
+                    key={interest}
+                    className="px-1.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
                     title={interest}
                   >
                     {interest}
