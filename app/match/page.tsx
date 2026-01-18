@@ -36,12 +36,13 @@ const VIBE_LEVELS = {
 };
 
 // --- AUDIO CONTEXT SINGLETON (Fix #2: Proper AudioContext management) ---
-let audioContextInstance: (AudioContext | WebkitAudioContext) | null = null;
+let audioContextInstance: AudioContext | null = null;
 
-const getAudioContext = async (): Promise<(AudioContext | WebkitAudioContext) | null> => {
+const getAudioContext = async (): Promise<AudioContext | null> => {
   try {
     if (!audioContextInstance) {
-      audioContextInstance = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      audioContextInstance = new AudioCtx();
     }
     // Resume context if suspended (required by browsers for user gesture)
     if (audioContextInstance.state === 'suspended') {
