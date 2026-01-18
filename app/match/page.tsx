@@ -14,16 +14,30 @@ interface UserData {
   location?: string;
 }
 
-const playConnectionChime = () => {
+// --- VIBE LEVELS ---
+const VIBE_LEVELS = {
+  0: { name: 'No Connection', color: 'gray' },
+  1: { name: 'Connected', color: 'blue' },
+  2: { name: 'Vibing', color: 'orange' },
+  3: { name: 'Deep Vibe', color: 'gold' },
+  4: { name: 'Super Vibe', color: 'gold-bright' },
+  5: { name: 'MEGA VIBE', color: 'rainbow', celebration: true },
+};
+
+// --- SOUND EFFECTS ---
+const playVibe = (level: number) => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const frequencies = [523.25, 659.25, 783.99, 987.77, 1174.66]; // C, E, G, B, D (ascending)
+    const freq = frequencies[Math.min(level - 1, 4)];
+    
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     osc.connect(gain);
     gain.connect(audioContext.destination);
-    osc.frequency.value = 523.25;
+    osc.frequency.value = freq;
     osc.type = 'sine';
-    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gain.gain.setValueAtTime(0.15, audioContext.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
     osc.start(audioContext.currentTime);
     osc.stop(audioContext.currentTime + 0.2);
@@ -32,36 +46,225 @@ const playConnectionChime = () => {
   }
 };
 
-const playTeleportSound = () => {
+const playBellDing = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const whoosh = audioContext.createOscillator();
-    const whooshGain = audioContext.createGain();
-    whoosh.connect(whooshGain);
-    whooshGain.connect(audioContext.destination);
-    whoosh.type = 'sawtooth';
-    whoosh.frequency.setValueAtTime(200, audioContext.currentTime);
-    whoosh.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.3);
-    whooshGain.gain.setValueAtTime(0.1, audioContext.currentTime);
-    whooshGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    whoosh.start(audioContext.currentTime);
-    whoosh.stop(audioContext.currentTime + 0.3);
-    
-    const chime = audioContext.createOscillator();
-    const chimeGain = audioContext.createGain();
-    chime.connect(chimeGain);
-    chimeGain.connect(audioContext.destination);
-    chime.type = 'sine';
-    chime.frequency.value = 800;
-    chimeGain.gain.setValueAtTime(0.15, audioContext.currentTime + 0.35);
-    chimeGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    chime.start(audioContext.currentTime + 0.35);
-    chime.stop(audioContext.currentTime + 0.5);
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.frequency.value = 1046.5;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    osc.start(audioContext.currentTime);
+    osc.stop(audioContext.currentTime + 0.5);
   } catch (e) {
     console.log('Audio not supported');
   }
 };
 
+// --- CONFETTI COMPONENT ---
+function Confetti() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {[...Array(50)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            opacity: 1,
+          }}
+          animate={{
+            x: window.innerWidth / 2 + (Math.random() - 0.5) * 400,
+            y: window.innerHeight + 100,
+            opacity: 0,
+            rotate: Math.random() * 360,
+          }}
+          transition={{
+            duration: 2,
+            ease: 'easeIn',
+          }}
+          className="absolute w-2 h-2 rounded-full"
+          style={{
+            backgroundColor: ['#FFD700', '#FF69B4', '#87CEEB', '#98FB98'][
+              Math.floor(Math.random() * 4)
+            ],
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// --- RESONANCE METER COMPONENT ---
+function ResonanceMeter({ count }: { count: number }) {
+  const maxVibe = 5;
+  const percentage = (count / maxVibe) * 100;
+
+  return (
+    <div className="w-full px-4 py-4 bg-gradient-to-r from-black/40 to-transparent">
+      <div className="max-w-full mx-auto">
+        {/* Vibe Level Labels */}
+        <div className="flex justify-between text-xs font-bold text-white/60 mb-3">
+          <span>Connected</span>
+          <span>Vibing</span>
+          <span>Deep Vibe</span>
+          <span>Super Vibe</span>
+          <span>MEGA VIBE</span>
+        </div>
+
+        {/* Progress Bar + Orb */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative h-2 bg-white/10 rounded-full overflow-hidden border border-white/20">
+            {/* Progress Fill */}
+            <motion.div
+              animate={{ width: `${percentage}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              className="h-full bg-gradient-to-r from-yellow-300 via-pink-400 to-yellow-300 rounded-full"
+            />
+            
+            {/* Moving Indicator Dot */}
+            <motion.div
+              animate={{ left: `${percentage}%` }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-300 rounded-full shadow-[0_0_12px_rgba(253,224,71,0.8)] -translate-x-1/2"
+            />
+          </div>
+
+          {/* ORB on Right */}
+          <motion.div
+            animate={{
+              boxShadow:
+                count === 0
+                  ? '0 0 10px rgba(255,255,255,0.2)'
+                  : count === 1
+                  ? '0 0 15px rgba(147,197,253,0.5)'
+                  : count === 2
+                  ? '0 0 20px rgba(253,224,71,0.6)'
+                  : count === 3
+                  ? '0 0 25px rgba(253,224,71,0.8)'
+                  : count === 4
+                  ? '0 0 30px rgba(253,224,71,1)'
+                  : '0 0 50px rgba(253,224,71,1), 0 0 80px rgba(236,72,153,0.8)',
+              scale: count === 0 ? 1 : count === 1 ? 1.1 : count === 2 ? 1.15 : count === 3 ? 1.2 : count === 4 ? 1.3 : 1.5,
+            }}
+            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-lg shrink-0 border-2 ${
+              count === 0
+                ? 'bg-white/20 border-white/40'
+                : count === 1
+                ? 'bg-blue-500/40 border-blue-300'
+                : count === 2
+                ? 'bg-yellow-300/40 border-yellow-200'
+                : count === 3
+                ? 'bg-yellow-400/50 border-yellow-300'
+                : count === 4
+                ? 'bg-yellow-300/70 border-yellow-200'
+                : 'bg-gradient-to-br from-yellow-300 to-pink-400 border-yellow-200'
+            }`}
+          >
+            {count}/5
+          </motion.div>
+        </div>
+
+        {/* Current Vibe Name */}
+        <div className="text-center mt-3 text-sm font-bold text-white/80">
+          {VIBE_LEVELS[count as keyof typeof VIBE_LEVELS]?.name || 'No Connection'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- VIBE TOAST COMPONENT ---
+function VibeToast({ interest, newCount }: { interest: string; newCount: number }) {
+  const messages = {
+    1: '✨ Connected',
+    2: '🌟 Vibing',
+    3: '🔥 Deep Vibe',
+    4: '💥 Super Vibe',
+    5: '🎫 MEGA VIBE',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+      className="fixed top-32 left-1/2 -translate-x-1/2 z-40 px-6 py-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-2xl"
+    >
+      {messages[newCount as keyof typeof messages]} ({newCount}/5) - {interest}
+    </motion.div>
+  );
+}
+
+// --- GOLDEN TICKET CELEBRATION ---
+function GoldenTicketCelebration({
+  theirProfile,
+  sharedInterests,
+  onClose,
+}: {
+  theirProfile: UserData;
+  sharedInterests: string[];
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <Confetti />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+      >
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.5, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+          className="relative px-8 py-10 bg-gradient-to-br from-yellow-400 via-pink-400 to-fuchsia-500 rounded-3xl text-center max-w-md shadow-2xl"
+        >
+          <div className="text-6xl mb-4">🎫</div>
+          <h2 className="text-4xl font-black text-white mb-2">MEGA VIBE</h2>
+          <p className="text-xl text-white/95 font-bold mb-6">
+            You share 5 passions with {theirProfile.displayName}
+          </p>
+
+          {/* Shared Interests Display */}
+          <div className="flex flex-wrap gap-2 justify-center mb-8">
+            {sharedInterests.slice(0, 5).map((interest) => (
+              <motion.div
+                key={interest}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: sharedInterests.indexOf(interest) * 0.1 }}
+                className="px-4 py-2 bg-white/90 text-black font-bold rounded-full text-sm"
+              >
+                {interest}
+              </motion.div>
+            ))}
+          </div>
+
+          <p className="text-white/80 font-semibold mb-6">This is special. Let's talk about it.</p>
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onClose}
+            className="px-8 py-3 bg-white text-black font-black rounded-full hover:bg-white/90 transition-all"
+          >
+            Keep Vibing
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </>
+  );
+}
+
+// --- MAIN MATCH PAGE ---
 export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
@@ -74,12 +277,32 @@ export default function MatchPage() {
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
   const [sharedInterests, setSharedInterests] = useState<string[]>([]);
+  const [floatingInterests, setFloatingInterests] = useState<string[]>([]);
+  const [vibeCount, setVibeCount] = useState(0);
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('Something went wrong. Please try again.');
   const [isResetting, setIsResetting] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
-  const [addNotification, setAddNotification] = useState<string | null>(null);
+  const [toastData, setToastData] = useState<{ interest: string; newCount: number } | null>(null);
+  const [showGoldenTicket, setShowGoldenTicket] = useState(false);
+
+  // Calculate shared interests count
+  useEffect(() => {
+    if (myProfile && theirProfile) {
+      const shared = myProfile.interests.filter((i: string) =>
+        theirProfile.interests.some((ti: string) => ti.toLowerCase() === i.toLowerCase())
+      );
+      setSharedInterests(shared);
+      setVibeCount(shared.length);
+      
+      // Show golden ticket at 5
+      if (shared.length === 5 && !showGoldenTicket) {
+        playBellDing();
+        setShowGoldenTicket(true);
+      }
+    }
+  }, [myProfile, theirProfile, showGoldenTicket]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -221,15 +444,6 @@ export default function MatchPage() {
           
           if (!mounted) return;
           setTheirProfile(theirData);
-
-          const shared = myData.interests.filter((i: string) => 
-            theirData.interests.some((ti: string) => ti.toLowerCase() === i.toLowerCase())
-          );
-          setSharedInterests(shared);
-
-          if (shared.length > 0) {
-            playConnectionChime();
-          }
         }
 
         if (!mounted) return;
@@ -294,23 +508,30 @@ export default function MatchPage() {
   const handleTeleportInterest = async (interest: string) => {
     if (!auth.currentUser || !myProfile) return;
     
-    playTeleportSound();
+    const alreadyAdded = myProfile.interests.some(
+      (i: string) => i.toLowerCase() === interest.toLowerCase()
+    );
     
+    if (alreadyAdded) return;
+
+    playVibe(vibeCount + 1);
+
+    // Add to profile
     const newInterests = [...myProfile.interests, interest];
     setMyProfile({ ...myProfile, interests: newInterests });
-    
-    const isNowShared = theirProfile?.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase());
-    if (isNowShared && !sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase())) {
-      setSharedInterests([...sharedInterests, interest]);
-    }
-    
+
+    // Add to floating interests for animation
+    setFloatingInterests([...floatingInterests, interest]);
+
+    // Show toast
+    const newCount = sharedInterests.length + 1;
+    setToastData({ interest, newCount });
+    setTimeout(() => setToastData(null), 2500);
+
     try {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         interests: newInterests,
       });
-      
-      setAddNotification(`Added ${interest}! 🎉`);
-      setTimeout(() => setAddNotification(null), 3000);
     } catch (err) {
       console.error('Failed to add interest:', err);
     }
@@ -370,7 +591,7 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
+    <main className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
       
       {/* Background Effects */}
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
@@ -379,7 +600,7 @@ export default function MatchPage() {
       </div>
 
       {/* Header */}
-      <header className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
+      <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
@@ -392,24 +613,11 @@ export default function MatchPage() {
         </button>
       </header>
 
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {addNotification && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-16 inset-x-0 z-40 flex justify-center px-4"
-          >
-            <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white px-6 py-2 rounded-full shadow-2xl font-bold text-sm">
-              {addNotification}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* SECTION 1: RESONANCE METER */}
+      <ResonanceMeter count={vibeCount} />
 
-      {/* FULL SCREEN VIDEO LAYOUT */}
-      <div className="absolute top-14 bottom-0 inset-x-0 flex flex-col lg:flex-row">
+      {/* SECTION 2: VIDEO SECTION WITH FLOATING INTERESTS */}
+      <div className="relative flex-1 flex flex-col lg:flex-row z-10">
         
         {/* YOUR VIDEO */}
         <div className="relative flex-1">
@@ -423,36 +631,47 @@ export default function MatchPage() {
             </div>
           )}
           
-          {/* YOUR NAME (Overlaid) */}
-          <div className="absolute bottom-16 left-4 right-4 text-center">
+          {/* YOUR NAME */}
+          <div className="absolute bottom-32 left-4 right-4 text-center">
             <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
               <h3 className="text-sm font-bold text-white">
                 {myProfile?.displayName || 'You'}
               </h3>
             </div>
           </div>
-          
-          {/* YOUR INTERESTS BAR (Overlaid at bottom) */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-            <div className="flex flex-wrap gap-1.5 justify-center overflow-y-auto max-h-12">
-              {myProfile?.interests.map((interest: string) => {
-                const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
-                return (
-                  <div
+        </div>
+
+        {/* CENTER: FLOATING SHARED INTERESTS */}
+        <AnimatePresence>
+          {isMatched && sharedInterests.length > 0 && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+              <div className="flex flex-wrap justify-center gap-3">
+                {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
+                  <motion.div
                     key={interest}
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      isShared
-                        ? 'bg-yellow-300/30 text-yellow-300 border border-yellow-300/50'
-                        : 'bg-white/20 text-white/80'
-                    }`}
+                    initial={{ opacity: 0, scale: 0, y: -30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
                   >
                     {interest}
-                  </div>
-                );
-              })}
+                    <motion.div
+                      animate={{
+                        opacity: [0.3, 0.7, 0.3],
+                        scale: [1, 1.1, 1],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                      }}
+                      className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
+                    />
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </AnimatePresence>
 
         {/* THEIR VIDEO */}
         <div className="relative flex-1">
@@ -474,8 +693,8 @@ export default function MatchPage() {
                 className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-900/20 to-purple-900/20"
               />
               
-              {/* THEIR NAME (Overlaid) */}
-              <div className="absolute bottom-16 left-4 right-4 text-center">
+              {/* THEIR NAME */}
+              <div className="absolute bottom-32 left-4 right-4 text-center">
                 <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
                   <h3 className="text-sm font-bold text-white">
                     {theirProfile?.displayName || '...'}
@@ -485,76 +704,87 @@ export default function MatchPage() {
                   </h3>
                 </div>
               </div>
-              
-              {/* THEIR INTERESTS BAR (Overlaid at bottom, TAPPABLE) */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                <p className="text-xs text-yellow-300 font-bold text-center mb-1">Tap to add ⬇️</p>
-                <div className="flex flex-wrap gap-1.5 justify-center overflow-y-auto max-h-12">
-                  {theirProfile?.interests.map((interest: string) => {
-                    const isShared = sharedInterests.some((s: string) => s.toLowerCase() === interest.toLowerCase());
-                    const isAlreadyAdded = myProfile?.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase());
-                    
-                    return (
-                      <button
-                        key={interest}
-                        disabled={isAlreadyAdded}
-                        onClick={() => !isAlreadyAdded && handleTeleportInterest(interest)}
-                        className={`px-2 py-1 rounded-full text-xs font-semibold transition-all ${
-                          isShared
-                            ? 'bg-yellow-300/30 text-yellow-300 border border-yellow-300/50 cursor-default'
-                            : isAlreadyAdded
-                            ? 'bg-white/30 text-white/50 cursor-default'
-                            : 'bg-white/20 text-white/80 hover:bg-white/30 cursor-pointer'
-                        }`}
-                      >
-                        {interest}
-                        {isAlreadyAdded && ' ✓'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </>
           )}
         </div>
       </div>
 
-      {/* SHARED INTERESTS (Overlaid in CENTER between videos) */}
+      {/* SECTION 3: INTEREST PILLS (Bottom) */}
+      {isMatched && theirProfile && (
+        <div className="relative z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-6 backdrop-blur-sm border-t border-white/10">
+          <div className="max-w-full mx-auto">
+            <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
+            
+            <div className="flex gap-4">
+              {/* YOUR INTERESTS (Left) */}
+              <div className="flex-1">
+                <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {myProfile?.interests.slice(0, 4).map((interest: string) => (
+                    <div
+                      key={interest}
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20"
+                    >
+                      {interest} ✓
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* SEPARATOR */}
+              <div className="w-px bg-white/20"></div>
+
+              {/* THEIR INTERESTS (Right - Tappable) */}
+              <div className="flex-1">
+                <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {theirProfile?.interests.slice(0, 4).map((interest: string) => {
+                    const isAdded = myProfile?.interests.some(
+                      (i: string) => i.toLowerCase() === interest.toLowerCase()
+                    );
+                    const isShared = sharedInterests.some(
+                      (s: string) => s.toLowerCase() === interest.toLowerCase()
+                    );
+
+                    return (
+                      <motion.button
+                        key={interest}
+                        whileHover={!isAdded ? { scale: 1.08 } : {}}
+                        whileTap={!isAdded ? { scale: 0.95 } : {}}
+                        onClick={() => !isAdded && handleTeleportInterest(interest)}
+                        disabled={isAdded}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                          isShared
+                            ? 'bg-yellow-300 text-black border border-yellow-200'
+                            : isAdded
+                            ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
+                            : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                        }`}
+                      >
+                        {interest} {isAdded ? '✓' : '+'}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIBE TOAST */}
       <AnimatePresence>
-        {isMatched && sharedInterests.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2"
-          >
-            {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
-              <motion.div
-                key={interest}
-                initial={{ opacity: 0, scale: 0, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="relative px-6 py-3 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-base font-black shadow-[0_0_30px_rgba(253,224,71,0.9)]"
-              >
-                {interest}
-                <motion.div
-                  animate={{
-                    opacity: [0.4, 0.8, 0.4],
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                  }}
-                  className="absolute -inset-2 bg-yellow-400 rounded-full -z-10 blur-xl"
-                />
-              </motion.div>
-            ))}
-            {sharedInterests.length > 5 && (
-              <p className="text-xs text-white/80 bg-black/50 px-3 py-1 rounded-full">
-                +{sharedInterests.length - 5} more
-              </p>
-            )}
-          </motion.div>
+        {toastData && <VibeToast interest={toastData.interest} newCount={toastData.newCount} />}
+      </AnimatePresence>
+
+      {/* GOLDEN TICKET CELEBRATION */}
+      <AnimatePresence>
+        {showGoldenTicket && theirProfile && (
+          <GoldenTicketCelebration
+            theirProfile={theirProfile}
+            sharedInterests={sharedInterests}
+            onClose={() => setShowGoldenTicket(false)}
+          />
         )}
       </AnimatePresence>
 
@@ -566,7 +796,7 @@ export default function MatchPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleNextMatch}
-          className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg text-sm"
+          className="absolute bottom-6 right-6 z-20 flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg text-sm"
         >
           Next
           <RefreshCw size={16} />
