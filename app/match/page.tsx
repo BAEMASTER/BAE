@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
@@ -8,14 +8,25 @@ import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw } from 'lucide-react';
 
-// Add scrollbar-hide to globals (hide scrollbar but allow scrolling)
-const scrollbarHideStyle = `
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+// Styled scrollbar with BAE aesthetic
+const scrollbarStyle = `
+  .interests-scroll::-webkit-scrollbar {
+    width: 6px;
   }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .interests-scroll::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+  }
+  .interests-scroll::-webkit-scrollbar-thumb {
+    background: rgba(253,224,71,0.3);
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+  .interests-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(253,224,71,0.5);
+  }
+  .interests-scroll {
+    scrollbar-color: rgba(253,224,71,0.3) rgba(255,255,255,0.05);
   }
 `;
 
@@ -25,17 +36,7 @@ interface UserData {
   location?: string;
 }
 
-// --- VIBE LEVELS ---
-const VIBE_LEVELS = {
-  0: { name: 'No Connection', color: 'gray' },
-  1: { name: 'Connected', color: 'blue' },
-  2: { name: 'Vibing', color: 'orange' },
-  3: { name: 'Deep Vibe', color: 'gold' },
-  4: { name: 'Super Vibe', color: 'gold-bright' },
-  5: { name: 'MEGA VIBE', color: 'rainbow', celebration: true },
-};
-
-// --- AUDIO CONTEXT SINGLETON (Fix #2: Proper AudioContext management) ---
+// --- AUDIO CONTEXT SINGLETON ---
 let audioContextInstance: AudioContext | null = null;
 
 const getAudioContext = async (): Promise<AudioContext | null> => {
@@ -44,7 +45,6 @@ const getAudioContext = async (): Promise<AudioContext | null> => {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       audioContextInstance = new AudioCtx();
     }
-    // Resume context if suspended (required by browsers for user gesture)
     if (audioContextInstance.state === 'suspended') {
       await audioContextInstance.resume();
     }
@@ -55,13 +55,12 @@ const getAudioContext = async (): Promise<AudioContext | null> => {
   }
 };
 
-// --- SOUND EFFECTS ---
 const playVibe = async (level: number) => {
   const audioContext = await getAudioContext();
   if (!audioContext) return;
   
   try {
-    const frequencies = [523.25, 659.25, 783.99, 987.77, 1174.66]; // C, E, G, B, D (ascending)
+    const frequencies = [523.25, 659.25, 783.99, 987.77, 1174.66];
     const freq = frequencies[Math.min(level - 1, 4)];
     
     const osc = audioContext.createOscillator();
@@ -133,95 +132,89 @@ function Confetti() {
   );
 }
 
-// --- VIBE-O-METER COMPONENT ---
-function VibeOMeter({ count }: { count: number }) {
-  const vibeNames = ['Cool', 'Real', 'Deep', 'Super', 'MEGA'];
-  const orbSizes = [16, 24, 32, 40, 52]; // Smaller orbs for compact design
-  
+// --- BILLION-DOLLAR VIBE-O-METER (Gemini-Inspired Crystalline Design) ---
+function VerticalVibeOMeter({ count }: { count: number }) {
+  const vibeLevels = [
+    { name: 'COOL', color: '#60A5FA', glow: 'rgba(96,165,250,0.5)' },
+    { name: 'REAL', color: '#FB923C', glow: 'rgba(251,146,60,0.5)' },
+    { name: 'DEEP', color: '#FDE047', glow: 'rgba(253,224,71,0.6)' },
+    { name: 'SUPER', color: '#F472B6', glow: 'rgba(244,114,182,0.7)' },
+    { name: 'MEGA', color: '#E879F9', glow: 'rgba(232,121,249,0.9)' },
+  ];
+
   return (
-    <div className="w-full px-4 py-2 bg-gradient-to-r from-black/40 to-transparent">
-      <div className="max-w-full mx-auto flex items-center justify-between gap-4">
-        {/* Label on left */}
-        <div className="flex-shrink-0">
-          <p className="text-xs font-bold text-white/80 tracking-widest whitespace-nowrap">VIBE-O-METER</p>
-        </div>
+    <div className="h-full flex flex-col items-center justify-between py-12 px-2 bg-black/20 backdrop-blur-xl border-r border-white/5">
+      {/* Top Accent Line */}
+      <div className="flex flex-col items-center gap-1 opacity-40">
+        <div className="h-12 w-[2px] bg-gradient-to-t from-white/20 to-transparent" />
+        <span className="text-[10px] font-black tracking-[0.3em] uppercase">VIBE</span>
+        <span className="text-[10px] font-black tracking-[0.3em] uppercase">SYSTEM</span>
+      </div>
 
-        {/* Orb Progression in center */}
-        <div className="flex items-end justify-center gap-1.5 flex-1">
-          {[0, 1, 2, 3, 4].map((index) => {
-            const isActive = count > index;
-            const size = orbSizes[index];
-            
-            const getOrbColor = () => {
-              if (!isActive) return 'from-white/20 to-white/10';
-              if (index === 0) return 'from-blue-400/50 to-blue-300/40';
-              if (index === 1) return 'from-orange-300/50 to-orange-200/40';
-              if (index === 2) return 'from-yellow-300/60 to-yellow-200/50';
-              if (index === 3) return 'from-yellow-300/80 to-pink-300/70';
-              return 'from-yellow-300 via-pink-400 to-fuchsia-500';
-            };
-            
-            const getGlowColor = () => {
-              if (!isActive) return 'rgba(255,255,255,0.1)';
-              if (index === 0) return 'rgba(96,165,250,0.4)';
-              if (index === 1) return 'rgba(253,186,116,0.5)';
-              if (index === 2) return 'rgba(253,224,71,0.6)';
-              if (index === 3) return 'rgba(253,224,71,0.8)';
-              return 'rgba(253,224,71,1), 0 0 60px rgba(236,72,153,0.8)';
-            };
+      {/* The Crystalline Orb Stack */}
+      <div className="flex flex-col-reverse gap-8">
+        {vibeLevels.map((vibe, index) => {
+          const isActive = count > index;
+          const isCurrent = count === index + 1;
 
-            return (
-              <motion.div
-                key={index}
-                animate={{
-                  scale: count > index ? 1.08 : 0.9,
-                  boxShadow: `0 0 ${isActive ? 10 + index * 3 : 3}px ${getGlowColor()}`,
-                  opacity: isActive ? 1 : 0.4,
-                }}
-                transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-                className={`relative rounded-full flex-shrink-0 flex items-center justify-center border transition-all ${
-                  isActive ? 'border-white/50' : 'border-white/20'
-                } bg-gradient-to-br ${getOrbColor()}`}
-                style={{
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  borderWidth: '1px',
-                }}
-              >
-                {/* Pulsing inner glow for active orbs */}
-                {isActive && (
+          return (
+            <div key={index} className="relative group flex items-center justify-center">
+              {/* Vibe Name Label (Popout on Current) */}
+              <AnimatePresence>
+                {isCurrent && (
                   <motion.div
-                    animate={{
-                      opacity: [0.2, 0.6, 0.2],
-                      scale: [0.8, 1.1, 0.8],
-                    }}
-                    transition={{
-                      duration: 2.5 - index * 0.2,
-                      repeat: Infinity,
-                    }}
-                    className="absolute inset-0.5 rounded-full bg-gradient-to-br from-white/30 to-transparent"
-                  />
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 40 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                    className="absolute left-0 whitespace-nowrap"
+                  >
+                    <span className="text-[10px] font-black tracking-widest text-white px-2 py-1 bg-white/10 rounded-full backdrop-blur-md border border-white/20">
+                      {vibe.name}
+                    </span>
+                  </motion.div>
                 )}
-              </motion.div>
-            );
-          })}
-        </div>
+              </AnimatePresence>
 
-        {/* Current status on right */}
-        <motion.div
-          key={count}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="flex-shrink-0 text-right"
-        >
-          <p className="text-xs font-bold text-yellow-300/90 whitespace-nowrap">
-            {count === 0 ? '0/5' : `${count}/5`}
-          </p>
-          <p className="text-xs font-bold text-white/70 whitespace-nowrap">
-            {vibeNames[Math.min(count, 4)]}
-          </p>
-        </motion.div>
+              {/* Crystalline Orb with Inset Glow */}
+              <motion.div
+                animate={{
+                  scale: isCurrent ? 1.3 : isActive ? 1 : 0.65,
+                  backgroundColor: isActive ? vibe.color : 'rgba(255,255,255,0.05)',
+                  boxShadow: isCurrent 
+                    ? `0 0 40px ${vibe.glow}, inset 0 0 15px rgba(255,255,255,0.9), 0 0 60px ${vibe.glow}` 
+                    : isActive 
+                    ? `0 0 20px ${vibe.glow}, inset 0 0 8px rgba(255,255,255,0.5)` 
+                    : '0 0 0px rgba(0,0,0,0), inset 0 0 0px rgba(255,255,255,0)',
+                }}
+                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                className={`w-5 h-5 rounded-full border transition-all ${
+                  isActive ? 'border-white/60' : 'border-white/10'
+                }`}
+              />
+
+              {/* Connecting Line (Animates when Active) */}
+              {index < 4 && (
+                <div className="absolute -top-8 w-[1px] h-8 overflow-hidden">
+                  <motion.div 
+                    animate={{ 
+                      height: isActive ? '100%' : '0%',
+                      background: isActive ? `linear-gradient(to bottom, ${vibe.glow}, transparent)` : 'transparent'
+                    }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom Counter */}
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-12 w-[1px] bg-gradient-to-b from-white/20 to-transparent" />
+        <span className="text-2xl font-black text-white/30">{String(count).padStart(2, '0')}</span>
       </div>
     </div>
   );
@@ -230,11 +223,11 @@ function VibeOMeter({ count }: { count: number }) {
 // --- VIBE TOAST COMPONENT ---
 function VibeToast({ interest, newCount }: { interest: string; newCount: number }) {
   const messages = {
-    1: '✨ Connected',
-    2: '🌟 Vibing',
-    3: '🔥 Deep Vibe',
-    4: '💥 Super Vibe',
-    5: '🎫 MEGA VIBE',
+    1: '✨ Cool',
+    2: '🌟 Real',
+    3: '🔥 Deep',
+    4: '💥 Super',
+    5: '🎫 MEGA',
   };
 
   return (
@@ -282,7 +275,6 @@ function GoldenTicketCelebration({
             You share 5 passions with {theirProfile.displayName}
           </p>
 
-          {/* Shared Interests Display */}
           <div className="flex flex-wrap gap-2 justify-center mb-8">
             {sharedInterests.slice(0, 5).map((interest) => (
               <motion.div
@@ -318,42 +310,43 @@ export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
   const remoteVideoContainerRef = useRef<HTMLDivElement>(null);
+  const megaVibeRef = useRef<HTMLDivElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
+  const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
 
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
-  const [sharedInterests, setSharedInterests] = useState<string[]>([]);
   const [floatingInterests, setFloatingInterests] = useState<string[]>([]);
   const [vibeCount, setVibeCount] = useState(0);
-  const [theirVibeCount, setTheirVibeCount] = useState(0); // Track their meter too
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('Something went wrong. Please try again.');
-  const [isResetting, setIsResetting] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [toastData, setToastData] = useState<{ interest: string; newCount: number } | null>(null);
   const [showGoldenTicket, setShowGoldenTicket] = useState(false);
-  const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
+  const [megaVibeTriggered, setMegaVibeTriggered] = useState(false);
 
-  // Calculate shared interests - SYMMETRIC (works for both users)
+  // Calculate shared interests with useMemo
+  const sharedInterests = useMemo(() => {
+    if (!myProfile || !theirProfile) return [];
+    return myProfile.interests.filter((i: string) =>
+      theirProfile.interests.some((ti: string) => ti.toLowerCase() === i.toLowerCase())
+    );
+  }, [myProfile, theirProfile]);
+
+  // Track vibe count and trigger celebrations
   useEffect(() => {
-    if (myProfile && theirProfile) {
-      const shared = myProfile.interests.filter((i: string) =>
-        theirProfile.interests.some((ti: string) => ti.toLowerCase() === i.toLowerCase())
-      );
-      setSharedInterests(shared);
-      setVibeCount(shared.length);
-      
-      // Show golden ticket at 5
-      if (shared.length === 5 && !showGoldenTicket) {
-        playBellDing();
-        setShowGoldenTicket(true);
-      }
+    setVibeCount(sharedInterests.length);
+    
+    if (sharedInterests.length === 5 && !showGoldenTicket) {
+      playBellDing();
+      setShowGoldenTicket(true);
+      setMegaVibeTriggered(true);
     }
-  }, [myProfile, theirProfile, showGoldenTicket]);
+  }, [sharedInterests.length, showGoldenTicket]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -496,7 +489,6 @@ export default function MatchPage() {
           if (!mounted) return;
           setTheirProfile(theirData);
 
-          // FIX #1: Set up real-time listener on partner document for synced vibe count
           if (partnerUnsubscribeRef.current) {
             partnerUnsubscribeRef.current();
           }
@@ -530,7 +522,6 @@ export default function MatchPage() {
         
         if (!localVideoContainerRef.current || !mounted) return;
 
-        // FIX #3: Z-Index management - ensure Daily iframe doesn't block UI
         const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
           showLeaveButton: false,
           showFullscreenButton: false,
@@ -544,7 +535,7 @@ export default function MatchPage() {
             width: '100%',
             height: '100%',
             border: 'none',
-            zIndex: '1', // Lower z-index so UI tray stays on top
+            zIndex: '1',
           },
         });
 
@@ -585,27 +576,78 @@ export default function MatchPage() {
     
     if (alreadyAdded) return;
 
-    // Trigger sound (async, but don't block the rest)
-    playVibe(vibeCount + 1);
-
-    // Add to profile
+    // Optimistic update - immediate UI feedback
     const newInterests = [...myProfile.interests, interest];
-    setMyProfile({ ...myProfile, interests: newInterests });
+    setMyProfile(prev => prev ? { ...prev, interests: newInterests } : null);
 
-    // Add to floating interests for animation
-    setFloatingInterests([...floatingInterests, interest]);
-
-    // Show toast
+    // Trigger feedback immediately
+    playVibe(vibeCount + 1);
     const newCount = sharedInterests.length + 1;
     setToastData({ interest, newCount });
     setTimeout(() => setToastData(null), 2500);
 
+    // Async database sync
     try {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         interests: newInterests,
       });
     } catch (err) {
+      setMyProfile(myProfile);
       console.error('Failed to add interest:', err);
+    }
+  };
+
+  const resetState = async () => {
+    if (callObject.current) {
+      try { 
+        await callObject.current.leave();
+        callObject.current.destroy(); 
+      } catch {}
+      callObject.current = null;
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+
+    setIsMatched(false);
+    setTheirProfile(null);
+    setVibeCount(0);
+    setShowGoldenTicket(false);
+    setMegaVibeTriggered(false);
+    setToastData(null);
+    setCameraReady(false);
+
+    if (localVideoContainerRef.current) {
+      localVideoContainerRef.current.innerHTML = '';
+    }
+    if (remoteVideoContainerRef.current) {
+      remoteVideoContainerRef.current.innerHTML = '';
+    }
+
+    try {
+      if (myProfile) {
+        const matchRes = await fetch('/api/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: auth.currentUser?.uid,
+            interests: myProfile.interests,
+            selectedMode: 'video',
+          }),
+        });
+
+        if (!matchRes.ok) {
+          setErrorMessage('Failed to find next match');
+          setError(true);
+          return;
+        }
+      }
+    } catch (err: any) {
+      console.error('Reset failed:', err);
+      setErrorMessage('Failed to reset match');
+      setError(true);
     }
   };
 
@@ -627,7 +669,7 @@ export default function MatchPage() {
   };
 
   const handleNextMatch = () => {
-    window.location.reload();
+    resetState();
   };
 
   if (error) {
@@ -665,8 +707,7 @@ export default function MatchPage() {
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
       
-      {/* Inject scrollbar-hide styles */}
-      <style>{scrollbarHideStyle}</style>
+      <style>{scrollbarStyle}</style>
       
       {/* Background Effects */}
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
@@ -674,286 +715,215 @@ export default function MatchPage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
 
-      {/* Header - Navigation only */}
+      {/* Header */}
       <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 flex-shrink-0">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
-        {/* End button moved to bottom-right, removed from here */}
       </header>
 
-      {/* SECTION 1: VIBE-O-METER - NOW IN BOTTOM TRAY (moved from top) */}
-      {/* Removed from here - now lives in Section 3 */}
-
-      {/* SECTION 2: VIDEO SECTION WITH FLOATING INTERESTS */}
-      <div className="relative flex-1 flex flex-col lg:flex-row z-5 min-h-0">
+      {/* MAIN LAYOUT: Sidebar + Content */}
+      <div className="relative flex-1 flex overflow-hidden z-5">
         
-        {/* YOUR VIDEO */}
-        <div className="relative flex-1">
-          <div 
-            ref={localVideoContainerRef} 
-            className="absolute inset-0 w-full h-full bg-black"
-          />
-          {!cameraReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-indigo-900/20">
-              <Loader2 className="w-12 h-12 text-white/70 animate-spin" />
-            </div>
-          )}
-          
-          {/* YOUR NAME */}
-          <div className="absolute bottom-32 left-4 right-4 text-center">
-            <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-              <h3 className="text-sm font-bold text-white">
-                {myProfile?.displayName || 'You'}
-              </h3>
-            </div>
-          </div>
+        {/* LEFT SIDEBAR: Vertical Vibe-O-Meter */}
+        <div className="hidden lg:flex w-[10%] bg-gradient-to-r from-black/60 to-transparent border-r border-white/5 flex-shrink-0">
+          <VerticalVibeOMeter count={vibeCount} />
         </div>
 
-        {/* CENTER: FLOATING SHARED INTERESTS */}
-        <AnimatePresence>
-          {isMatched && sharedInterests.length > 0 && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-              <div className="flex flex-wrap justify-center gap-3">
-                {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
-                  <motion.div
-                    key={interest}
-                    initial={{ opacity: 0, scale: 0, y: -30 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
-                  >
-                    {interest}
-                    <motion.div
-                      animate={{
-                        opacity: [0.3, 0.7, 0.3],
-                        scale: [1, 1.1, 1],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                      }}
-                      className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-        </AnimatePresence>
+        {/* RIGHT CONTENT: Videos + Interests */}
+        <div className="flex-1 flex flex-col min-w-0">
+          
+          {/* VIDEOS SECTION */}
+          <div 
+            ref={megaVibeRef}
+            className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0"
+          >
+            {/* MEGA VIBE Screen Flash Effect */}
+            <AnimatePresence>
+              {megaVibeTriggered && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.5 }}
+                  className="absolute inset-0 pointer-events-none z-30 border-4"
+                  style={{
+                    borderImage: 'conic-gradient(from 0deg, #FFD700, #FF69B4, #87CEEB, #FFD700) 1',
+                    animation: 'spin 1.5s linear forwards',
+                  }}
+                />
+              )}
+            </AnimatePresence>
 
-        {/* THEIR VIDEO */}
-        <div className="relative flex-1">
-          {!isMatched ? (
-            <motion.div 
-              animate={{ opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
-            >
-              <div className="text-center px-4">
-                <div className="text-5xl mb-3">✨</div>
-                <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
-              </div>
-            </motion.div>
-          ) : (
-            <>
+            <style>{`
+              @keyframes spin {
+                from {
+                  border-image: conic-gradient(from 0deg, #FFD700, #FF69B4, #87CEEB, #FFD700) 1;
+                }
+                to {
+                  border-image: conic-gradient(from 360deg, #FFD700, #FF69B4, #87CEEB, #FFD700) 1;
+                }
+              }
+            `}</style>
+            
+            {/* YOUR VIDEO */}
+            <div className="relative flex-1 bg-black">
               <div 
-                ref={remoteVideoContainerRef}
-                className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-900/20 to-purple-900/20"
+                ref={localVideoContainerRef} 
+                className="absolute inset-0 w-full h-full"
               />
+              {!cameraReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-indigo-900/20">
+                  <Loader2 className="w-12 h-12 text-white/70 animate-spin" />
+                </div>
+              )}
               
-              {/* THEIR NAME */}
-              <div className="absolute bottom-32 left-4 right-4 text-center">
+              <div className="absolute bottom-4 left-4 right-4 text-center">
                 <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
                   <h3 className="text-sm font-bold text-white">
-                    {theirProfile?.displayName || '...'}
-                    {theirProfile?.location && (
-                      <span className="text-xs font-semibold text-white/70"> • {theirProfile.location}</span>
-                    )}
+                    {myProfile?.displayName || 'You'}
                   </h3>
                 </div>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+            </div>
 
-      {/* SECTION 3: INTEREST PILLS TRAY (with Vibe-O-Meter integrated) */}
-      
-      {/* DESKTOP VERSION - 2x5 Grid with Vibe-O-Meter */}
-      <div className="hidden lg:flex relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-3 backdrop-blur-sm border-t border-white/10 max-h-[22vh] overflow-y-auto scrollbar-hide flex-col">
-        <div className="max-w-full mx-auto w-full">
-          {isMatched && theirProfile ? (
-            <>
-              {/* Vibe-O-Meter - Top of tray */}
-              <div className="mb-3 pb-3 border-b border-white/10">
-                <VibeOMeter count={vibeCount} />
-              </div>
-
-              <p className="text-xs text-yellow-300 font-bold text-center mb-2">Tap to add their interests ⬇️</p>
-              
-              <div className="flex gap-4 min-h-0">
-                {/* YOUR INTERESTS (Left) - Grid 5 columns, 2 rows */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
-                  <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
-                    {myProfile?.interests.map((interest: string) => (
-                      <div
+            {/* SHARED INTERESTS GLOW CENTER */}
+            <AnimatePresence>
+              {isMatched && sharedInterests.length > 0 && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
+                      <motion.div
                         key={interest}
-                        className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
-                        title={interest}
+                        initial={{ opacity: 0, scale: 0, y: -30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
                       >
                         {interest}
-                      </div>
+                        <motion.div
+                          animate={{
+                            opacity: [0.3, 0.7, 0.3],
+                            scale: [1, 1.1, 1],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                          }}
+                          className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
+                        />
+                      </motion.div>
                     ))}
                   </div>
                 </div>
+              )}
+            </AnimatePresence>
 
-                {/* SEPARATOR */}
-                <div className="w-px bg-white/20"></div>
+            {/* THEIR VIDEO */}
+            <div className="relative flex-1 bg-black">
+              {!isMatched ? (
+                <motion.div 
+                  animate={{ opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
+                >
+                  <div className="text-center px-4">
+                    <div className="text-5xl mb-3">✨</div>
+                    <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
+                  </div>
+                </motion.div>
+              ) : (
+                <>
+                  <div 
+                    ref={remoteVideoContainerRef}
+                    className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-900/20 to-purple-900/20"
+                  />
+                  
+                  <div className="absolute bottom-4 left-4 right-4 text-center">
+                    <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+                      <h3 className="text-sm font-bold text-white">
+                        {theirProfile?.displayName || '...'}
+                        {theirProfile?.location && (
+                          <span className="text-xs font-semibold text-white/70"> • {theirProfile.location}</span>
+                        )}
+                      </h3>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
-                {/* THEIR INTERESTS (Right - Tappable) - Grid 5 columns, 2 rows */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
-                  <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
-                    {theirProfile?.interests.map((interest: string) => {
-                      const isAdded = myProfile?.interests.some(
-                        (i: string) => i.toLowerCase() === interest.toLowerCase()
-                      );
-                      const isShared = sharedInterests.some(
-                        (s: string) => s.toLowerCase() === interest.toLowerCase()
-                      );
-
-                      return (
-                        <motion.button
+          {/* INTERESTS SECTION */}
+          {isMatched && theirProfile && (
+            <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-3 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto interests-scroll">
+              <div className="max-w-full mx-auto">
+                <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
+                
+                <div className="flex gap-4 min-h-0">
+                  {/* YOUR INTERESTS */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
+                    <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
+                      {myProfile?.interests.map((interest: string) => (
+                        <div
                           key={interest}
-                          whileHover={!isAdded ? { scale: 1.08 } : {}}
-                          whileTap={!isAdded ? { scale: 0.95 } : {}}
-                          onClick={() => !isAdded && handleTeleportInterest(interest)}
-                          disabled={isAdded}
-                          className={`px-1.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap text-center truncate overflow-hidden ${
-                            isShared
-                              ? 'bg-yellow-300 text-black border border-yellow-200'
-                              : isAdded
-                              ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
-                              : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
-                          }`}
+                          className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
                           title={interest}
                         >
                           {interest}
-                        </motion.button>
-                      );
-                    })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* SEPARATOR */}
+                  <div className="w-px bg-white/20"></div>
+
+                  {/* THEIR INTERESTS */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
+                    <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
+                      {theirProfile?.interests.map((interest: string) => {
+                        const isAdded = myProfile?.interests.some(
+                          (i: string) => i.toLowerCase() === interest.toLowerCase()
+                        );
+                        const isShared = sharedInterests.some(
+                          (s: string) => s.toLowerCase() === interest.toLowerCase()
+                        );
+
+                        return (
+                          <motion.button
+                            key={interest}
+                            whileHover={!isAdded ? { scale: 1.08 } : {}}
+                            whileTap={!isAdded ? { scale: 0.95 } : {}}
+                            onClick={() => !isAdded && handleTeleportInterest(interest)}
+                            disabled={isAdded}
+                            className={`px-1.5 py-1 rounded-full text-xs font-semibold transition-all whitespace-nowrap text-center truncate overflow-hidden ${
+                              isShared
+                                ? 'bg-yellow-300 text-black border border-yellow-200'
+                                : isAdded
+                                ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
+                                : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                            }`}
+                            title={interest}
+                          >
+                            {interest}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
-            </>
-          ) : (
-            /* Waiting state - show only your interests in grid */
-            <>
-              {/* Vibe-O-Meter - Top of tray */}
-              <div className="mb-3 pb-3 border-b border-white/10">
-                <VibeOMeter count={vibeCount} />
-              </div>
-
-              <p className="text-xs text-white/60 font-bold text-center mb-3">Your Interests</p>
-              <div className="flex justify-center">
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 auto-rows-max max-w-2xl">
-                  {myProfile?.interests.map((interest: string) => (
-                    <div
-                      key={interest}
-                      className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
-                      title={interest}
-                    >
-                      {interest}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* MOBILE VERSION - Collapsible sections */}
-      <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-3 py-2 backdrop-blur-sm border-t border-white/10 max-h-[28vh] overflow-y-auto scrollbar-hide">
-        <div className="max-w-full mx-auto w-full space-y-2">
-          {/* Vibe-O-Meter - Top of mobile tray */}
-          <div className="pb-2 border-b border-white/10">
-            <VibeOMeter count={vibeCount} />
-          </div>
-
-          {isMatched && theirProfile ? (
-            <>
-              <p className="text-xs text-yellow-300 font-bold text-center mb-1.5">Tap to add their interests ⬇️</p>
-              
-              {/* YOUR INTERESTS - Collapsible on mobile */}
-              <div>
-                <p className="text-xs text-white/60 font-bold mb-1 text-center">Your Interests (showing first 5)</p>
-                <div className="flex flex-wrap gap-1 justify-center">
-                  {myProfile?.interests.slice(0, 5).map((interest: string) => (
-                    <div
-                      key={interest}
-                      className="px-1.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
-                      title={interest}
-                    >
-                      {interest}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* THEIR INTERESTS - Collapsible on mobile */}
-              <div>
-                <p className="text-xs text-white/60 font-bold mb-1 text-center">Their Interests (showing first 5)</p>
-                <div className="flex flex-wrap gap-1 justify-center">
-                  {theirProfile?.interests.slice(0, 5).map((interest: string) => {
-                    const isAdded = myProfile?.interests.some(
-                      (i: string) => i.toLowerCase() === interest.toLowerCase()
-                    );
-                    const isShared = sharedInterests.some(
-                      (s: string) => s.toLowerCase() === interest.toLowerCase()
-                    );
-
-                    return (
-                      <motion.button
-                        key={interest}
-                        whileHover={!isAdded ? { scale: 1.08 } : {}}
-                        whileTap={!isAdded ? { scale: 0.95 } : {}}
-                        onClick={() => !isAdded && handleTeleportInterest(interest)}
-                        disabled={isAdded}
-                        className={`px-1.5 py-0.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                          isShared
-                            ? 'bg-yellow-300 text-black border border-yellow-200'
-                            : isAdded
-                            ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
-                            : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
-                        }`}
-                        title={interest}
-                      >
-                        {interest}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          ) : (
-            /* Waiting state - show first 8 interests */
-            <>
-              <p className="text-xs text-white/60 font-bold text-center mb-2">Your Interests (showing first 8)</p>
-              <div className="flex flex-wrap gap-1 justify-center">
-                {myProfile?.interests.slice(0, 8).map((interest: string) => (
-                  <div
-                    key={interest}
-                    className="px-1.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
-                    title={interest}
-                  >
-                    {interest}
-                  </div>
-                ))}
-              </div>
-            </>
+          {/* MOBILE: Vibe-O-Meter as Horizontal Bar */}
+          {isMatched && (
+            <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-r from-black/60 to-transparent px-4 py-2 backdrop-blur-sm border-b border-white/10">
+              <VerticalVibeOMeter count={vibeCount} />
+            </div>
           )}
         </div>
       </div>
@@ -963,7 +933,7 @@ export default function MatchPage() {
         {toastData && <VibeToast interest={toastData.interest} newCount={toastData.newCount} />}
       </AnimatePresence>
 
-      {/* GOLDEN TICKET CELEBRATION */}
+      {/* GOLDEN TICKET */}
       <AnimatePresence>
         {showGoldenTicket && theirProfile && (
           <GoldenTicketCelebration
@@ -974,9 +944,8 @@ export default function MatchPage() {
         )}
       </AnimatePresence>
 
-      {/* FLOATING CORNER BUTTONS - Bottom Right */}
+      {/* FLOATING BUTTONS */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
-        {/* Next Button - only show when matched */}
         {isMatched && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8 }}
@@ -991,7 +960,6 @@ export default function MatchPage() {
           </motion.button>
         )}
 
-        {/* End Button */}
         <motion.button
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
