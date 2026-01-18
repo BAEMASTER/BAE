@@ -674,8 +674,8 @@ export default function MatchPage() {
         </div>
       </header>
 
-      {/* VIDEOS - Full flex, accounts for fixed header */}
-      <div className="relative flex-1 flex overflow-hidden z-5 pt-14">
+      {/* VIDEOS - Full flex, header is absolute so no padding needed */}
+      <div className="relative flex-1 flex overflow-hidden z-5">
         <div className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
           
           {/* MEGA VIBE Screen Flash */}
