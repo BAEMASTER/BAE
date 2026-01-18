@@ -591,7 +591,6 @@ export default function MatchPage() {
     setMegaVibeTriggered(false);
     setToastData(null);
     setCameraReady(false);
-    setShowViewAll(false);
 
     if (localVideoContainerRef.current) {
       localVideoContainerRef.current.innerHTML = '';
