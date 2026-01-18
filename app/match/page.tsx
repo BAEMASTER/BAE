@@ -673,15 +673,15 @@ export default function MatchPage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px]"></div>
       </div>
 
-      {/* Header - No extra space, videos start immediately below */}
-      <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 flex-shrink-0">
+      {/* Header - Absolute positioned, no extra space */}
+      <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
       </header>
 
-      {/* VIDEOS - Full flex */}
-      <div className="relative flex-1 flex overflow-hidden z-5">
+      {/* VIDEOS - Full flex, accounts for fixed header */}
+      <div className="relative flex-1 flex overflow-hidden z-5 pt-14">
         <div className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
           
           {/* MEGA VIBE Screen Flash */}
@@ -717,15 +717,15 @@ export default function MatchPage() {
               </div>
             )}
             
-            {/* YOUR INTERESTS - Bottom, glass backdrop, scrollable */}
+            {/* YOUR INTERESTS - Bottom, high contrast backdrop, scrollable */}
             <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
               <div className="w-full max-w-4xl">
-                <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-4 interests-scroll max-h-[20vh] overflow-x-auto">
+                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-4 interests-scroll max-h-[20vh] overflow-x-auto">
                   <div className="grid grid-cols-6 md:grid-cols-3 gap-2 min-w-max md:min-w-0">
-                    {myProfile?.interests.map((interest: string) => (
+                    {myProfile?.interests.slice(0, 6).map((interest: string) => (
                       <div
                         key={interest}
-                        className="px-3 py-2 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/30 whitespace-nowrap"
+                        className="px-4 py-2.5 rounded-full text-sm font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap"
                       >
                         {interest}
                       </div>
@@ -796,13 +796,13 @@ export default function MatchPage() {
               </>
             )}
 
-            {/* THEIR INTERESTS - Bottom, glass backdrop, 6col/3col grid, scrollable, tappable */}
+            {/* THEIR INTERESTS - Bottom, high contrast backdrop, 6col/3col grid, scrollable, tappable */}
             {isMatched && theirProfile && (
               <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
                 <div className="w-full max-w-4xl">
-                  <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-4 interests-scroll max-h-[20vh] overflow-x-auto">
+                  <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-4 interests-scroll max-h-[20vh] overflow-x-auto">
                     <div className="grid grid-cols-6 md:grid-cols-3 gap-2 min-w-max md:min-w-0">
-                      {displayedInterests.map((interest: string) => {
+                      {displayedInterests.slice(0, 6).map((interest: string) => {
                         const isAdded = myProfile?.interests.some(
                           (i: string) => i.toLowerCase() === interest.toLowerCase()
                         );
@@ -813,14 +813,14 @@ export default function MatchPage() {
                             whileTap={!isAdded ? { scale: 0.95 } : {}}
                             onClick={() => !isAdded && handleTeleportInterest(interest)}
                             disabled={isAdded}
-                            className={`relative px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                            className={`relative px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
                               isAdded
-                                ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
-                                : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                                ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
+                                : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
                             }`}
                           >
                             {interest}
-                            {!isAdded && <Plus size={10} className="absolute top-1 right-1" />}
+                            {!isAdded && <Plus size={12} className="absolute top-1.5 right-1.5" />}
                           </motion.button>
                         );
                       })}
