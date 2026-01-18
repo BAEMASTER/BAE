@@ -111,102 +111,109 @@ function Confetti() {
 
 // --- VIBE-O-METER COMPONENT ---
 function VibeOMeter({ count }: { count: number }) {
-  const vibeNames = ['', 'Connected', 'Vibing', 'Deep Vibe', 'Super Vibe', 'MEGA VIBE'];
+  const vibeNames = ['Connected', 'Vibing', 'Deep Vibe', 'Super Vibe', 'MEGA VIBE'];
+  const orbSizes = [20, 32, 44, 56, 72]; // Progression sizes
   
-  // Continuous scaling and glow based on count (no discrete steps)
-  const orbSize = 24 + count * 12; // Grows smoothly: 24px → 84px
-  const glowIntensity = count * 0.2; // 0 → 1.0
-  const pulseSpeed = 5 - count * 0.5; // Pulses faster as vibe increases
-  
-  // Color progression: gray → blue → peachy → gold → intense gold → rainbow
-  const getOrbColor = () => {
-    if (count === 0) return 'from-white/30 to-white/20';
-    if (count < 1.5) return 'from-blue-400/50 to-blue-300/40';
-    if (count < 2.5) return 'from-orange-300/50 to-orange-200/40';
-    if (count < 3.5) return 'from-yellow-300/60 to-yellow-200/50';
-    if (count < 4.5) return 'from-yellow-300/80 to-pink-300/70';
-    return 'from-yellow-300 via-pink-400 to-fuchsia-500';
-  };
-  
-  const getGlowColor = () => {
-    if (count === 0) return 'rgba(255,255,255,0.1)';
-    if (count < 1.5) return 'rgba(96,165,250,0.4)';
-    if (count < 2.5) return 'rgba(253,186,116,0.5)';
-    if (count < 3.5) return 'rgba(253,224,71,0.6)';
-    if (count < 4.5) return 'rgba(253,224,71,0.8)';
-    return 'rgba(253,224,71,1), 0 0 80px rgba(236,72,153,0.8)';
-  };
-
   return (
-    <div className="w-full px-4 py-4 bg-gradient-to-r from-black/40 to-transparent">
+    <div className="w-full px-4 py-6 bg-gradient-to-r from-black/40 to-transparent">
       <div className="max-w-full mx-auto">
         {/* Label */}
-        <div className="text-center mb-4">
+        <div className="text-center mb-6">
           <p className="text-xs sm:text-sm font-bold text-white/80 tracking-widest">VIBE-O-METER</p>
         </div>
 
-        {/* Orb Container */}
-        <div className="flex items-center justify-center mb-4">
-          {/* Comet Aura Background */}
-          <motion.div
-            animate={{
-              boxShadow: `0 0 ${40 + count * 20}px ${getGlowColor()}`,
-              scale: 1 + glowIntensity * 0.2,
-            }}
-            transition={{ type: 'spring', stiffness: 60, damping: 15 }}
-            className="absolute w-32 h-32 rounded-full blur-3xl"
-          />
+        {/* Orb Progression Row */}
+        <div className="flex items-end justify-center gap-2 sm:gap-4 mb-6">
+          {[0, 1, 2, 3, 4].map((index) => {
+            const isActive = count > index;
+            const size = orbSizes[index];
+            
+            // Color progression: gray → blue → peachy → gold → intense gold → rainbow
+            const getOrbColor = () => {
+              if (!isActive) return 'from-white/20 to-white/10';
+              if (index === 0) return 'from-blue-400/50 to-blue-300/40';
+              if (index === 1) return 'from-orange-300/50 to-orange-200/40';
+              if (index === 2) return 'from-yellow-300/60 to-yellow-200/50';
+              if (index === 3) return 'from-yellow-300/80 to-pink-300/70';
+              return 'from-yellow-300 via-pink-400 to-fuchsia-500';
+            };
+            
+            const getGlowColor = () => {
+              if (!isActive) return 'rgba(255,255,255,0.1)';
+              if (index === 0) return 'rgba(96,165,250,0.4)';
+              if (index === 1) return 'rgba(253,186,116,0.5)';
+              if (index === 2) return 'rgba(253,224,71,0.6)';
+              if (index === 3) return 'rgba(253,224,71,0.8)';
+              return 'rgba(253,224,71,1), 0 0 80px rgba(236,72,153,0.8)';
+            };
 
-          {/* Main Orb */}
-          <motion.div
-            animate={{
-              scale: 1 + glowIntensity * 0.15,
-              boxShadow: `0 0 ${20 + count * 15}px ${getGlowColor()}`,
-            }}
-            transition={{ type: 'spring', stiffness: 80, damping: 20 }}
-            className={`relative z-10 rounded-full flex items-center justify-center border-2 border-white/40 bg-gradient-to-br ${getOrbColor()}`}
-            style={{
-              width: `${orbSize}px`,
-              height: `${orbSize}px`,
-            }}
-          >
-            {/* Pulsing inner glow */}
-            <motion.div
-              animate={{
-                opacity: [0.3, 0.8, 0.3],
-                scale: [0.8, 1.2, 0.8],
-              }}
-              transition={{
-                duration: pulseSpeed,
-                repeat: Infinity,
-              }}
-              className="absolute inset-2 rounded-full bg-gradient-to-br from-white/40 to-transparent"
-            />
-
-            {/* Vibe count (small, subtle) */}
-            {count > 0 && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative z-20 text-xs sm:text-sm font-black text-white"
+            return (
+              <motion.div
+                key={index}
+                animate={{
+                  scale: count > index ? 1.1 : 0.9,
+                  boxShadow: `0 0 ${isActive ? 15 + index * 5 : 5}px ${getGlowColor()}`,
+                  opacity: isActive ? 1 : 0.5,
+                }}
+                transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+                className={`relative rounded-full flex items-center justify-center border-2 transition-all ${
+                  isActive ? 'border-white/60' : 'border-white/20'
+                } bg-gradient-to-br ${getOrbColor()}`}
+                style={{
+                  width: `${size}px`,
+                  height: `${size}px`,
+                }}
               >
-                {count}/5
-              </motion.span>
-            )}
-          </motion.div>
+                {/* Pulsing inner glow for active orbs */}
+                {isActive && (
+                  <motion.div
+                    animate={{
+                      opacity: [0.3, 0.8, 0.3],
+                      scale: [0.8, 1.15, 0.8],
+                    }}
+                    transition={{
+                      duration: 3 - index * 0.3,
+                      repeat: Infinity,
+                    }}
+                    className="absolute inset-1 rounded-full bg-gradient-to-br from-white/40 to-transparent"
+                  />
+                )}
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* Vibe Name */}
+        {/* Vibe Names Below Orbs */}
+        <div className="flex items-start justify-center gap-2 sm:gap-4 mb-4">
+          {vibeNames.map((name, index) => (
+            <motion.div
+              key={name}
+              animate={{
+                scale: count > index ? 1 : 0.85,
+                opacity: count > index ? 1 : 0.5,
+              }}
+              transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+              className="text-center"
+            >
+              <p className={`text-xs sm:text-sm font-bold whitespace-nowrap ${
+                count > index ? 'text-white/90' : 'text-white/40'
+              }`}>
+                {name}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Current Status Text */}
         <div className="text-center">
           <motion.p
             key={count}
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.3 }}
-            className="text-sm sm:text-base font-bold text-white/90"
+            className="text-sm font-bold text-yellow-300/90"
           >
-            {vibeNames[count] || 'No Connection'}
+            {count === 0 ? 'No Connection Yet' : `${count}/5 - ${vibeNames[Math.min(count - 1, 4)]}`}
           </motion.p>
         </div>
       </div>
@@ -816,19 +823,21 @@ export default function MatchPage() {
               </div>
             </>
           ) : (
-            /* Waiting state - show only your interests in grid */
+            /* Waiting state - show only your interests in grid, centered and compact */
             <>
               <p className="text-xs text-white/60 font-bold text-center mb-3">Your Interests</p>
-              <div className="grid grid-cols-10 gap-1.5 auto-rows-max">
-                {myProfile?.interests.map((interest: string) => (
-                  <div
-                    key={interest}
-                    className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
-                    title={interest}
-                  >
-                    {interest}
-                  </div>
-                ))}
+              <div className="flex justify-center">
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 auto-rows-max max-w-2xl">
+                  {myProfile?.interests.map((interest: string) => (
+                    <div
+                      key={interest}
+                      className="px-1.5 py-1 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate overflow-hidden"
+                      title={interest}
+                    >
+                      {interest}
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
