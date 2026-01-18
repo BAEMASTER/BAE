@@ -112,23 +112,22 @@ function Confetti() {
 // --- VIBE-O-METER COMPONENT ---
 function VibeOMeter({ count }: { count: number }) {
   const vibeNames = ['Connected', 'Vibing', 'Deep Vibe', 'Super Vibe', 'MEGA VIBE'];
-  const orbSizes = [20, 32, 44, 56, 72]; // Progression sizes
+  const orbSizes = [16, 24, 32, 40, 52]; // Smaller orbs for compact design
   
   return (
-    <div className="w-full px-4 py-6 bg-gradient-to-r from-black/40 to-transparent">
-      <div className="max-w-full mx-auto">
-        {/* Label */}
-        <div className="text-center mb-6">
-          <p className="text-xs sm:text-sm font-bold text-white/80 tracking-widest">VIBE-O-METER</p>
+    <div className="w-full px-4 py-2 bg-gradient-to-r from-black/40 to-transparent">
+      <div className="max-w-full mx-auto flex items-center justify-between gap-4">
+        {/* Label on left */}
+        <div className="flex-shrink-0">
+          <p className="text-xs font-bold text-white/80 tracking-widest whitespace-nowrap">VIBE-O-METER</p>
         </div>
 
-        {/* Orb Progression Row */}
-        <div className="flex items-end justify-center gap-2 sm:gap-4 mb-6">
+        {/* Orb Progression in center */}
+        <div className="flex items-end justify-center gap-1.5 flex-1">
           {[0, 1, 2, 3, 4].map((index) => {
             const isActive = count > index;
             const size = orbSizes[index];
             
-            // Color progression: gray → blue → peachy → gold → intense gold → rainbow
             const getOrbColor = () => {
               if (!isActive) return 'from-white/20 to-white/10';
               if (index === 0) return 'from-blue-400/50 to-blue-300/40';
@@ -144,38 +143,39 @@ function VibeOMeter({ count }: { count: number }) {
               if (index === 1) return 'rgba(253,186,116,0.5)';
               if (index === 2) return 'rgba(253,224,71,0.6)';
               if (index === 3) return 'rgba(253,224,71,0.8)';
-              return 'rgba(253,224,71,1), 0 0 80px rgba(236,72,153,0.8)';
+              return 'rgba(253,224,71,1), 0 0 60px rgba(236,72,153,0.8)';
             };
 
             return (
               <motion.div
                 key={index}
                 animate={{
-                  scale: count > index ? 1.1 : 0.9,
-                  boxShadow: `0 0 ${isActive ? 15 + index * 5 : 5}px ${getGlowColor()}`,
-                  opacity: isActive ? 1 : 0.5,
+                  scale: count > index ? 1.08 : 0.9,
+                  boxShadow: `0 0 ${isActive ? 10 + index * 3 : 3}px ${getGlowColor()}`,
+                  opacity: isActive ? 1 : 0.4,
                 }}
                 transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-                className={`relative rounded-full flex items-center justify-center border-2 transition-all ${
-                  isActive ? 'border-white/60' : 'border-white/20'
+                className={`relative rounded-full flex-shrink-0 flex items-center justify-center border transition-all ${
+                  isActive ? 'border-white/50' : 'border-white/20'
                 } bg-gradient-to-br ${getOrbColor()}`}
                 style={{
                   width: `${size}px`,
                   height: `${size}px`,
+                  borderWidth: '1px',
                 }}
               >
                 {/* Pulsing inner glow for active orbs */}
                 {isActive && (
                   <motion.div
                     animate={{
-                      opacity: [0.3, 0.8, 0.3],
-                      scale: [0.8, 1.15, 0.8],
+                      opacity: [0.2, 0.6, 0.2],
+                      scale: [0.8, 1.1, 0.8],
                     }}
                     transition={{
-                      duration: 3 - index * 0.3,
+                      duration: 2.5 - index * 0.2,
                       repeat: Infinity,
                     }}
-                    className="absolute inset-1 rounded-full bg-gradient-to-br from-white/40 to-transparent"
+                    className="absolute inset-0.5 rounded-full bg-gradient-to-br from-white/30 to-transparent"
                   />
                 )}
               </motion.div>
@@ -183,39 +183,18 @@ function VibeOMeter({ count }: { count: number }) {
           })}
         </div>
 
-        {/* Vibe Names Below Orbs */}
-        <div className="flex items-start justify-center gap-2 sm:gap-4 mb-4">
-          {vibeNames.map((name, index) => (
-            <motion.div
-              key={name}
-              animate={{
-                scale: count > index ? 1 : 0.85,
-                opacity: count > index ? 1 : 0.5,
-              }}
-              transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-              className="text-center"
-            >
-              <p className={`text-xs sm:text-sm font-bold whitespace-nowrap ${
-                count > index ? 'text-white/90' : 'text-white/40'
-              }`}>
-                {name}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Current Status Text */}
-        <div className="text-center">
-          <motion.p
-            key={count}
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-sm font-bold text-yellow-300/90"
-          >
-            {count === 0 ? 'No Connection Yet' : `${count}/5 - ${vibeNames[Math.min(count - 1, 4)]}`}
-          </motion.p>
-        </div>
+        {/* Current status on right */}
+        <motion.div
+          key={count}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="flex-shrink-0 text-right"
+        >
+          <p className="text-xs font-bold text-yellow-300/90 whitespace-nowrap">
+            {count === 0 ? '0/5' : `${count}/5`}
+          </p>
+        </motion.div>
       </div>
     </div>
   );
@@ -645,18 +624,12 @@ export default function MatchPage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
 
-      {/* Header */}
+      {/* Header - Navigation only */}
       <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 flex-shrink-0">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
-        <button
-          onClick={handleEndCall}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full text-sm"
-        >
-          <X size={16} />
-          End
-        </button>
+        {/* End button moved to bottom-right, removed from here */}
       </header>
 
       {/* SECTION 1: VIBE-O-METER */}
@@ -938,20 +911,36 @@ export default function MatchPage() {
         )}
       </AnimatePresence>
 
-      {/* NEXT BUTTON (Bottom right) */}
-      {isMatched && (
+      {/* FLOATING CORNER BUTTONS - Bottom Right */}
+      <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
+        {/* Next Button - only show when matched */}
+        {isMatched && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleNextMatch}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg text-sm hover:shadow-xl transition-all"
+          >
+            Next
+            <RefreshCw size={14} />
+          </motion.button>
+        )}
+
+        {/* End Button */}
         <motion.button
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={handleNextMatch}
-          className="absolute bottom-6 right-6 z-20 flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg text-sm"
+          onClick={handleEndCall}
+          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm hover:shadow-xl transition-all"
         >
-          Next
-          <RefreshCw size={16} />
+          <X size={14} />
+          End
         </motion.button>
-      )}
+      </div>
     </main>
   );
 }
