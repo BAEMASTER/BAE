@@ -284,7 +284,7 @@ function ViewAllInterestsDrawer({
                   disabled={isAdded}
                   className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
                     isAdded
-                      ? 'bg-white/20 text-white/50 border border-white/20'
+                      ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
                       : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
                   }`}
                 >
@@ -673,14 +673,18 @@ export default function MatchPage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px]"></div>
       </div>
 
-      <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
+      {/* Header - No extra space, videos start immediately below */}
+      <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 flex-shrink-0">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
       </header>
 
+      {/* VIDEOS - Full flex */}
       <div className="relative flex-1 flex overflow-hidden z-5">
         <div className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
+          
+          {/* MEGA VIBE Screen Flash */}
           <AnimatePresence>
             {megaVibeTriggered && (
               <motion.div
@@ -713,28 +717,32 @@ export default function MatchPage() {
               </div>
             )}
             
-            {/* YOUR INTERESTS */}
+            {/* YOUR INTERESTS - Bottom, glass backdrop, scrollable */}
             <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
-              <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
-                {myProfile?.interests.slice(0, 6).map((interest: string) => (
-                  <div
-                    key={interest}
-                    className="px-4 py-2 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/30 whitespace-nowrap"
-                  >
-                    {interest}
+              <div className="w-full max-w-4xl">
+                <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-4 interests-scroll max-h-[20vh] overflow-x-auto">
+                  <div className="grid grid-cols-6 md:grid-cols-3 gap-2 min-w-max md:min-w-0">
+                    {myProfile?.interests.map((interest: string) => (
+                      <div
+                        key={interest}
+                        className="px-3 py-2 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/30 whitespace-nowrap"
+                      >
+                        {interest}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
-            <div className="absolute bottom-16 left-4 right-4 text-center">
+            <div className="absolute bottom-20 left-4 right-4 text-center">
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
                 <h3 className="text-sm font-bold text-white">{myProfile?.displayName || 'You'}</h3>
               </div>
             </div>
           </div>
 
-          {/* CENTER: SHARED INTERESTS + VIBE-O-METER */}
+          {/* CENTER: SHARED INTERESTS GLOW + VIBE-O-METER */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
             <AnimatePresence>
               {isMatched && sharedInterests.length > 0 && (
@@ -777,7 +785,7 @@ export default function MatchPage() {
             ) : (
               <>
                 <div ref={remoteVideoContainerRef} className="absolute inset-0 w-full h-full" />
-                <div className="absolute bottom-16 left-4 right-4 text-center">
+                <div className="absolute bottom-20 left-4 right-4 text-center">
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
                     <h3 className="text-sm font-bold text-white">
                       {theirProfile?.displayName || '...'}
@@ -788,38 +796,40 @@ export default function MatchPage() {
               </>
             )}
 
-            {/* THEIR INTERESTS - 2x3 Grid, scrollable, tappable */}
+            {/* THEIR INTERESTS - Bottom, glass backdrop, 6col/3col grid, scrollable, tappable */}
             {isMatched && theirProfile && (
-              <div className="absolute bottom-0 left-0 right-0 z-15 flex flex-col items-center pb-4 px-4">
-                <div className="w-full max-w-2xl">
-                  <div className="grid grid-cols-3 gap-2 mb-2">
-                    {displayedInterests.slice(0, 6).map((interest: string) => {
-                      const isAdded = myProfile?.interests.some(
-                        (i: string) => i.toLowerCase() === interest.toLowerCase()
-                      );
-                      return (
-                        <motion.button
-                          key={interest}
-                          whileHover={!isAdded ? { scale: 1.08 } : {}}
-                          whileTap={!isAdded ? { scale: 0.95 } : {}}
-                          onClick={() => !isAdded && handleTeleportInterest(interest)}
-                          disabled={isAdded}
-                          className={`relative px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                            isAdded
-                              ? 'bg-white/20 text-white/50 border border-white/20'
-                              : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
-                          }`}
-                        >
-                          {interest}
-                          {!isAdded && <Plus size={12} className="absolute top-1 right-1" />}
-                        </motion.button>
-                      );
-                    })}
+              <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
+                <div className="w-full max-w-4xl">
+                  <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-4 interests-scroll max-h-[20vh] overflow-x-auto">
+                    <div className="grid grid-cols-6 md:grid-cols-3 gap-2 min-w-max md:min-w-0">
+                      {displayedInterests.map((interest: string) => {
+                        const isAdded = myProfile?.interests.some(
+                          (i: string) => i.toLowerCase() === interest.toLowerCase()
+                        );
+                        return (
+                          <motion.button
+                            key={interest}
+                            whileHover={!isAdded ? { scale: 1.08 } : {}}
+                            whileTap={!isAdded ? { scale: 0.95 } : {}}
+                            onClick={() => !isAdded && handleTeleportInterest(interest)}
+                            disabled={isAdded}
+                            className={`relative px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                              isAdded
+                                ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
+                                : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
+                            }`}
+                          >
+                            {interest}
+                            {!isAdded && <Plus size={10} className="absolute top-1 right-1" />}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
                   </div>
                   {displayedInterests.length > 6 && (
                     <button
                       onClick={() => setShowViewAll(true)}
-                      className="text-xs text-white/60 hover:text-white/80 font-semibold mx-auto block"
+                      className="text-xs text-white/60 hover:text-white/80 font-semibold mt-2 block mx-auto"
                     >
                       See {theirProfile.displayName}'s other interests →
                     </button>
