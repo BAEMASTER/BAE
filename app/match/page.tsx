@@ -712,9 +712,9 @@ export default function MatchPage() {
             {/* YOUR INTERESTS - High contrast backdrop, scrollable */}
             <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
               <div className="w-full max-w-4xl">
-                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
+                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto md:overflow-y-auto md:overflow-x-hidden">
                   {/* Desktop: 2 rows × 3 cols, vertical scroll */}
-                  <div className="hidden md:grid grid-cols-3 gap-2 min-h-0">
+                  <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
                     {myProfile?.interests.map((interest: string) => (
                       <div
                         key={interest}
@@ -726,7 +726,7 @@ export default function MatchPage() {
                   </div>
                   
                   {/* Mobile: 1 row × 4 cols, horizontal scroll */}
-                  <div className="md:hidden flex gap-2 min-w-max">
+                  <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
                     {myProfile?.interests.map((interest: string) => (
                       <div
                         key={interest}
@@ -805,9 +805,9 @@ export default function MatchPage() {
             {isMatched && theirProfile && (
               <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
                 <div className="w-full max-w-4xl">
-                  <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
+                  <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto md:overflow-y-auto md:overflow-x-hidden">
                     {/* Desktop: 2 rows × 3 cols, vertical scroll */}
-                    <div className="hidden md:grid grid-cols-3 gap-2 min-h-0">
+                    <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
                       {displayedInterests.map((interest: string) => {
                         const isAdded = myProfile?.interests.some(
                           (i: string) => i.toLowerCase() === interest.toLowerCase()
@@ -833,7 +833,7 @@ export default function MatchPage() {
                     </div>
                     
                     {/* Mobile: 1 row × 4 cols, horizontal scroll */}
-                    <div className="md:hidden flex gap-2 min-w-max">
+                    <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
                       {displayedInterests.map((interest: string) => {
                         const isAdded = myProfile?.interests.some(
                           (i: string) => i.toLowerCase() === interest.toLowerCase()
