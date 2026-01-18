@@ -104,19 +104,19 @@ function ResonanceMeter({ count }: { count: number }) {
   const percentage = (count / maxVibe) * 100;
 
   return (
-    <div className="w-full px-4 py-4 bg-gradient-to-r from-black/40 to-transparent">
+    <div className="w-full px-4 py-3 bg-gradient-to-r from-black/40 to-transparent">
       <div className="max-w-full mx-auto">
-        {/* Vibe Level Labels */}
-        <div className="flex justify-between text-xs font-bold text-white/60 mb-3">
-          <span>Connected</span>
-          <span>Vibing</span>
-          <span>Deep Vibe</span>
-          <span>Super Vibe</span>
-          <span>MEGA VIBE</span>
+        {/* Vibe Level Labels - Simplified */}
+        <div className="flex justify-between text-[10px] sm:text-xs font-bold text-white/60 mb-2 tracking-tight">
+          <span>1</span>
+          <span>2</span>
+          <span>3</span>
+          <span>4</span>
+          <span>5</span>
         </div>
 
         {/* Progress Bar + Orb */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div className="flex-1 relative h-2 bg-white/10 rounded-full overflow-hidden border border-white/20">
             {/* Progress Fill */}
             <motion.div
@@ -151,7 +151,7 @@ function ResonanceMeter({ count }: { count: number }) {
               scale: count === 0 ? 1 : count === 1 ? 1.1 : count === 2 ? 1.15 : count === 3 ? 1.2 : count === 4 ? 1.3 : 1.5,
             }}
             transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-            className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-white text-lg shrink-0 border-2 ${
+            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-black text-white text-sm sm:text-lg shrink-0 border-2 ${
               count === 0
                 ? 'bg-white/20 border-white/40'
                 : count === 1
@@ -170,7 +170,7 @@ function ResonanceMeter({ count }: { count: number }) {
         </div>
 
         {/* Current Vibe Name */}
-        <div className="text-center mt-3 text-sm font-bold text-white/80">
+        <div className="text-center mt-2 text-xs sm:text-sm font-bold text-white/80">
           {VIBE_LEVELS[count as keyof typeof VIBE_LEVELS]?.name || 'No Connection'}
         </div>
       </div>
@@ -591,7 +591,7 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
+    <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
       
       {/* Background Effects */}
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
@@ -600,7 +600,7 @@ export default function MatchPage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
+      <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 flex-shrink-0">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
@@ -614,10 +614,12 @@ export default function MatchPage() {
       </header>
 
       {/* SECTION 1: RESONANCE METER */}
-      <ResonanceMeter count={vibeCount} />
+      <div className="relative z-10 flex-shrink-0 bg-gradient-to-r from-black/40 to-transparent">
+        <ResonanceMeter count={vibeCount} />
+      </div>
 
       {/* SECTION 2: VIDEO SECTION WITH FLOATING INTERESTS */}
-      <div className="relative flex-1 flex flex-col lg:flex-row z-10">
+      <div className="relative flex-1 flex flex-col lg:flex-row z-10 min-h-0">
         
         {/* YOUR VIDEO */}
         <div className="relative flex-1">
@@ -711,19 +713,19 @@ export default function MatchPage() {
 
       {/* SECTION 3: INTEREST PILLS (Bottom) */}
       {isMatched && theirProfile && (
-        <div className="relative z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-6 backdrop-blur-sm border-t border-white/10">
+        <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto">
           <div className="max-w-full mx-auto">
             <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
             
-            <div className="flex gap-4">
+            <div className="flex gap-4 min-h-0">
               {/* YOUR INTERESTS (Left) */}
-              <div className="flex-1">
-                <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Your Interests</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {myProfile?.interests.slice(0, 4).map((interest: string) => (
                     <div
                       key={interest}
-                      className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20"
+                      className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
                     >
                       {interest} ✓
                     </div>
@@ -735,8 +737,8 @@ export default function MatchPage() {
               <div className="w-px bg-white/20"></div>
 
               {/* THEIR INTERESTS (Right - Tappable) */}
-              <div className="flex-1">
-                <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Their Interests</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {theirProfile?.interests.slice(0, 4).map((interest: string) => {
                     const isAdded = myProfile?.interests.some(
@@ -753,7 +755,7 @@ export default function MatchPage() {
                         whileTap={!isAdded ? { scale: 0.95 } : {}}
                         onClick={() => !isAdded && handleTeleportInterest(interest)}
                         disabled={isAdded}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
                           isShared
                             ? 'bg-yellow-300 text-black border border-yellow-200'
                             : isAdded
