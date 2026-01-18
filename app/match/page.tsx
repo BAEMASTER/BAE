@@ -6,9 +6,8 @@ import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, RefreshCw } from 'lucide-react';
+import { X, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 
-// Styled scrollbar with BAE aesthetic
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
     width: 6px;
@@ -36,7 +35,6 @@ interface UserData {
   location?: string;
 }
 
-// --- AUDIO CONTEXT SINGLETON ---
 let audioContextInstance: AudioContext | null = null;
 
 const getAudioContext = async (): Promise<AudioContext | null> => {
@@ -98,7 +96,6 @@ const playBellDing = async () => {
   }
 };
 
-// --- CONFETTI COMPONENT ---
 function Confetti() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -132,95 +129,60 @@ function Confetti() {
   );
 }
 
-// --- BILLION-DOLLAR VIBE-O-METER (Gemini-Inspired Crystalline Design) ---
-function VerticalVibeOMeter({ count }: { count: number }) {
-  const vibeLevels = [
-    { name: 'COOL', color: '#60A5FA', glow: 'rgba(96,165,250,0.5)' },
-    { name: 'REAL', color: '#FB923C', glow: 'rgba(251,146,60,0.5)' },
-    { name: 'DEEP', color: '#FDE047', glow: 'rgba(253,224,71,0.6)' },
-    { name: 'SUPER', color: '#F472B6', glow: 'rgba(244,114,182,0.7)' },
-    { name: 'MEGA', color: '#E879F9', glow: 'rgba(232,121,249,0.9)' },
-  ];
+function FluidVibeOMeter({ count }: { count: number }) {
+  const levels = ['COOL', 'REAL', 'DEEP', 'SUPER', 'MEGA'];
 
   return (
-    <div className="h-full flex flex-col items-center justify-between py-12 px-2 bg-black/20 backdrop-blur-xl border-r border-white/5">
-      {/* Top Accent Line */}
+    <div className="h-full flex flex-col items-center justify-between py-12 px-4 bg-black/20 backdrop-blur-xl border-r border-white/5">
       <div className="flex flex-col items-center gap-1 opacity-40">
-        <div className="h-12 w-[2px] bg-gradient-to-t from-white/20 to-transparent" />
-        <span className="text-[10px] font-black tracking-[0.3em] uppercase">VIBE</span>
-        <span className="text-[10px] font-black tracking-[0.3em] uppercase">SYSTEM</span>
+        <div className="h-8 w-[1px] bg-gradient-to-t from-white/20 to-transparent" />
+        <span className="text-[10px] font-black tracking-[0.2em] uppercase">VIBE</span>
       </div>
 
-      {/* The Crystalline Orb Stack */}
-      <div className="flex flex-col-reverse gap-8">
-        {vibeLevels.map((vibe, index) => {
-          const isActive = count > index;
-          const isCurrent = count === index + 1;
+      <div className="relative flex flex-col items-center flex-1 justify-end gap-6">
+        <div className="relative w-1 h-64 bg-white/10 rounded-full overflow-hidden shadow-[inset_0_0_10px_rgba(255,255,255,0.1)]">
+          <motion.div
+            animate={{ height: `${(count / 5) * 100}%` }}
+            transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+            className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-300 via-pink-400 to-fuchsia-500 shadow-[0_0_20px_rgba(255,160,255,0.6)]"
+          />
+        </div>
 
-          return (
-            <div key={index} className="relative group flex items-center justify-center">
-              {/* Vibe Name Label (Popout on Current) */}
-              <AnimatePresence>
-                {isCurrent && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 40 }}
-                    exit={{ opacity: 0, x: 10 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                    className="absolute left-0 whitespace-nowrap"
-                  >
-                    <span className="text-[10px] font-black tracking-widest text-white px-2 py-1 bg-white/10 rounded-full backdrop-blur-md border border-white/20">
-                      {vibe.name}
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Crystalline Orb with Inset Glow */}
-              <motion.div
-                animate={{
-                  scale: isCurrent ? 1.3 : isActive ? 1 : 0.65,
-                  backgroundColor: isActive ? vibe.color : 'rgba(255,255,255,0.05)',
-                  boxShadow: isCurrent 
-                    ? `0 0 40px ${vibe.glow}, inset 0 0 15px rgba(255,255,255,0.9), 0 0 60px ${vibe.glow}` 
-                    : isActive 
-                    ? `0 0 20px ${vibe.glow}, inset 0 0 8px rgba(255,255,255,0.5)` 
-                    : '0 0 0px rgba(0,0,0,0), inset 0 0 0px rgba(255,255,255,0)',
-                }}
-                transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                className={`w-5 h-5 rounded-full border transition-all ${
-                  isActive ? 'border-white/60' : 'border-white/10'
-                }`}
-              />
-
-              {/* Connecting Line (Animates when Active) */}
-              {index < 4 && (
-                <div className="absolute -top-8 w-[1px] h-8 overflow-hidden">
-                  <motion.div 
-                    animate={{ 
-                      height: isActive ? '100%' : '0%',
-                      background: isActive ? `linear-gradient(to bottom, ${vibe.glow}, transparent)` : 'transparent'
-                    }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                    className="w-full"
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <div className="absolute left-6 top-0 h-64 flex flex-col-reverse justify-between py-2">
+          {levels.map((label, i) => (
+            <motion.div
+              key={label}
+              animate={{
+                opacity: count > i ? 1 : 0.2,
+                x: count > i ? 0 : -10,
+              }}
+              className="text-[9px] font-black tracking-tighter text-white whitespace-nowrap"
+            >
+              {label}
+            </motion.div>
+          ))}
+        </div>
       </div>
 
-      {/* Bottom Counter */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-12 w-[1px] bg-gradient-to-b from-white/20 to-transparent" />
-        <span className="text-2xl font-black text-white/30">{String(count).padStart(2, '0')}</span>
+      <motion.div
+        animate={{
+          scale: 1 + (count * 0.08),
+          boxShadow: `0 0 ${20 + count * 15}px rgba(255, 160, 255, ${0.3 + count * 0.1})`,
+        }}
+        transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+        className="w-20 h-20 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 border-2 border-white/30 flex items-center justify-center z-20 shadow-[inset_0_0_15px_rgba(255,255,255,0.3)]"
+      >
+        <span className="text-4xl font-black text-white/80">{count}</span>
+      </motion.div>
+
+      <div className="flex flex-col items-center gap-1 opacity-40">
+        <span className="text-[10px] font-black tracking-[0.2em] uppercase">SYSTEM</span>
+        <div className="h-8 w-[1px] bg-gradient-to-b from-white/20 to-transparent" />
       </div>
     </div>
   );
 }
 
-// --- VIBE TOAST COMPONENT ---
 function VibeToast({ interest, newCount }: { interest: string; newCount: number }) {
   const messages = {
     1: '✨ Cool',
@@ -235,7 +197,6 @@ function VibeToast({ interest, newCount }: { interest: string; newCount: number 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
       className="fixed top-32 left-1/2 -translate-x-1/2 z-40 px-6 py-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-2xl"
     >
       {messages[newCount as keyof typeof messages]} ({newCount}/5) - {interest}
@@ -243,7 +204,6 @@ function VibeToast({ interest, newCount }: { interest: string; newCount: number 
   );
 }
 
-// --- GOLDEN TICKET CELEBRATION ---
 function GoldenTicketCelebration({
   theirProfile,
   sharedInterests,
@@ -305,12 +265,10 @@ function GoldenTicketCelebration({
   );
 }
 
-// --- MAIN MATCH PAGE ---
 export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
   const remoteVideoContainerRef = useRef<HTMLDivElement>(null);
-  const megaVibeRef = useRef<HTMLDivElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
@@ -329,7 +287,6 @@ export default function MatchPage() {
   const [showGoldenTicket, setShowGoldenTicket] = useState(false);
   const [megaVibeTriggered, setMegaVibeTriggered] = useState(false);
 
-  // Calculate shared interests with useMemo
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
     return myProfile.interests.filter((i: string) =>
@@ -337,7 +294,6 @@ export default function MatchPage() {
     );
   }, [myProfile, theirProfile]);
 
-  // Track vibe count and trigger celebrations
   useEffect(() => {
     setVibeCount(sharedInterests.length);
     
@@ -576,17 +532,14 @@ export default function MatchPage() {
     
     if (alreadyAdded) return;
 
-    // Optimistic update - immediate UI feedback
     const newInterests = [...myProfile.interests, interest];
     setMyProfile(prev => prev ? { ...prev, interests: newInterests } : null);
 
-    // Trigger feedback immediately
     playVibe(vibeCount + 1);
     const newCount = sharedInterests.length + 1;
     setToastData({ interest, newCount });
     setTimeout(() => setToastData(null), 2500);
 
-    // Async database sync
     try {
       await updateDoc(doc(db, 'users', auth.currentUser.uid), {
         interests: newInterests,
@@ -641,7 +594,6 @@ export default function MatchPage() {
         if (!matchRes.ok) {
           setErrorMessage('Failed to find next match');
           setError(true);
-          return;
         }
       }
     } catch (err: any) {
@@ -709,36 +661,27 @@ export default function MatchPage() {
       
       <style>{scrollbarStyle}</style>
       
-      {/* Background Effects */}
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
 
-      {/* Header */}
       <header className="relative z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 flex-shrink-0">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
       </header>
 
-      {/* MAIN LAYOUT: Sidebar + Content */}
       <div className="relative flex-1 flex overflow-hidden z-5">
         
-        {/* LEFT SIDEBAR: Vertical Vibe-O-Meter */}
         <div className="hidden lg:flex w-[10%] bg-gradient-to-r from-black/60 to-transparent border-r border-white/5 flex-shrink-0">
-          <VerticalVibeOMeter count={vibeCount} />
+          <FluidVibeOMeter count={vibeCount} />
         </div>
 
-        {/* RIGHT CONTENT: Videos + Interests */}
         <div className="flex-1 flex flex-col min-w-0">
           
-          {/* VIDEOS SECTION */}
-          <div 
-            ref={megaVibeRef}
-            className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0"
-          >
-            {/* MEGA VIBE Screen Flash Effect */}
+          <div className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
+            
             <AnimatePresence>
               {megaVibeTriggered && (
                 <motion.div
@@ -766,7 +709,6 @@ export default function MatchPage() {
               }
             `}</style>
             
-            {/* YOUR VIDEO */}
             <div className="relative flex-1 bg-black">
               <div 
                 ref={localVideoContainerRef} 
@@ -787,7 +729,6 @@ export default function MatchPage() {
               </div>
             </div>
 
-            {/* SHARED INTERESTS GLOW CENTER */}
             <AnimatePresence>
               {isMatched && sharedInterests.length > 0 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
@@ -819,7 +760,6 @@ export default function MatchPage() {
               )}
             </AnimatePresence>
 
-            {/* THEIR VIDEO */}
             <div className="relative flex-1 bg-black">
               {!isMatched ? (
                 <motion.div 
@@ -854,14 +794,12 @@ export default function MatchPage() {
             </div>
           </div>
 
-          {/* INTERESTS SECTION */}
           {isMatched && theirProfile && (
             <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-3 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto interests-scroll">
               <div className="max-w-full mx-auto">
                 <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
                 
                 <div className="flex gap-4 min-h-0">
-                  {/* YOUR INTERESTS */}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
                     <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
@@ -877,10 +815,8 @@ export default function MatchPage() {
                     </div>
                   </div>
 
-                  {/* SEPARATOR */}
                   <div className="w-px bg-white/20"></div>
 
-                  {/* THEIR INTERESTS */}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
                     <div className="grid grid-cols-5 gap-1.5 auto-rows-max">
@@ -919,21 +855,18 @@ export default function MatchPage() {
             </div>
           )}
 
-          {/* MOBILE: Vibe-O-Meter as Horizontal Bar */}
           {isMatched && (
             <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-r from-black/60 to-transparent px-4 py-2 backdrop-blur-sm border-b border-white/10">
-              <VerticalVibeOMeter count={vibeCount} />
+              <FluidVibeOMeter count={vibeCount} />
             </div>
           )}
         </div>
       </div>
 
-      {/* VIBE TOAST */}
       <AnimatePresence>
         {toastData && <VibeToast interest={toastData.interest} newCount={toastData.newCount} />}
       </AnimatePresence>
 
-      {/* GOLDEN TICKET */}
       <AnimatePresence>
         {showGoldenTicket && theirProfile && (
           <GoldenTicketCelebration
@@ -944,7 +877,6 @@ export default function MatchPage() {
         )}
       </AnimatePresence>
 
-      {/* FLOATING BUTTONS */}
       <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
         {isMatched && (
           <motion.button
