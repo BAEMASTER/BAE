@@ -131,50 +131,76 @@ function Confetti() {
 
 function FluidVibeOMeter({ count }: { count: number }) {
   const levels = ['COOL', 'REAL', 'DEEP', 'SUPER', 'MEGA'];
+  const currentLevel = count > 0 ? levels[Math.min(count - 1, 4)] : null;
 
   return (
     <div className="h-full flex flex-col items-center justify-between py-12 px-4 bg-black/20 backdrop-blur-xl border-r border-white/5">
+      {/* Top accent */}
       <div className="flex flex-col items-center gap-1 opacity-40">
         <div className="h-8 w-[1px] bg-gradient-to-t from-white/20 to-transparent" />
         <span className="text-[10px] font-black tracking-[0.2em] uppercase">VIBE</span>
       </div>
 
-      <div className="relative flex flex-col items-center flex-1 justify-end gap-6">
-        <div className="relative w-1 h-64 bg-white/10 rounded-full overflow-hidden shadow-[inset_0_0_10px_rgba(255,255,255,0.1)]">
+      {/* Glass Capsule Meter - Wider, more substantial */}
+      <div className="relative flex flex-col items-center flex-1 justify-end gap-4">
+        {/* The Capsule Container */}
+        <div className="relative w-10 h-64 rounded-full 
+          bg-white/10 backdrop-blur-xl 
+          shadow-[inset_0_0_20px_rgba(255,255,255,0.08)]
+          overflow-hidden border border-white/5">
+          
+          {/* Liquid Fill - Soft edges, radial glow at active level */}
           <motion.div
             animate={{ height: `${(count / 5) * 100}%` }}
             transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-            className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-300 via-pink-400 to-fuchsia-500 shadow-[0_0_20px_rgba(255,160,255,0.6)]"
+            className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-300 via-pink-400 to-fuchsia-500"
+            style={{
+              filter: 'blur(0.5px)',
+              boxShadow: count > 0 ? `inset 0 0 ${10 + count * 3}px rgba(255,255,255,${0.2 + count * 0.05})` : 'none',
+            }}
           />
         </div>
 
-        <div className="absolute left-6 top-0 h-64 flex flex-col-reverse justify-between py-2">
+        {/* Level Labels - Only reveal when hit (Ritual artifact energy) */}
+        <div className="absolute left-16 top-0 h-64 flex flex-col-reverse justify-between py-2">
           {levels.map((label, i) => (
-            <motion.div
-              key={label}
-              animate={{
-                opacity: count > i ? 1 : 0.2,
-                x: count > i ? 0 : -10,
-              }}
-              className="text-[9px] font-black tracking-tighter text-white whitespace-nowrap"
-            >
-              {label}
-            </motion.div>
+            <AnimatePresence key={label}>
+              {count > i && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  className="text-[9px] font-black tracking-tighter text-white/70 whitespace-nowrap"
+                >
+                  {label}
+                </motion.div>
+              )}
+            </AnimatePresence>
           ))}
         </div>
       </div>
 
+      {/* Status Seal (not a counter) - Shows current level or nothing */}
       <motion.div
-        animate={{
-          scale: 1 + (count * 0.08),
-          boxShadow: `0 0 ${20 + count * 15}px rgba(255, 160, 255, ${0.3 + count * 0.1})`,
-        }}
-        transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-        className="w-20 h-20 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 border-2 border-white/30 flex items-center justify-center z-20 shadow-[inset_0_0_15px_rgba(255,255,255,0.3)]"
+        key={currentLevel}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+        className="text-center"
       >
-        <span className="text-4xl font-black text-white/80">{count}</span>
+        {currentLevel ? (
+          <p className="text-xs font-black text-yellow-300/90 tracking-wider">
+            {currentLevel}
+          </p>
+        ) : (
+          <p className="text-xs font-black text-white/30 tracking-wider">
+            —
+          </p>
+        )}
       </motion.div>
 
+      {/* Bottom accent */}
       <div className="flex flex-col items-center gap-1 opacity-40">
         <span className="text-[10px] font-black tracking-[0.2em] uppercase">SYSTEM</span>
         <div className="h-8 w-[1px] bg-gradient-to-b from-white/20 to-transparent" />
@@ -897,10 +923,10 @@ export default function MatchPage() {
               )}
             </div>
 
-            {/* OVERLAID INTERESTS AT BOTTOM (15% of video) - WITH SHELF BACKDROP */}
-            {isMatched && theirProfile && (
+            {/* OVERLAID INTERESTS AT BOTTOM - Shows during waiting AND matched */}
+            {isMatched && theirProfile ? (
+              // MATCHED STATE - Their interests
               <div className="absolute bottom-0 left-0 right-0 z-15 flex items-end justify-center pb-6 px-4">
-                {/* The Shelf Container */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -943,6 +969,47 @@ export default function MatchPage() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setShowViewAll(true)}
                       className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-8 py-3 bg-gradient-to-r from-yellow-400 to-pink-400 text-black font-black rounded-full text-xs uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all"
+                    >
+                      View All
+                    </motion.button>
+                  )}
+                </motion.div>
+              </div>
+            ) : (
+              // WAITING STATE - Your interests
+              <div className="absolute bottom-0 left-0 right-0 z-15 flex items-end justify-center pb-6 px-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="relative w-full max-w-3xl bg-black/40 backdrop-blur-2xl rounded-[32px] border border-white/10 p-6 pt-8 pb-10 shadow-2xl"
+                >
+                  <p className="text-xs text-white/50 text-center mb-4">Your Interests</p>
+                  
+                  {/* 2 rows x 3 cols grid of YOUR interests */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {myProfile?.interests.slice(0, 6).map((interest: string) => (
+                      <motion.div
+                        key={interest}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: myProfile.interests.indexOf(interest) * 0.05 }}
+                        className="px-3 py-2 rounded-full text-xs font-semibold bg-white/30 text-white border border-white/40 text-center"
+                      >
+                        {interest}
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* View All Button for your interests */}
+                  {myProfile && myProfile.interests.length > 6 && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="absolute -bottom-5 left-1/2 -translate-x-1/2 px-8 py-3 bg-gradient-to-r from-yellow-400 to-pink-400 text-black font-black rounded-full text-xs uppercase tracking-widest shadow-xl hover:shadow-2xl transition-all cursor-pointer"
                     >
                       View All
                     </motion.button>
