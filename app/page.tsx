@@ -21,9 +21,7 @@ const FEATURED_INTERESTS = [
 export default function HomePage() {
   const router = useRouter();
 
-  // Firebase/Auth/State/Logic (Unchanged)
-  // ... (Code for Firebase, useState, useEffects, and handleBAEClick is unchanged) ...
-  
+  // Firebase/Auth/State/Logic
   const [app] = useState(() => {
     const configEnv = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
     const config = configEnv ? JSON.parse(configEnv) : {};
@@ -86,14 +84,14 @@ export default function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
 
-      {/* --- BACKGROUND (Unchanged) --- */}
+      {/* --- BACKGROUND --- */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] opacity-95"></div>
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
           <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
           <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
       </div>
       
-      {/* Header (Unchanged) */}
+      {/* Header */}
       <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-md bg-black/50 border-b border-fuchsia-500/20">
         <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
           BAE
@@ -101,27 +99,24 @@ export default function HomePage() {
         <div className="text-white/80 text-sm">{userName}</div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative flex flex-col items-center justify-center text-center px-4 min-h-screen z-10 pt-20"> {/* Increased pt-20 for space */}
+      {/* HERO SECTION - Compact layout, no dead space */}
+      <section className="relative flex flex-col items-center text-center px-4 z-10 pt-8 sm:pt-12 pb-20">
 
-        {/* 1. ELEGANT INTEREST ROW (Jewelry Style, Now on Top) */}
+        {/* 1. ELEGANT INTEREST ROW - On top, tight spacing */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-12 sm:mb-16 max-w-4xl"
+          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 max-w-4xl"
         >
           {FEATURED_INTERESTS.map((interest, i) => {
-            const isGlow = interest === 'AI'; // Check for the glowing pill
+            const isGlow = interest === 'AI';
             return (
               <div 
                 key={interest}
-                // Pill size: Adjusted to text-sm/base (slightly smaller, more elegant)
                 className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-all cursor-default ${
                   isGlow 
-                    // GLOWING GOLD STYLE (High-reflectivity jewelry look)
                     ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse' 
-                    // NEUTRAL STYLE (Translucent, sleek white/glass)
                     : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm'
                 }`}
               >
@@ -129,14 +124,12 @@ export default function HomePage() {
               </div>
             );
           })}
-          {/* "+ and more" Bubble */}
           <div className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white/40 border border-white/10 bg-transparent italic">
             + and more
           </div>
         </motion.div>
 
-
-        {/* 2. HUGE, BRIGHT HEADLINE (Unchanged size/responsive) */}
+        {/* 2. HUGE, BRIGHT HEADLINE */}
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -149,14 +142,12 @@ export default function HomePage() {
           </span>
         </motion.h2>
 
-        {/* 3. EMOTIONAL TAGLINE (Adjusted for single line on desktop) */}
+        {/* 3. EMOTIONAL TAGLINE */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          // Reduced size slightly on desktop to encourage single line
-          className="text-2xl sm:text-3xl lg:text-3xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl whitespace-nowrap lg:whitespace-normal" 
-          style={{ whiteSpace: 'nowrap' }} // Using inline style to force single line where possible
+          className="text-2xl sm:text-3xl lg:text-3xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl" 
         >
           <span className="block sm:inline">One great conversation can{' '}</span>
           <span className="inline-block min-w-[7rem] sm:min-w-[12rem] relative align-baseline">
@@ -176,7 +167,6 @@ export default function HomePage() {
           <span className="block sm:inline">YOUR WHOLE DAY.</span>
         </motion.p>
 
-        
         {/* SEPARATOR */}
         <motion.div 
            initial={{ scaleX: 0, opacity: 0 }}
@@ -185,7 +175,7 @@ export default function HomePage() {
            className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
         />
 
-        {/* 5. CTA Button */}
+        {/* CTA BUTTON */}
         <motion.button
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
