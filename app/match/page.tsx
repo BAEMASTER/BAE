@@ -8,6 +8,17 @@ import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw } from 'lucide-react';
 
+// Add scrollbar-hide to globals (hide scrollbar but allow scrolling)
+const scrollbarHideStyle = `
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
+
 interface UserData {
   displayName: string;
   interests: string[];
@@ -593,6 +604,9 @@ export default function MatchPage() {
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
       
+      {/* Inject scrollbar-hide styles */}
+      <style>{scrollbarHideStyle}</style>
+      
       {/* Background Effects */}
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
@@ -711,24 +725,25 @@ export default function MatchPage() {
         </div>
       </div>
 
-      {/* SECTION 3: INTEREST PILLS (Bottom) - Always visible */}
-      <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto">
+      {/* SECTION 3: INTEREST PILLS (Bottom) - Grid layout with vertical scroll */}
+      <div className="relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[18vh] overflow-y-auto scrollbar-hide">
         <div className="max-w-full mx-auto">
           {isMatched && theirProfile ? (
             <>
               <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
               
               <div className="flex gap-4 min-h-0">
-                {/* YOUR INTERESTS (Left) */}
+                {/* YOUR INTERESTS (Left) - Grid 5 columns */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Your Interests</p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {myProfile?.interests.slice(0, 4).map((interest: string) => (
+                  <p className="text-xs text-white/60 font-bold mb-2 text-center">Your Interests</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {myProfile?.interests.map((interest: string) => (
                       <div
                         key={interest}
-                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap"
+                        className="px-2 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate"
+                        title={interest}
                       >
-                        {interest} ✓
+                        {interest}
                       </div>
                     ))}
                   </div>
@@ -737,11 +752,11 @@ export default function MatchPage() {
                 {/* SEPARATOR */}
                 <div className="w-px bg-white/20"></div>
 
-                {/* THEIR INTERESTS (Right - Tappable) */}
+                {/* THEIR INTERESTS (Right - Tappable) - Grid 5 columns */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 font-bold mb-2 text-center truncate">Their Interests</p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {theirProfile?.interests.slice(0, 4).map((interest: string) => {
+                  <p className="text-xs text-white/60 font-bold mb-2 text-center">Their Interests</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {theirProfile?.interests.map((interest: string) => {
                       const isAdded = myProfile?.interests.some(
                         (i: string) => i.toLowerCase() === interest.toLowerCase()
                       );
@@ -756,15 +771,16 @@ export default function MatchPage() {
                           whileTap={!isAdded ? { scale: 0.95 } : {}}
                           onClick={() => !isAdded && handleTeleportInterest(interest)}
                           disabled={isAdded}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                          className={`px-2 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap text-center truncate ${
                             isShared
                               ? 'bg-yellow-300 text-black border border-yellow-200'
                               : isAdded
                               ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
                               : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
                           }`}
+                          title={interest}
                         >
-                          {interest} {isAdded ? '✓' : '+'}
+                          {interest}
                         </motion.button>
                       );
                     })}
@@ -773,14 +789,15 @@ export default function MatchPage() {
               </div>
             </>
           ) : (
-            /* Waiting state - show only your interests */
+            /* Waiting state - show only your interests in grid */
             <>
               <p className="text-xs text-white/60 font-bold text-center mb-3">Your Interests</p>
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="grid grid-cols-10 gap-2">
                 {myProfile?.interests.map((interest: string) => (
                   <div
                     key={interest}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20"
+                    className="px-2 py-1.5 rounded-full text-xs font-semibold bg-white/20 text-white/80 border border-white/20 whitespace-nowrap text-center truncate"
+                    title={interest}
                   >
                     {interest}
                   </div>
