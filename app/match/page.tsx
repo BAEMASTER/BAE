@@ -556,7 +556,7 @@ export default function MatchPage() {
     const newInterests = [...myProfile.interests, interest];
     setMyProfile(prev => prev ? { ...prev, interests: newInterests } : null);
 
-    playVibe(vibeCount + 1);
+    playVibe(sharedInterests.length + 1);
     const newCount = sharedInterests.length + 1;
     setToastData({ interest, newCount });
     setTimeout(() => setToastData(null), 2500);
