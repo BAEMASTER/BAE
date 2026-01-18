@@ -35,10 +35,31 @@ const VIBE_LEVELS = {
   5: { name: 'MEGA VIBE', color: 'rainbow', celebration: true },
 };
 
-// --- SOUND EFFECTS ---
-const playVibe = (level: number) => {
+// --- AUDIO CONTEXT SINGLETON (Fix #2: Proper AudioContext management) ---
+let audioContextInstance: (AudioContext | WebkitAudioContext) | null = null;
+
+const getAudioContext = async (): Promise<(AudioContext | WebkitAudioContext) | null> => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (!audioContextInstance) {
+      audioContextInstance = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    // Resume context if suspended (required by browsers for user gesture)
+    if (audioContextInstance.state === 'suspended') {
+      await audioContextInstance.resume();
+    }
+    return audioContextInstance;
+  } catch (e) {
+    console.log('AudioContext not available');
+    return null;
+  }
+};
+
+// --- SOUND EFFECTS ---
+const playVibe = async (level: number) => {
+  const audioContext = await getAudioContext();
+  if (!audioContext) return;
+  
+  try {
     const frequencies = [523.25, 659.25, 783.99, 987.77, 1174.66]; // C, E, G, B, D (ascending)
     const freq = frequencies[Math.min(level - 1, 4)];
     
@@ -53,13 +74,15 @@ const playVibe = (level: number) => {
     osc.start(audioContext.currentTime);
     osc.stop(audioContext.currentTime + 0.2);
   } catch (e) {
-    console.log('Audio not supported');
+    console.log('Sound effect error:', e);
   }
 };
 
-const playBellDing = () => {
+const playBellDing = async () => {
+  const audioContext = await getAudioContext();
+  if (!audioContext) return;
+  
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = audioContext.createOscillator();
     const gain = audioContext.createGain();
     osc.connect(gain);
@@ -71,7 +94,7 @@ const playBellDing = () => {
     osc.start(audioContext.currentTime);
     osc.stop(audioContext.currentTime + 0.5);
   } catch (e) {
-    console.log('Audio not supported');
+    console.log('Bell sound error:', e);
   }
 };
 
@@ -111,7 +134,7 @@ function Confetti() {
 
 // --- VIBE-O-METER COMPONENT ---
 function VibeOMeter({ count }: { count: number }) {
-  const vibeNames = ['Connected', 'Vibing', 'Deep Vibe', 'Super Vibe', 'MEGA VIBE'];
+  const vibeNames = ['Cool', 'Real', 'Deep', 'Super', 'MEGA'];
   const orbSizes = [16, 24, 32, 40, 52]; // Smaller orbs for compact design
   
   return (
@@ -193,6 +216,9 @@ function VibeOMeter({ count }: { count: number }) {
         >
           <p className="text-xs font-bold text-yellow-300/90 whitespace-nowrap">
             {count === 0 ? '0/5' : `${count}/5`}
+          </p>
+          <p className="text-xs font-bold text-white/70 whitespace-nowrap">
+            {vibeNames[Math.min(count, 4)]}
           </p>
         </motion.div>
       </div>
@@ -301,6 +327,7 @@ export default function MatchPage() {
   const [sharedInterests, setSharedInterests] = useState<string[]>([]);
   const [floatingInterests, setFloatingInterests] = useState<string[]>([]);
   const [vibeCount, setVibeCount] = useState(0);
+  const [theirVibeCount, setTheirVibeCount] = useState(0); // Track their meter too
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('Something went wrong. Please try again.');
@@ -308,8 +335,9 @@ export default function MatchPage() {
   const [cameraReady, setCameraReady] = useState(false);
   const [toastData, setToastData] = useState<{ interest: string; newCount: number } | null>(null);
   const [showGoldenTicket, setShowGoldenTicket] = useState(false);
+  const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
 
-  // Calculate shared interests count
+  // Calculate shared interests - SYMMETRIC (works for both users)
   useEffect(() => {
     if (myProfile && theirProfile) {
       const shared = myProfile.interests.filter((i: string) =>
@@ -466,6 +494,23 @@ export default function MatchPage() {
           
           if (!mounted) return;
           setTheirProfile(theirData);
+
+          // FIX #1: Set up real-time listener on partner document for synced vibe count
+          if (partnerUnsubscribeRef.current) {
+            partnerUnsubscribeRef.current();
+          }
+          
+          const partnerDocRef = doc(db, 'users', partnerId);
+          partnerUnsubscribeRef.current = onSnapshot(partnerDocRef, (docSnap) => {
+            if (docSnap.exists() && mounted) {
+              const updatedTheirData: UserData = {
+                displayName: docSnap.data().displayName || 'Match',
+                interests: docSnap.data().interests || [],
+                location: docSnap.data().location || '',
+              };
+              setTheirProfile(updatedTheirData);
+            }
+          });
         }
 
         if (!mounted) return;
@@ -484,6 +529,7 @@ export default function MatchPage() {
         
         if (!localVideoContainerRef.current || !mounted) return;
 
+        // FIX #3: Z-Index management - ensure Daily iframe doesn't block UI
         const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
           showLeaveButton: false,
           showFullscreenButton: false,
@@ -497,6 +543,7 @@ export default function MatchPage() {
             width: '100%',
             height: '100%',
             border: 'none',
+            zIndex: '1', // Lower z-index so UI tray stays on top
           },
         });
 
@@ -517,6 +564,7 @@ export default function MatchPage() {
       mounted = false;
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
       if (unsubscribeRef.current) unsubscribeRef.current();
+      if (partnerUnsubscribeRef.current) partnerUnsubscribeRef.current();
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -536,6 +584,7 @@ export default function MatchPage() {
     
     if (alreadyAdded) return;
 
+    // Trigger sound (async, but don't block the rest)
     playVibe(vibeCount + 1);
 
     // Add to profile
@@ -632,13 +681,11 @@ export default function MatchPage() {
         {/* End button moved to bottom-right, removed from here */}
       </header>
 
-      {/* SECTION 1: VIBE-O-METER */}
-      <div className="relative z-10 flex-shrink-0 bg-gradient-to-r from-black/40 to-transparent">
-        <VibeOMeter count={vibeCount} />
-      </div>
+      {/* SECTION 1: VIBE-O-METER - NOW IN BOTTOM TRAY (moved from top) */}
+      {/* Removed from here - now lives in Section 3 */}
 
       {/* SECTION 2: VIDEO SECTION WITH FLOATING INTERESTS */}
-      <div className="relative flex-1 flex flex-col lg:flex-row z-10 min-h-0">
+      <div className="relative flex-1 flex flex-col lg:flex-row z-5 min-h-0">
         
         {/* YOUR VIDEO */}
         <div className="relative flex-1">
@@ -730,14 +777,19 @@ export default function MatchPage() {
         </div>
       </div>
 
-      {/* SECTION 3: INTEREST PILLS (Bottom) */}
+      {/* SECTION 3: INTEREST PILLS TRAY (with Vibe-O-Meter integrated) */}
       
-      {/* DESKTOP VERSION - 2x5 Grid */}
-      <div className="hidden lg:flex relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-4 backdrop-blur-sm border-t border-white/10 max-h-[20vh] overflow-y-auto scrollbar-hide">
+      {/* DESKTOP VERSION - 2x5 Grid with Vibe-O-Meter */}
+      <div className="hidden lg:flex relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 py-3 backdrop-blur-sm border-t border-white/10 max-h-[22vh] overflow-y-auto scrollbar-hide flex-col">
         <div className="max-w-full mx-auto w-full">
           {isMatched && theirProfile ? (
             <>
-              <p className="text-xs text-yellow-300 font-bold text-center mb-3">Tap to add their interests ⬇️</p>
+              {/* Vibe-O-Meter - Top of tray */}
+              <div className="mb-3 pb-3 border-b border-white/10">
+                <VibeOMeter count={vibeCount} />
+              </div>
+
+              <p className="text-xs text-yellow-300 font-bold text-center mb-2">Tap to add their interests ⬇️</p>
               
               <div className="flex gap-4 min-h-0">
                 {/* YOUR INTERESTS (Left) - Grid 5 columns, 2 rows */}
@@ -796,8 +848,13 @@ export default function MatchPage() {
               </div>
             </>
           ) : (
-            /* Waiting state - show only your interests in grid, centered and compact */
+            /* Waiting state - show only your interests in grid */
             <>
+              {/* Vibe-O-Meter - Top of tray */}
+              <div className="mb-3 pb-3 border-b border-white/10">
+                <VibeOMeter count={vibeCount} />
+              </div>
+
               <p className="text-xs text-white/60 font-bold text-center mb-3">Your Interests</p>
               <div className="flex justify-center">
                 <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5 auto-rows-max max-w-2xl">
@@ -818,15 +875,20 @@ export default function MatchPage() {
       </div>
 
       {/* MOBILE VERSION - Collapsible sections */}
-      <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-3 py-3 backdrop-blur-sm border-t border-white/10 max-h-[25vh] overflow-y-auto scrollbar-hide">
-        <div className="max-w-full mx-auto w-full space-y-3">
+      <div className="lg:hidden relative z-10 flex-shrink-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent px-3 py-2 backdrop-blur-sm border-t border-white/10 max-h-[28vh] overflow-y-auto scrollbar-hide">
+        <div className="max-w-full mx-auto w-full space-y-2">
+          {/* Vibe-O-Meter - Top of mobile tray */}
+          <div className="pb-2 border-b border-white/10">
+            <VibeOMeter count={vibeCount} />
+          </div>
+
           {isMatched && theirProfile ? (
             <>
-              <p className="text-xs text-yellow-300 font-bold text-center mb-2">Tap to add their interests ⬇️</p>
+              <p className="text-xs text-yellow-300 font-bold text-center mb-1.5">Tap to add their interests ⬇️</p>
               
               {/* YOUR INTERESTS - Collapsible on mobile */}
               <div>
-                <p className="text-xs text-white/60 font-bold mb-1.5 text-center">Your Interests (showing first 5)</p>
+                <p className="text-xs text-white/60 font-bold mb-1 text-center">Your Interests (showing first 5)</p>
                 <div className="flex flex-wrap gap-1 justify-center">
                   {myProfile?.interests.slice(0, 5).map((interest: string) => (
                     <div
@@ -842,7 +904,7 @@ export default function MatchPage() {
 
               {/* THEIR INTERESTS - Collapsible on mobile */}
               <div>
-                <p className="text-xs text-white/60 font-bold mb-1.5 text-center">Their Interests (showing first 5)</p>
+                <p className="text-xs text-white/60 font-bold mb-1 text-center">Their Interests (showing first 5)</p>
                 <div className="flex flex-wrap gap-1 justify-center">
                   {theirProfile?.interests.slice(0, 5).map((interest: string) => {
                     const isAdded = myProfile?.interests.some(
