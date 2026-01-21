@@ -807,7 +807,7 @@ export default function MatchPage() {
             {isMatched && <FluidVibeOMeter count={vibeCount} />}
           </div>
 
-          {/* MOBILE: SHARED INTERESTS - Between videos, centered horizontally */}
+          {/* MOBILE: SHARED INTERESTS - Smack in the middle, bridging both videos */}
           <div className="lg:hidden absolute left-0 right-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center py-3 px-3 pointer-events-none">
             <AnimatePresence>
               {isMatched && sharedInterests.length > 0 && (
