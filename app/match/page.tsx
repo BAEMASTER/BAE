@@ -67,20 +67,45 @@ const playVibe = async (level: number) => {
   } catch (e) {}
 };
 
-const playBellDing = async () => {
+const playMegaVibeFanfare = async () => {
   const audioContext = await getAudioContext();
   if (!audioContext) return;
   try {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    osc.frequency.value = 1046.5;
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-    osc.start(audioContext.currentTime);
-    osc.stop(audioContext.currentTime + 0.5);
+    // Triumphant fanfare sequence - multiple notes in quick succession
+    const notes = [
+      { freq: 523.25, start: 0, duration: 0.15 },      // C5
+      { freq: 659.25, start: 0.15, duration: 0.15 },   // E5
+      { freq: 783.99, start: 0.3, duration: 0.15 },    // G5
+      { freq: 1046.5, start: 0.45, duration: 0.2 },    // C6 (high note)
+      { freq: 1174.66, start: 0.65, duration: 0.3 },   // D6 (climax)
+    ];
+
+    notes.forEach(({ freq, start, duration }) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      
+      gain.gain.setValueAtTime(0.25, audioContext.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + start + duration);
+      
+      osc.start(audioContext.currentTime + start);
+      osc.stop(audioContext.currentTime + start + duration);
+    });
+
+    // Add a bass note underneath for gravitas
+    const bassOsc = audioContext.createOscillator();
+    const bassGain = audioContext.createGain();
+    bassOsc.connect(bassGain);
+    bassGain.connect(audioContext.destination);
+    bassOsc.frequency.value = 261.63; // C4 (low note)
+    bassOsc.type = 'sine';
+    bassGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+    bassGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.95);
+    bassOsc.start(audioContext.currentTime);
+    bassOsc.stop(audioContext.currentTime + 0.95);
   } catch (e) {}
 };
 
@@ -329,14 +354,18 @@ export default function MatchPage() {
 
   useEffect(() => {
     setVibeCount(sharedInterests.length);
-    if (sharedInterests.length === 5 && !showGoldenTicket) {
-      playBellDing();
+  }, [sharedInterests.length]);
+
+  useEffect(() => {
+    if (sharedInterests.length === 5 && !megaVibeTriggered) {
+      playMegaVibeFanfare();
       setShowGoldenTicket(true);
       setMegaVibeTriggered(true);
-      // Auto-close after 2 seconds
-      setTimeout(() => setShowGoldenTicket(false), 2000);
+      // Auto-close after 3 seconds
+      const timer = setTimeout(() => setShowGoldenTicket(false), 3000);
+      return () => clearTimeout(timer);
     }
-  }, [sharedInterests.length, showGoldenTicket]);
+  }, [sharedInterests.length, megaVibeTriggered]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -507,7 +536,7 @@ export default function MatchPage() {
           showLeaveButton: false,
           showFullscreenButton: false,
           showParticipantsBar: false,
-          showLocalVideo: false,
+          showLocalVideo: true,
           showUserNameChangeUI: false,
           iframeStyle: {
             position: 'absolute',
@@ -747,11 +776,11 @@ export default function MatchPage() {
             </div>
           </div>
 
-          {/* CENTER: SHARED INTERESTS GLOW + VIBE-O-METER */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+          {/* CENTER: SHARED INTERESTS GLOW - MOVED HIGHER */}
+          <div className="absolute inset-0 flex flex-col items-center pointer-events-none z-20" style={{ justifyContent: '20%' }}>
             <AnimatePresence>
               {isMatched && sharedInterests.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-3 mb-12">
+                <div className="flex flex-wrap justify-center gap-3">
                   {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
                     <motion.div
                       key={interest}
@@ -771,6 +800,10 @@ export default function MatchPage() {
                 </div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* CENTER: VIBE-O-METER - CENTERED */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
             {isMatched && <FluidVibeOMeter count={vibeCount} />}
           </div>
 
