@@ -818,7 +818,7 @@ export default function MatchPage() {
                       initial={{ opacity: 0, scale: 0, y: -30 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
-                      className="relative px-4 py-2 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-xs font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
+                      className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
                     >
                       {interest}
                       <motion.div
