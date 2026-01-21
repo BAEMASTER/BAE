@@ -776,8 +776,8 @@ export default function MatchPage() {
             </div>
           </div>
 
-          {/* CENTER: SHARED INTERESTS GLOW - MOVED HIGHER */}
-          <div className="absolute inset-0 flex flex-col items-center pointer-events-none z-20" style={{ justifyContent: '20%' }}>
+          {/* CENTER OVERLAY - DESKTOP: Shared interests higher, vibe-o-meter centered | MOBILE: stacked horizontally between videos */}
+          <div className="hidden lg:absolute lg:inset-0 lg:flex lg:flex-col lg:items-center lg:pointer-events-none lg:z-20" style={{ justifyContent: '20%' }}>
             <AnimatePresence>
               {isMatched && sharedInterests.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-3">
@@ -802,8 +802,39 @@ export default function MatchPage() {
             </AnimatePresence>
           </div>
 
-          {/* CENTER: VIBE-O-METER - CENTERED */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+          {/* DESKTOP: VIBE-O-METER - CENTERED */}
+          <div className="hidden lg:absolute lg:inset-0 lg:flex lg:flex-col lg:items-center lg:justify-center lg:pointer-events-none lg:z-20">
+            {isMatched && <FluidVibeOMeter count={vibeCount} />}
+          </div>
+
+          {/* MOBILE: SHARED INTERESTS - Between videos, centered horizontally */}
+          <div className="lg:hidden absolute left-0 right-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center py-3 px-3 pointer-events-none">
+            <AnimatePresence>
+              {isMatched && sharedInterests.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
+                    <motion.div
+                      key={interest}
+                      initial={{ opacity: 0, scale: 0, y: -30 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="relative px-4 py-2 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-xs font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
+                    >
+                      {interest}
+                      <motion.div
+                        animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* MOBILE: VIBE-O-METER - Left side, middle */}
+          <div className="lg:hidden absolute left-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
             {isMatched && <FluidVibeOMeter count={vibeCount} />}
           </div>
 
