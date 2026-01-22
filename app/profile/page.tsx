@@ -96,13 +96,7 @@ export default function ProfilePage() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
-
   const [website, setWebsite] = useState('');
-  const [linkedin, setLinkedin] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [tiktok, setTiktok] = useState('');
-  const [twitch, setTwitch] = useState('');
-  const [snapchat, setSnapchat] = useState('');
 
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
@@ -123,11 +117,6 @@ export default function ProfilePage() {
           setState(data.state || '');
           setCountry(data.country || '');
           setWebsite(data.website || '');
-          setLinkedin(data.linkedin || '');
-          setInstagram(data.instagram || '');
-          setTiktok(data.tiktok || '');
-          setTwitch(data.twitch || '');
-          setSnapchat(data.snapchat || '');
           setInterests(Array.isArray(data.interests) ? data.interests : []);
         } else {
           setDisplayName(u.displayName || u.email || 'Mystery BAE');
@@ -148,7 +137,7 @@ export default function ProfilePage() {
     if (!user) return;
     try {
       await setDoc(doc(db, 'users', user.uid), {
-        displayName, city, state, country, website, linkedin, instagram, tiktok, twitch, snapchat,
+        displayName, city, state, country, website,
         interests, updatedAt: new Date().toISOString()
       }, { merge: true });
       setSaveSuccess(true);
@@ -275,17 +264,10 @@ export default function ProfilePage() {
             <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="input" />
           </div>
 
-          <h4 className="font-semibold mt-4 mb-2">Personal Website</h4>
+          <h4 className="font-semibold mt-4 mb-2">Personal/Professional Website</h4>
           <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="input mb-2" />
 
-          <h4 className="font-semibold mt-4 mb-2">Social Links</h4>
-          <input value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="https://www.instagram.com/yourprofile" className="input mb-2" />
-          <input value={tiktok} onChange={e => setTiktok(e.target.value)} placeholder="https://www.tiktok.com/@yourprofile" className="input mb-2" />
-          <input value={twitch} onChange={e => setTwitch(e.target.value)} placeholder="https://www.twitch.tv/yourprofile" className="input mb-2" />
-          <input value={snapchat} onChange={e => setSnapchat(e.target.value)} placeholder="https://www.snapchat.com/add/yourprofile" className="input mb-2" />
-          <input value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://www.linkedin.com/in/yourprofile" className="input mb-2" />
-
-          <button onClick={saveProfile} className="w-full mt-4 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg">Save Changes</button>
+          <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg">Save Changes</button>
         </motion.div>
 
         {/* YOUR INTERESTS */}
