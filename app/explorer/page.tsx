@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
@@ -116,6 +117,13 @@ export default function ExplorerPage() {
     if (userInterests.length < 3) {
       router.push('/profile');
     }
+  };
+
+  const handleBAEClick = () => {
+    if (userInterests.length < 3) {
+      return;
+    }
+    router.push('/match');
   };
 
   const handleToggleInterest = async (interest: string) => {
@@ -294,6 +302,24 @@ export default function ExplorerPage() {
           </motion.div>
         )}
       </div>
+
+      {/* BAE BUTTON - Bottom of page */}
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+        whileHover={userInterests.length >= 3 ? { scale: 1.05 } : {}}
+        whileTap={userInterests.length >= 3 ? { scale: 0.95 } : {}}
+        onClick={handleBAEClick}
+        disabled={userInterests.length < 3}
+        className={`mt-12 mb-8 px-12 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
+          userInterests.length >= 3 
+            ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] cursor-pointer' 
+            : 'bg-gray-500/50 cursor-not-allowed opacity-60'
+        }`}
+      >
+        {userInterests.length >= 3 ? 'BAE SOMEONE NOW!' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
+      </motion.button>
 
       {/* Interest Collection Drawer */}
       <AnimatePresence>
