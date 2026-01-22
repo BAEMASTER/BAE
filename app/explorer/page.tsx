@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
@@ -61,6 +62,7 @@ function InterestPill({
 
 // --- MAIN PAGE ---
 export default function ExplorerPage() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [displayName, setDisplayName] = useState('');
@@ -114,7 +116,14 @@ export default function ExplorerPage() {
     setUnseenProfiles(pool.filter((_, i) => i !== idx));
   };
 
-  const handleToggleInterest = async (interest: string) => {
+  const handleLoginSuccess = () => {
+    // After successful login, check if user needs to complete profile
+    if (userInterests.length < 3) {
+      // Redirect to profile if they don't have 3+ interests yet
+      router.push('/profile');
+    }
+    // Otherwise stay on explorer (they're all set)
+  };
     const exists = userInterests.some(i => i.toLowerCase() === interest.toLowerCase());
     const newInterests = exists ? userInterests.filter(i => i.toLowerCase() !== interest.toLowerCase()) : [...userInterests, interest];
     exists ? playSound([330, 110]) : playSound([440, 880]);
@@ -179,7 +188,7 @@ export default function ExplorerPage() {
           isOpen={true}
           onClose={() => {/* User stays on page until they sign in */}}
           auth={auth}
-          onLoginSuccess={() => {/* Page will refresh with logged-in content */}}
+          onLoginSuccess={handleLoginSuccess}
         />
       </main>
     );
