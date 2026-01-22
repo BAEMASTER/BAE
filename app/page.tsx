@@ -6,6 +6,7 @@ import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'fireb
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import LoginModal from '@/components/LoginModal';
 
 // --- CONSTANTS ---
 const ROTATING_WORDS = ['UPLIFT', 'ELEVATE', 'INSPIRE', 'CHANGE']; 
@@ -36,6 +37,7 @@ export default function HomePage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isChecking, setIsChecking] = useState(true);
   const [wordIndex, setWordIndex] = useState(0);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -71,14 +73,11 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, []);
 
-  const handleBAEClick = () => {
-    if (isChecking) return;
-    if (!user) return router.push('/auth');
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
     if (userInterests.length < MIN_REQUIRED) {
-      alert(`Add at least ${MIN_REQUIRED} interests before BAEing someone!`);
-      return;
+      router.push('/profile');
     }
-    router.push('/match');
   };
 
   return (
@@ -96,7 +95,41 @@ export default function HomePage() {
         <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
           BAE
         </div>
-        <div className="text-white/80 text-sm">{userName}</div>
+        
+        <div className="flex items-center gap-8">
+          <a href="#how-it-works" className="text-white/70 hover:text-white transition-colors font-medium text-sm">
+            How BAE Works
+          </a>
+          <button
+            onClick={() => router.push('/explorer')}
+            className="text-white/70 hover:text-white transition-colors font-medium text-sm"
+          >
+            Explorer
+          </button>
+          <button
+            onClick={() => router.push('/profile')}
+            className="text-white/70 hover:text-white transition-colors font-medium text-sm"
+          >
+            Profile
+          </button>
+          <button
+            onClick={() => router.push('/match')}
+            className="text-white/70 hover:text-white transition-colors font-medium text-sm"
+          >
+            Match
+          </button>
+        </div>
+
+        {user ? (
+          <div className="text-white/80 text-sm font-medium">{userName}</div>
+        ) : (
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="px-8 py-2.5 rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold text-base hover:shadow-lg hover:shadow-pink-500/50 transition-all"
+          >
+            Sign In
+          </button>
+        )}
       </header>
 
       {/* HERO SECTION - Compact layout, no dead space */}
@@ -175,14 +208,22 @@ export default function HomePage() {
            className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
         />
 
-        {/* CTA BUTTON */}
+        {/* CTA BUTTON - Changes based on auth/profile state */}
         <motion.button
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6, duration: 0.6, type: "spring", stiffness: 100 }}
           whileHover={{ scale: 1.05, boxShadow: "0 15px 40px rgba(255, 65, 108, 0.8)" }}
           whileTap={{ scale: 0.95 }}
-          onClick={handleBAEClick}
+          onClick={() => {
+            if (!user) {
+              setShowLoginModal(true);
+            } else if (userInterests.length < MIN_REQUIRED) {
+              router.push('/profile');
+            } else {
+              router.push('/match');
+            }
+          }}
           disabled={isChecking}
           className="relative px-12 sm:px-20 py-5 sm:py-7 rounded-full text-white font-black transition-all disabled:opacity-50 mb-12"
           style={{
@@ -190,7 +231,9 @@ export default function HomePage() {
             boxShadow: "0 10px 30px rgba(255, 65, 108, 0.4)",
           }}
         >
-          <span className="relative z-10 text-xl sm:text-2xl font-black tracking-wider">{isChecking ? 'Initializing...' : 'BAE SOMEONE NOW!'}</span>
+          <span className="relative z-10 text-xl sm:text-2xl font-black tracking-wider">
+            {isChecking ? 'Initializing...' : !user ? 'BAE SOMEONE NOW!' : userInterests.length < MIN_REQUIRED ? 'Complete Your Profile' : 'BAE SOMEONE NOW!'}
+          </span>
         </motion.button>
 
       </section>
@@ -198,6 +241,14 @@ export default function HomePage() {
       <footer className="absolute bottom-6 inset-x-0 text-center text-white/20 text-sm font-medium z-10">
         Your interests make you interesting
       </footer>
+
+      {/* LOGIN MODAL */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        auth={auth}
+        onLoginSuccess={handleLoginSuccess}
+      />
 
     </main>
   );
