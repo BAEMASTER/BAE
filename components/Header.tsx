@@ -35,6 +35,29 @@ export default function Header() {
 
   const isActive = (path: string) => pathname === path;
 
+  // Common nav links for both logged in and out
+  const NavLink = ({ href, label }: { href: string; label: string }) => (
+    <Link 
+      href={href}
+      className={`text-base font-semibold transition-colors ${
+        isActive(href)
+          ? 'relative'
+          : 'text-white/70 hover:text-white'
+      }`}
+    >
+      {isActive(href) ? (
+        <>
+          <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+            {label}
+          </span>
+          <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+        </>
+      ) : (
+        label
+      )}
+    </Link>
+  );
+
   return (
     <header
       className="
@@ -47,7 +70,7 @@ export default function Header() {
     >
       {/* LOGGED OUT HEADER */}
       {!user && (
-        <div className="mx-auto flex max-w-6xl w-full items-center gap-6 text-white leading-normal">
+        <div className="mx-auto flex max-w-6xl w-full items-center gap-8 text-white leading-normal">
           <Link
             href="/"
             className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)] hover:scale-105 transition-transform"
@@ -55,94 +78,19 @@ export default function Header() {
             BAE
           </Link>
           
-          {/* All nav links for logged out users */}
-          <nav className="flex-1 flex justify-center gap-8">
-            <Link 
-              href="/how-bae-works" 
-              className={`text-base font-semibold transition-colors ${
-                isActive('/how-bae-works')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/how-bae-works') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    How BAE Works
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'How BAE Works'
-              )}
-            </Link>
-            
-            <Link 
-              href="/explorer" 
-              className={`text-base font-semibold transition-colors ${
-                isActive('/explorer')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/explorer') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Explorer
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'Explorer'
-              )}
-            </Link>
-            
-            <Link 
-              href="/profile" 
-              className={`text-base font-semibold transition-colors ${
-                isActive('/profile')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/profile') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Profile
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'Profile'
-              )}
-            </Link>
-            
-            <Link 
-              href="/match" 
-              className={`text-base font-semibold transition-colors ${
-                isActive('/match')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/match') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Match
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'Match'
-              )}
-            </Link>
+          {/* Nav links - left aligned */}
+          <nav className="flex items-center gap-8 text-base font-semibold">
+            <NavLink href="/explorer" label="Explorer" />
+            <NavLink href="/profile" label="Profile" />
+            <NavLink href="/how-bae-works" label="How BAE Works" />
           </nav>
 
+          {/* Sign in button - right side */}
           <button
             onClick={doSignIn}
             disabled={busy}
             className="
-              px-6 py-2 rounded-full text-xl font-extrabold text-white
+              ml-auto px-6 py-2 rounded-full text-base font-extrabold text-white
               bg-gradient-to-r from-pink-500 to-fuchsia-600
               shadow-[0_10px_26px_rgba(236,72,153,0.40)]
               hover:brightness-110 hover:shadow-[0_10px_30px_rgba(255,100,150,0.6)]
@@ -156,7 +104,7 @@ export default function Header() {
 
       {/* LOGGED IN HEADER */}
       {user && (
-        <div className="mx-auto flex max-w-6xl w-full items-center gap-6 text-white leading-normal">
+        <div className="mx-auto flex max-w-6xl w-full items-center gap-8 text-white leading-normal">
           {/* LOGO */}
           <Link
             href="/"
@@ -169,99 +117,23 @@ export default function Header() {
             BAE
           </Link>
 
-          {/* NAV */}
-          <nav className="flex items-center gap-6 text-base font-semibold">
-            <Link 
-              href="/profile" 
-              className={`transition-colors ${
-                isActive('/profile')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/profile') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Profile
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'Profile'
-              )}
-            </Link>
-            
-            <Link 
-              href="/explorer" 
-              className={`transition-colors ${
-                isActive('/explorer')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/explorer') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    Explorer
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'Explorer'
-              )}
-            </Link>
-            
-            <Link 
-              href="/how-bae-works" 
-              className={`transition-colors ${
-                isActive('/how-bae-works')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/how-bae-works') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    How BAE Works
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'How BAE Works'
-              )}
-            </Link>
-            
-            <Link 
-              href="/devcheck" 
-              className={`transition-colors ${
-                isActive('/devcheck')
-                  ? 'relative'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              {isActive('/devcheck') ? (
-                <>
-                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-                    DevCheck
-                  </span>
-                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
-                </>
-              ) : (
-                'DevCheck'
-              )}
-            </Link>
+          {/* NAV - left aligned */}
+          <nav className="flex items-center gap-8 text-base font-semibold">
+            <NavLink href="/explorer" label="Explorer" />
+            <NavLink href="/profile" label="Profile" />
+            <NavLink href="/how-bae-works" label="How BAE Works" />
           </nav>
 
           {/* RIGHT SIDE: NAME + SIGN OUT */}
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-sm font-bold text-white/90">
+          <div className="ml-auto flex items-center gap-4">
+            <span className="text-base font-bold text-white/90">
               {user.displayName || user.email}
             </span>
             <button
               onClick={doSignOut}
               disabled={busy}
               className="
-                px-4 py-2 rounded-full border border-white/20 text-sm font-semibold
+                px-6 py-2 rounded-full border border-white/20 text-base font-semibold
                 text-white/80 hover:text-white hover:bg-white/10 hover:border-white/40
                 transition-all disabled:opacity-50
               "

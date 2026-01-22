@@ -1,18 +1,20 @@
 'use client';
 
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, Auth } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  auth: any;
+  auth: Auth;
   onLoginSuccess?: () => void;
 }
 
 export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: LoginModalProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,7 +24,6 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
       setError('');
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      // Success - modal will close and onLoginSuccess callback fires
       if (onLoginSuccess) {
         onLoginSuccess();
       }
@@ -35,6 +36,11 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
     }
   };
 
+  const handleClose = () => {
+    onClose();
+    router.push('/');
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -44,7 +50,7 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleClose}
             className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           />
 
@@ -59,10 +65,11 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
             <div className="relative w-full max-w-md bg-gradient-to-br from-[#2D0052] via-[#1A0033] to-[#0D001A] border border-fuchsia-500/30 rounded-3xl p-8 shadow-2xl">
               {/* Close Button */}
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors z-10"
+                type="button"
               >
-                <X size={24} className="text-white/70" />
+                <X size={24} className="text-white/70 hover:text-white" />
               </button>
 
               {/* Content */}
@@ -100,6 +107,7 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
                   whileHover={{ scale: loading ? 1 : 1.05 }}
                   whileTap={{ scale: loading ? 1 : 0.95 }}
                   className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-full bg-white text-black font-bold text-lg shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                  type="button"
                 >
                   {loading ? (
                     <>
