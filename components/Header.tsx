@@ -47,7 +47,7 @@ export default function Header() {
     >
       {/* LOGGED OUT HEADER */}
       {!user && (
-        <div className="w-full flex items-center justify-between">
+        <div className="mx-auto flex max-w-6xl w-full items-center gap-6 text-white leading-normal">
           <Link
             href="/"
             className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)] hover:scale-105 transition-transform"
@@ -55,8 +55,8 @@ export default function Header() {
             BAE
           </Link>
           
-          {/* How BAE Works link for logged out users */}
-          <nav className="flex-1 flex justify-center">
+          {/* All nav links for logged out users */}
+          <nav className="flex-1 flex justify-center gap-8">
             <Link 
               href="/how-bae-works" 
               className={`text-base font-semibold transition-colors ${
@@ -74,6 +74,66 @@ export default function Header() {
                 </>
               ) : (
                 'How BAE Works'
+              )}
+            </Link>
+            
+            <Link 
+              href="/explorer" 
+              className={`text-base font-semibold transition-colors ${
+                isActive('/explorer')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              {isActive('/explorer') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Explorer
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Explorer'
+              )}
+            </Link>
+            
+            <Link 
+              href="/profile" 
+              className={`text-base font-semibold transition-colors ${
+                isActive('/profile')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              {isActive('/profile') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Profile
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Profile'
+              )}
+            </Link>
+            
+            <Link 
+              href="/match" 
+              className={`text-base font-semibold transition-colors ${
+                isActive('/match')
+                  ? 'relative'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              {isActive('/match') ? (
+                <>
+                  <span className="relative z-10 bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+                    Match
+                  </span>
+                  <span className="absolute inset-0 -inset-x-2 bg-gradient-to-r from-yellow-300/20 to-pink-400/20 blur-md rounded-lg"></span>
+                </>
+              ) : (
+                'Match'
               )}
             </Link>
           </nav>

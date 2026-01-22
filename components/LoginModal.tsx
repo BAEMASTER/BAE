@@ -79,7 +79,7 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
 
                 {/* Subtitle */}
                 <p className="text-white/70 font-medium mb-8">
-                  Sign in to find your vibe and start matching with people who share your interests.
+                  Sign in to Find Your People.
                 </p>
 
                 {/* Error Message */}
