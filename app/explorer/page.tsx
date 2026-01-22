@@ -6,7 +6,7 @@ import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight } from 'lucide-react';
-import LoginPrompt from '@/components/LoginPrompt';
+import LoginModal from '@/components/LoginModal';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
@@ -174,11 +174,12 @@ export default function ExplorerPage() {
           </div>
         </div>
 
-        {/* Login Prompt Overlay */}
-        <LoginPrompt 
-          onLoginClick={() => {/* Login handled by header button */}}
-          title="Explore BAE"
-          subtitle="Sign in to Find Your People."
+        {/* Login Modal - Shows immediately for non-logged-in users */}
+        <LoginModal
+          isOpen={true}
+          onClose={() => {/* User stays on page until they sign in */}}
+          auth={auth}
+          onLoginSuccess={() => {/* Page will refresh with logged-in content */}}
         />
       </main>
     );
