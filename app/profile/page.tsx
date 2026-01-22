@@ -268,6 +268,20 @@ export default function ProfilePage() {
           <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="input mb-2" />
 
           <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg">Save Changes</button>
+          
+          {/* Save Success Message */}
+          <AnimatePresence>
+            {saveSuccess && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-3 text-center text-green-400 font-semibold text-sm"
+              >
+                ✓ Saved!
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* YOUR INTERESTS */}
