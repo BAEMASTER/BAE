@@ -302,23 +302,25 @@ export default function ExplorerPage() {
         )}
       </div>
 
-      {/* BAE BUTTON - Bottom of page */}
-      <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
-        whileHover={userInterests.length >= 3 ? { scale: 1.05 } : {}}
-        whileTap={userInterests.length >= 3 ? { scale: 0.95 } : {}}
-        onClick={handleBAEClick}
-        disabled={userInterests.length < 3}
-        className={`mt-12 mb-8 px-12 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
-          userInterests.length >= 3 
-            ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] cursor-pointer' 
-            : 'bg-gray-500/50 cursor-not-allowed opacity-60'
-        }`}
-      >
-        {userInterests.length >= 3 ? 'BAE SOMEONE NOW!' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
-      </motion.button>
+      {/* BAE BUTTON - Bottom of page - centered capsule */}
+      <div className="flex justify-center w-full py-8">
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
+          whileHover={userInterests.length >= 3 ? { scale: 1.05 } : {}}
+          whileTap={userInterests.length >= 3 ? { scale: 0.95 } : {}}
+          onClick={handleBAEClick}
+          disabled={userInterests.length < 3}
+          className={`px-16 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
+            userInterests.length >= 3 
+              ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] cursor-pointer hover:shadow-[0_15px_40px_rgba(255,65,108,0.6)]' 
+              : 'bg-gray-500/50 cursor-not-allowed opacity-60'
+          }`}
+        >
+          {userInterests.length >= 3 ? 'BAE SOMEONE NOW!' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
+        </motion.button>
+      </div>
 
       {/* Interest Collection Drawer */}
       <AnimatePresence>
