@@ -72,16 +72,12 @@ export default function ExplorerPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newInterest, setNewInterest] = useState('');
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u || null);
-      
-      // If not logged in, show login prompt
       if (!u) { 
-        setLoading(false);
-        setShowLoginPrompt(true);
+        setLoading(false); 
         return; 
       }
 
@@ -117,13 +113,12 @@ export default function ExplorerPage() {
   };
 
   const handleLoginSuccess = () => {
-    // After successful login, check if user needs to complete profile
     if (userInterests.length < 3) {
-      // Redirect to profile if they don't have 3+ interests yet
       router.push('/profile');
     }
-    // Otherwise stay on explorer (they're all set)
   };
+
+  const handleToggleInterest = async (interest: string) => {
     const exists = userInterests.some(i => i.toLowerCase() === interest.toLowerCase());
     const newInterests = exists ? userInterests.filter(i => i.toLowerCase() !== interest.toLowerCase()) : [...userInterests, interest];
     exists ? playSound([330, 110]) : playSound([440, 880]);
@@ -150,18 +145,18 @@ export default function ExplorerPage() {
 
   if (loading) return <div className="h-screen bg-[#1A0033] flex items-center justify-center text-white font-black text-2xl">IGNITING...</div>;
 
-  // NOT LOGGED IN - Show blurred content with login prompt
+  // GATED FOR NON-LOGGED-IN USERS
   if (!user) {
     return (
-      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
         {/* Background aura */}
         <div className="pointer-events-none absolute inset-0 opacity-30">
           <div className="absolute top-0 left-0 w-96 h-96 bg-fuchsia-500/20 blur-[140px] animate-pulse"></div>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[140px] animate-pulse-reverse"></div>
         </div>
 
-        {/* Blurred Content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 blur-sm pointer-events-none opacity-40">
+        {/* Blurred content area */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 blur-md pointer-events-none opacity-50">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
             <div className="text-center sm:text-left">
               <h1 className="text-4xl sm:text-6xl font-black mb-3">
@@ -178,7 +173,6 @@ export default function ExplorerPage() {
                 <span className="text-5xl font-extrabold">0</span>
                 <span className="text-sm font-semibold mt-1">Interests</span>
               </div>
-              <span className="text-xs mt-2 text-white/70">tap to view/edit</span>
             </div>
           </div>
         </div>
@@ -194,7 +188,7 @@ export default function ExplorerPage() {
     );
   }
 
-  // LOGGED IN - Show full Explorer
+  // FULL EXPLORER FOR LOGGED-IN USERS
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
 
@@ -239,22 +233,22 @@ export default function ExplorerPage() {
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-5xl bg-white/5 backdrop-blur-3xl rounded-[40px] border border-white/10 p-8 flex flex-col max-h-[55vh] shadow-2xl relative overflow-hidden"
           >
-         {/* Profile Info */}
-<div className="flex flex-col gap-2 mb-6 border-b border-white/10 pb-6 shrink-0">
-  <div className="flex items-center gap-5">
-    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-3xl font-black text-white shadow-[0_0_20px_rgba(255,160,255,0.6)]">
-      {currentProfile.displayName?.charAt(0).toUpperCase()}
-    </div>
-    <div className="flex flex-col">
-      <h2 className="text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-        {currentProfile.displayName || 'Anonymous'}
-      </h2>
-      <span className="text-sm sm:text-base text-white/70">
-        {currentProfile.location || 'Unknown Location'}
-      </span>
-    </div>
-  </div>
-</div>
+            {/* Profile Info */}
+            <div className="flex flex-col gap-2 mb-6 border-b border-white/10 pb-6 shrink-0">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-3xl font-black text-white shadow-[0_0_20px_rgba(255,160,255,0.6)]">
+                  {currentProfile.displayName?.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col">
+                  <h2 className="text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                    {currentProfile.displayName || 'Anonymous'}
+                  </h2>
+                  <span className="text-sm sm:text-base text-white/70">
+                    {currentProfile.location || 'Unknown Location'}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Interests */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6">
@@ -301,73 +295,73 @@ export default function ExplorerPage() {
         )}
       </div>
 
-    {/* Interest Collection Drawer */}
-<AnimatePresence>
-  {drawerOpen && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
-    >
-      <div className="absolute inset-0" onClick={() => setDrawerOpen(false)} />
-
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="relative w-full max-w-2xl bg-[#1A0033]/95 border border-white/20 rounded-[32px] p-10 shadow-2xl overflow-hidden"
-      >
-    {/* CLOSE BUTTON: Clean, High-Contrast White X */}
-<button
-  onClick={() => setDrawerOpen(false)}
-  className="absolute top-6 right-6 p-2 flex items-center justify-center hover:scale-110 transition-all z-[110]"
->
-  <X 
-    size={32} 
-    strokeWidth={2.5} 
-    className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" 
-  />
-</button>
-
-        <h3 className="text-xl font-bold text-white mb-6 text-center tracking-tight uppercase tracking-widest">Your Interests</h3>
-
-        <div className="flex gap-2 mb-8">
-          <input
-            type="text"
-            placeholder="Add new interest…"
-            className="flex-1 px-5 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm transition-all"
-            value={newInterest}
-            onChange={(e) => setNewInterest(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
-          />
-          <button
-            onClick={handleAddInterest}
-            className="px-6 py-3 rounded-full bg-yellow-400 text-black font-bold text-sm hover:bg-yellow-500 transition-colors"
+      {/* Interest Collection Drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
           >
-            Add
-          </button>
-        </div>
+            <div className="absolute inset-0" onClick={() => setDrawerOpen(false)} />
 
-        <div className="flex flex-wrap gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-          {userInterests.length === 0 && (
-            <p className="text-white/30 text-sm italic py-6 text-center w-full">No interests yet.</p>
-          )}
-          {userInterests.map((i) => (
-            <button
-              key={i}
-              onClick={() => handleDeleteInterest(i)}
-              className="px-4 py-2 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 flex items-center gap-2 hover:brightness-125 transition-all active:scale-95"
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-2xl bg-[#1A0033]/95 border border-white/20 rounded-[32px] p-10 shadow-2xl overflow-hidden"
             >
-              {i}
-              <span className="opacity-40">✕</span>
-            </button>
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="absolute top-6 right-6 p-2 flex items-center justify-center hover:scale-110 transition-all z-[110]"
+              >
+                <X 
+                  size={32} 
+                  strokeWidth={2.5} 
+                  className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" 
+                />
+              </button>
+
+              <h3 className="text-xl font-bold text-white mb-6 text-center tracking-tight uppercase tracking-widest">Your Interests</h3>
+
+              <div className="flex gap-2 mb-8">
+                <input
+                  type="text"
+                  placeholder="Add new interest…"
+                  className="flex-1 px-5 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm transition-all"
+                  value={newInterest}
+                  onChange={(e) => setNewInterest(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
+                />
+                <button
+                  onClick={handleAddInterest}
+                  className="px-6 py-3 rounded-full bg-yellow-400 text-black font-bold text-sm hover:bg-yellow-500 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                {userInterests.length === 0 && (
+                  <p className="text-white/30 text-sm italic py-6 text-center w-full">No interests yet.</p>
+                )}
+                {userInterests.map((i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleDeleteInterest(i)}
+                    className="px-4 py-2 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 flex items-center gap-2 hover:brightness-125 transition-all active:scale-95"
+                  >
+                    {i}
+                    <span className="opacity-40">✕</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </main>
   );
