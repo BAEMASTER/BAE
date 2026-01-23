@@ -264,11 +264,11 @@ export default function GuidePage() {
                     <p className="text-sm font-bold text-white">You</p>
                     <p className="text-xs text-white/60">Los Angeles</p>
                   </div>
-                  {/* Your Interests */}
+                  {/* Your Unique Interests */}
                   <div className="flex flex-wrap gap-1 justify-center">
-                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Jazz</span>
-                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Meditation</span>
-                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Poetry</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Surfing</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Photography</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Hiking</span>
                   </div>
                 </div>
 
@@ -329,15 +329,15 @@ export default function GuidePage() {
                     <p className="text-sm font-bold text-white">Alex</p>
                     <p className="text-xs text-white/60">New York</p>
                   </div>
-                  {/* Their Interests */}
+                  {/* Their Unique Interests */}
                   <div className="flex flex-wrap gap-1 justify-center">
-                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Jazz</span>
-                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Meditation</span>
-                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Architecture</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Cooking</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Art History</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Tennis</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-white/50 text-center">Gold glowing = shared interests | See vibe-o-meter level up as you discover more</p>
+              <p className="text-xs text-white/50 text-center">Gold glowing = shared interests | Different interests below each person</p>
             </div>
           </div>
         </motion.section>
