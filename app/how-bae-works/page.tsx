@@ -2,10 +2,51 @@
 
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
 import { Brain, Youtube, Music, ArrowRight } from 'lucide-react';
+import LoginModal from '@/components/LoginModal';
 
 export default function GuidePage() {
   const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u || null);
+      if (!u) {
+        setAuthReady(true);
+        return;
+      }
+      try {
+        const snap = await getDoc(doc(db, 'users', u.uid));
+        if (snap.exists()) {
+          setUserInterests(snap.data().interests || []);
+        }
+      } catch (e) {
+        console.error('Load interests failed', e);
+      }
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleBAEClick = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (userInterests.length < 3) {
+      router.push('/profile');
+      return;
+    }
+    router.push('/match');
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] relative overflow-hidden">
@@ -50,10 +91,10 @@ export default function GuidePage() {
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">What Is BAE?</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>BAE connects people through shared interests. Fun. Simple. Authentic.</p>
-              <p>When you match with someone, your shared interests <strong className="text-yellow-300">light up gold</strong> on both sides at the same time. You see them together.</p>
+              <p>BAE is built around what you're genuinely interested in. Fun to use. Simple by design. Authentic by nature.</p>
+              <p>When you match with someone, your shared interests <strong className="text-yellow-300">glow</strong> in the middle between you both at the same time. You see them together.</p>
               <p>That moment answers the question: <strong className="text-white">"What do we both care about?"</strong></p>
-              <p>And that's how conversations start.</p>
+              <p>And conversation starts from there.</p>
             </div>
 
             {/* Visual Example: Glowing Interests */}
@@ -101,11 +142,46 @@ export default function GuidePage() {
         >
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Build Your Interests</h2>
-            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
+            <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
               <p>Add anything you actually like. Big passions. Small hobbies. Forgotten favorites.</p>
               <p className="text-white/90 font-semibold">Physics. Indian cooking. Architecture. Jazz. Meditation. Museums. Sneakers. Poetry. Gaming.</p>
               <p>There's no "perfect" list. Your interests don't have to match or make sense together. They just tell people what matters to you.</p>
               <p>As you explore BAE, you'll discover new things to add and remember things you'd forgotten about.</p>
+            </div>
+
+            {/* Visual Example: Interest Adder */}
+            <div className="bg-black/30 rounded-2xl p-6 border border-white/10">
+              <p className="text-sm text-white/60 mb-4 text-center">How it looks on your profile:</p>
+              
+              {/* Current Interests */}
+              <div className="mb-6">
+                <p className="text-xs text-white/50 mb-3">Your interests:</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
+                    Jazz
+                  </span>
+                  <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
+                    Meditation
+                  </span>
+                  <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
+                    Architecture
+                  </span>
+                </div>
+              </div>
+
+              {/* Add Interest Input */}
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Add interest..." 
+                  className="flex-1 px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm"
+                  disabled
+                />
+                <button className="px-6 py-3 rounded-full bg-pink-500 text-white font-bold text-sm hover:bg-pink-600 transition-colors">
+                  Add
+                </button>
+              </div>
+              <p className="text-xs text-white/50 mt-3 text-center">Type anything, press Enter or click Add</p>
             </div>
           </div>
         </motion.section>
@@ -118,11 +194,11 @@ export default function GuidePage() {
           className="mb-20"
         >
           <div className="bg-gradient-to-br from-fuchsia-900/30 to-indigo-900/30 backdrop-blur-lg rounded-3xl border border-purple-400/30 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Explore Others</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Interest Explorer</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
-              <p>Browse profiles one at a time. See their name, where they're from, and what they love.</p>
-              <p>Shared interests light up in gold. Non-shared ones are there too—tap to add them if something catches your eye.</p>
-              <p>No pressure. Just explore and see what people are into.</p>
+              <p>Scroll through real people and see what they actually care about. One profile at a time.</p>
+              <p>Your shared interests <strong className="text-yellow-300">glow gold</strong>. The other stuff they love? Add any of it to your profile. Discover things you forgot about. Find new passions. Get inspired.</p>
+              <p>The more diverse your interests, the richer your conversations. Every profile you explore makes your own profile stronger.</p>
             </div>
 
             {/* Visual Example: Interest Explorer Preview */}
@@ -168,10 +244,61 @@ export default function GuidePage() {
         >
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Video Match</h2>
-            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>Get matched with someone who shares your interests. Then hop on video and chat.</p>
-              <p>Your shared interests stay highlighted the whole time. If you discover new ones during the call, add them on the spot.</p>
-              <p>No swiping. No texting first. Just real people, real interests, real conversations.</p>
+            <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
+              <p>Get matched with someone new. Hop on video. See what you both care about.</p>
+              <p>Your shared interests glow in the middle. But their other interests are right there too—add any of them to your own profile in real time. The conversation deepens. Both of you grow.</p>
+              <p>Real connection happens when you discover new things together.</p>
+            </div>
+
+            {/* Visual Example: Video Match Preview */}
+            <div className="bg-black/40 rounded-2xl p-6 border border-white/10">
+              <div className="flex gap-4 items-stretch mb-6">
+                {/* Your Video */}
+                <div className="flex-1 bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-64">
+                  <svg className="w-32 h-32 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
+                    <circle cx="50" cy="30" r="15" />
+                    <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
+                  </svg>
+                  <p className="text-sm font-bold text-white mt-2">You</p>
+                  <p className="text-xs text-white/60">Los Angeles</p>
+                </div>
+
+                {/* Center: Shared Interests */}
+                <div className="flex flex-col items-center justify-center gap-3 px-4">
+                  <motion.span 
+                    animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)'] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
+                  >
+                    ⭐ Jazz
+                  </motion.span>
+                  <motion.span 
+                    animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)'] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+                    className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
+                  >
+                    ⭐ Meditation
+                  </motion.span>
+                  <motion.span 
+                    animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)'] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
+                    className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
+                  >
+                    ⭐ Poetry
+                  </motion.span>
+                </div>
+
+                {/* Their Video */}
+                <div className="flex-1 bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-64">
+                  <svg className="w-32 h-32 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
+                    <circle cx="50" cy="30" r="15" />
+                    <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
+                  </svg>
+                  <p className="text-sm font-bold text-white mt-2">Alex</p>
+                  <p className="text-xs text-white/60">New York</p>
+                </div>
+              </div>
+              <p className="text-xs text-white/50 text-center">Gold glowing interests = you both like them</p>
             </div>
           </div>
         </motion.section>
@@ -257,7 +384,7 @@ export default function GuidePage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/')}
+            onClick={handleBAEClick}
             className="group inline-flex items-center gap-3 px-12 py-5 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-black text-xl rounded-full shadow-2xl hover:shadow-[0_0_40px_rgba(236,72,153,0.6)] transition-all"
           >
             BAE Someone Now
@@ -267,6 +394,18 @@ export default function GuidePage() {
             Your interests make you interesting
           </p>
         </motion.div>
+
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          auth={auth}
+          onLoginSuccess={() => {
+            setShowLoginModal(false);
+            if (userInterests.length < 3) {
+              router.push('/profile');
+            }
+          }}
+        />
 
       </div>
 
