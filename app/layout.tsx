@@ -1,7 +1,6 @@
 'use client';
 import './globals.css';
 import Header from '@/components/Header';
-import RootLayoutClient from '@/components/RootLayoutClient';
 import { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -21,9 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               : "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 pt-[72px]"
           }
         >
-          <RootLayoutClient>
-            {children}
-          </RootLayoutClient>
+          {children}
         </main>
       </body>
     </html>
