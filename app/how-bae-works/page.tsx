@@ -50,16 +50,15 @@ export default function GuidePage() {
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">What Is BAE?</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>BAE is built around what you're genuinely interested in. Fun to use. Simple by design. Authentic by nature.</p>
-              <p>When you connect on BAE, your shared interests <strong className="text-yellow-300">glow</strong> between you. You see them at the same time.</p>
-              <p>That shared glow answers a simple question:</p>
-              <p className="text-2xl font-bold text-white text-center py-4">"What do we talk about?"</p>
-              <p>And conversation starts from there.</p>
+              <p>BAE connects people through shared interests. Fun. Simple. Authentic.</p>
+              <p>When you match with someone, your shared interests <strong className="text-yellow-300">light up gold</strong> on both sides at the same time. You see them together.</p>
+              <p>That moment answers the question: <strong className="text-white">"What do we both care about?"</strong></p>
+              <p>And that's how conversations start.</p>
             </div>
 
             {/* Visual Example: Glowing Interests */}
             <div className="mt-8 bg-black/30 rounded-2xl p-6 border border-white/10">
-              <p className="text-sm text-white/60 mb-4 text-center">Example: Shared interests glow gold</p>
+              <p className="text-sm text-white/60 mb-4 text-center">What shared interests look like:</p>
               <div className="flex flex-wrap gap-3 justify-center">
                 <motion.span 
                   animate={{ 
@@ -101,46 +100,12 @@ export default function GuidePage() {
           className="mb-20"
         >
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Your Interests</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Build Your Interests</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>Your profile grows as you explore and add new things.</p>
-              <p>Add anything you love—things you're really into, things you like casually, or things you've always enjoyed but forgot about.</p>
-              <p className="text-white/90 font-semibold">Physics. Indian cooking. Architecture. Jazz. Meditation. Venture capital. Museums. Sneakers. Poetry. Gaming.</p>
-              <p>There's no perfect list. Interests don't have to explain you or fit together. They just give people a way to meet you where you are.</p>
-              <p>As you explore BAE, you'll naturally add new interests and remember old favorites. Your profile grows with you.</p>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Connecting on BAE Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-20"
-        >
-          <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Connecting on BAE</h2>
-            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>When you meet someone, your shared interests <strong className="text-yellow-300">glow beautifully</strong>.</p>
-              <p>That little spark makes it easy to start talking. Connection feels natural, light, and sweet—just two people noticing the same things together.</p>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Growing Your Interests Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-20"
-        >
-          <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Growing Your Interests</h2>
-            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>As you spend time on BAE, you'll see new interests through other people.</p>
-              <p>Sometimes you'll see something and get curious. Sometimes you'll see an interest and think, <strong className="text-white">"I forgot how much I love that."</strong></p>
-              <p>You can add interests as you go. Over time, your profile becomes richer—not just for others, but for you.</p>
+              <p>Add anything you actually like. Big passions. Small hobbies. Forgotten favorites.</p>
+              <p className="text-white/90 font-semibold">Physics. Indian cooking. Architecture. Jazz. Meditation. Museums. Sneakers. Poetry. Gaming.</p>
+              <p>There's no "perfect" list. Your interests don't have to match or make sense together. They just tell people what matters to you.</p>
+              <p>As you explore BAE, you'll discover new things to add and remember things you'd forgotten about.</p>
             </div>
           </div>
         </motion.section>
@@ -153,12 +118,11 @@ export default function GuidePage() {
           className="mb-20"
         >
           <div className="bg-gradient-to-br from-fuchsia-900/30 to-indigo-900/30 backdrop-blur-lg rounded-3xl border border-purple-400/30 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Interest Explorer</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Explore Others</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
-              <p>Interest Explorer is a fun, purposeful way to see what others care about—one person at a time.</p>
-              <p>You'll see their name, where they are, and what they're interested in. Shared interests <strong className="text-yellow-300">glow</strong>, so it's easy to notice what you have in common.</p>
-              <p>You can add interests as you explore, follow what catches your attention, or just enjoy seeing the wide range of what people love.</p>
-              <p>It's a playful way to meet people with <strong className="text-white">no pressure</strong>.</p>
+              <p>Browse profiles one at a time. See their name, where they're from, and what they love.</p>
+              <p>Shared interests light up in gold. Non-shared ones are there too—tap to add them if something catches your eye.</p>
+              <p>No pressure. Just explore and see what people are into.</p>
             </div>
 
             {/* Visual Example: Interest Explorer Preview */}
@@ -172,7 +136,7 @@ export default function GuidePage() {
                   <div className="text-sm text-white/70">San Francisco</div>
                 </div>
               </div>
-              <p className="text-xs text-white/60 mb-3">Their interests:</p>
+              <p className="text-xs text-white/60 mb-3">Her interests:</p>
               <div className="flex flex-wrap gap-2">
                 <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.6)]">
                   ⭐ Venture capital
@@ -190,7 +154,24 @@ export default function GuidePage() {
                   Gardening + 👆
                 </span>
               </div>
-              <p className="text-xs text-white/50 mt-4 text-center">Gold = shared interests with you | Tap + to add to your profile</p>
+              <p className="text-xs text-white/50 mt-4 text-center">Gold = you both like it | Tap + to add to yours</p>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Video Matching Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-20"
+        >
+          <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Video Match</h2>
+            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
+              <p>Get matched with someone who shares your interests. Then hop on video and chat.</p>
+              <p>Your shared interests stay highlighted the whole time. If you discover new ones during the call, add them on the spot.</p>
+              <p>No swiping. No texting first. Just real people, real interests, real conversations.</p>
             </div>
           </div>
         </motion.section>
@@ -203,15 +184,13 @@ export default function GuidePage() {
           className="mb-20"
         >
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Beyond Matching</h2>
-            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>BAE isn't just about matching or chatting.</p>
-              <p>Over time, it will let people share experiences together—watching, listening, exploring ideas, or just spending time in the same space. Even immersive ones will be part of the future.</p>
-              <p>The goal is simple: help people connect in ways that feel <strong className="text-white">natural, fun, and personal</strong>.</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Coming Soon</h2>
+            <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
+              <p>Video is just the start. We're building ways to connect around what you care about—together.</p>
             </div>
 
             {/* Coming Soon Cards */}
-            <div className="grid sm:grid-cols-3 gap-6 mt-8">
+            <div className="grid sm:grid-cols-3 gap-6">
               {/* AI Together */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -225,7 +204,7 @@ export default function GuidePage() {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Ask AI Together</h3>
                 <p className="text-sm text-white/70">
-                  Collaborate with AI in real-time. Learn together, explore ideas as a team.
+                  Brainstorm and learn side-by-side in real-time.
                 </p>
               </motion.div>
 
@@ -241,9 +220,9 @@ export default function GuidePage() {
                 <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Youtube className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Watch Videos Together</h3>
+                <h3 className="text-xl font-bold text-white mb-2">Watch Together</h3>
                 <p className="text-sm text-white/70">
-                  Share videos, watch them synced. React together, laugh together.
+                  Share videos and react in sync.
                 </p>
               </motion.div>
 
@@ -259,27 +238,11 @@ export default function GuidePage() {
                 <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Music className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">Listen to Music Together</h3>
+                <h3 className="text-xl font-bold text-white mb-2">Listen Together</h3>
                 <p className="text-sm text-white/70">
-                  Share songs, discover music, vibe together in real-time.
+                  Share songs and discover music as a pair.
                 </p>
               </motion.div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Why BAE Works Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-20"
-        >
-          <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Why BAE Works</h2>
-            <div className="space-y-4 text-lg text-white/80 leading-relaxed">
-              <p>People connect best when there's something they care about in common.</p>
-              <p>When shared interests <strong className="text-yellow-300">glow</strong>, conversation starts naturally. BAE makes it easier for connections to happen—and makes them feel <strong className="text-white">fun, sweet, and real</strong>.</p>
             </div>
           </div>
         </motion.section>
