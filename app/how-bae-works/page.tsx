@@ -252,53 +252,92 @@ export default function GuidePage() {
 
             {/* Visual Example: Video Match Preview */}
             <div className="bg-black/40 rounded-2xl p-6 border border-white/10">
-              <div className="flex gap-4 items-stretch mb-6">
+              <div className="flex gap-4 items-stretch mb-6 relative">
                 {/* Your Video */}
-                <div className="flex-1 bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-64">
-                  <svg className="w-32 h-32 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
-                    <circle cx="50" cy="30" r="15" />
-                    <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
-                  </svg>
-                  <p className="text-sm font-bold text-white mt-2">You</p>
-                  <p className="text-xs text-white/60">Los Angeles</p>
+                <div className="flex-1">
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-48 mb-3">
+                    {/* Silhouette */}
+                    <svg className="w-28 h-28 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
+                      <circle cx="50" cy="30" r="15" />
+                      <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
+                    </svg>
+                    <p className="text-sm font-bold text-white">You</p>
+                    <p className="text-xs text-white/60">Los Angeles</p>
+                  </div>
+                  {/* Your Interests */}
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Jazz</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Meditation</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Poetry</span>
+                  </div>
                 </div>
 
-                {/* Center: Shared Interests */}
+                {/* Center: Shared Interests + Vibe Meter */}
                 <div className="flex flex-col items-center justify-center gap-3 px-4">
-                  <motion.span 
-                    animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)'] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
-                  >
-                    ⭐ Jazz
-                  </motion.span>
-                  <motion.span 
-                    animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)'] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
-                    className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
-                  >
-                    ⭐ Meditation
-                  </motion.span>
-                  <motion.span 
-                    animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)'] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
-                    className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
-                  >
-                    ⭐ Poetry
-                  </motion.span>
+                  {/* Shared Interests */}
+                  <div className="flex flex-col gap-2">
+                    <motion.span 
+                      animate={{ 
+                        boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="px-3 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
+                    >
+                      ⭐ Jazz
+                    </motion.span>
+                    <motion.span 
+                      animate={{ 
+                        boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+                      className="px-3 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
+                    >
+                      ⭐ Meditation
+                    </motion.span>
+                    <motion.span 
+                      animate={{ 
+                        boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
+                      className="px-3 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
+                    >
+                      ⭐ Poetry
+                    </motion.span>
+                  </div>
+
+                  {/* Vibe Meter */}
+                  <div className="mt-2 flex flex-col items-center gap-1">
+                    <div className="relative w-6 h-20 rounded-full bg-white/10 border border-white/20 overflow-hidden">
+                      <motion.div
+                        animate={{ height: '60%' }}
+                        transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+                        className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-300 via-pink-400 to-fuchsia-500"
+                      />
+                    </div>
+                    <p className="text-[9px] font-black text-yellow-300 tracking-tight">DEEP</p>
+                  </div>
                 </div>
 
                 {/* Their Video */}
-                <div className="flex-1 bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-64">
-                  <svg className="w-32 h-32 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
-                    <circle cx="50" cy="30" r="15" />
-                    <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
-                  </svg>
-                  <p className="text-sm font-bold text-white mt-2">Alex</p>
-                  <p className="text-xs text-white/60">New York</p>
+                <div className="flex-1">
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-48 mb-3">
+                    {/* Silhouette */}
+                    <svg className="w-28 h-28 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
+                      <circle cx="50" cy="30" r="15" />
+                      <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
+                    </svg>
+                    <p className="text-sm font-bold text-white">Alex</p>
+                    <p className="text-xs text-white/60">New York</p>
+                  </div>
+                  {/* Their Interests */}
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Jazz</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Meditation</span>
+                    <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Architecture</span>
+                  </div>
                 </div>
               </div>
-              <p className="text-xs text-white/50 text-center">Gold glowing interests = you both like them</p>
+              <p className="text-xs text-white/50 text-center">Gold glowing = shared interests | See vibe-o-meter level up as you discover more</p>
             </div>
           </div>
         </motion.section>
