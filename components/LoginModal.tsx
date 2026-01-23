@@ -3,7 +3,7 @@
 import { signInWithPopup, GoogleAuthProvider, Auth } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface LoginModalProps {
@@ -13,7 +13,7 @@ interface LoginModalProps {
   onLoginSuccess?: () => void;
 }
 
-export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: LoginModalProps) {
+const LoginModal = memo(function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: LoginModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,21 +45,22 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - simple fade, no blur animation */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={handleClose}
             className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           />
 
-          {/* Modal */}
+          {/* Modal - optimized animations */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ type: 'spring', stiffness: 250, damping: 25, duration: 0.3 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div className="relative w-full max-w-md bg-gradient-to-br from-[#2D0052] via-[#1A0033] to-[#0D001A] border border-fuchsia-500/30 rounded-3xl p-8 shadow-2xl">
@@ -150,4 +151,6 @@ export default function LoginModal({ isOpen, onClose, auth, onLoginSuccess }: Lo
       )}
     </AnimatePresence>
   );
-}
+});
+
+export default LoginModal;

@@ -84,21 +84,6 @@ export default function Header() {
             <NavLink href="/profile" label="Profile" />
             <NavLink href="/how-bae-works" label="How BAE Works" />
           </nav>
-
-          {/* Sign in button - right side */}
-          <button
-            onClick={doSignIn}
-            disabled={busy}
-            className="
-              ml-auto px-6 py-2 rounded-full text-base font-extrabold text-white
-              bg-gradient-to-r from-pink-500 to-fuchsia-600
-              shadow-[0_10px_26px_rgba(236,72,153,0.40)]
-              hover:brightness-110 hover:shadow-[0_10px_30px_rgba(255,100,150,0.6)]
-              transition-all disabled:opacity-60
-            "
-          >
-            {busy ? '…' : 'Sign in'}
-          </button>
         </div>
       )}
 
