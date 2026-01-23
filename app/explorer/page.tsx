@@ -81,6 +81,7 @@ export default function ExplorerPage() {
         return; 
       }
 
+      // Only fetch user data and profiles when logged in
       const snap = await getDoc(doc(db, 'users', u.uid));
       if (snap.exists()) {
         const data = snap.data();

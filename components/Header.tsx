@@ -65,21 +65,21 @@ export default function Header() {
         bg-[#1A0033]/80 backdrop-blur-xl
         border-b border-purple-400/20 shadow-[0_1px_20px_rgba(168,85,247,0.1)]
         h-[72px] flex items-center
-        px-6 transition-all duration-500
+        px-4 sm:px-6 transition-all duration-500
       "
     >
       {/* LOGGED OUT HEADER */}
       {!user && (
-        <div className="mx-auto flex max-w-6xl w-full items-center gap-8 text-white leading-normal">
+        <div className="mx-auto flex max-w-6xl w-full items-center gap-6 sm:gap-8 text-white leading-normal">
           <Link
             href="/"
-            className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)] hover:scale-105 transition-transform"
+            className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)] hover:scale-105 transition-transform flex-shrink-0"
           >
             BAE
           </Link>
           
-          {/* Nav links - left aligned */}
-          <nav className="flex items-center gap-8 text-base font-semibold">
+          {/* Nav links - left aligned, same on all screens */}
+          <nav className="flex items-center gap-3 sm:gap-8 text-xs sm:text-base font-semibold">
             <NavLink href="/explorer" label="Explorer" />
             <NavLink href="/profile" label="Profile" />
             <NavLink href="/how-bae-works" label="How BAE Works" />
@@ -89,38 +89,38 @@ export default function Header() {
 
       {/* LOGGED IN HEADER */}
       {user && (
-        <div className="mx-auto flex max-w-6xl w-full items-center gap-8 text-white leading-normal">
+        <div className="mx-auto flex max-w-6xl w-full items-center gap-4 sm:gap-8 text-white leading-normal">
           {/* LOGO */}
           <Link
             href="/"
             className="
-              text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 
+              text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 
               bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]
-              hover:scale-105 transition-transform
+              hover:scale-105 transition-transform flex-shrink-0
             "
           >
             BAE
           </Link>
 
           {/* NAV - left aligned */}
-          <nav className="flex items-center gap-8 text-base font-semibold">
+          <nav className="flex items-center gap-3 sm:gap-8 text-xs sm:text-base font-semibold flex-1">
             <NavLink href="/explorer" label="Explorer" />
             <NavLink href="/profile" label="Profile" />
             <NavLink href="/how-bae-works" label="How BAE Works" />
           </nav>
 
           {/* RIGHT SIDE: NAME + SIGN OUT */}
-          <div className="ml-auto flex items-center gap-4">
-            <span className="text-base font-bold text-white/90">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <span className="text-xs sm:text-sm font-bold text-white/90 truncate max-w-[100px] sm:max-w-none">
               {user.displayName || user.email}
             </span>
             <button
               onClick={doSignOut}
               disabled={busy}
               className="
-                px-6 py-2 rounded-full border border-white/20 text-base font-semibold
+                px-2 sm:px-4 py-2 rounded-full border border-white/20 text-xs sm:text-sm font-semibold
                 text-white/80 hover:text-white hover:bg-white/10 hover:border-white/40
-                transition-all disabled:opacity-50
+                transition-all disabled:opacity-50 whitespace-nowrap
               "
             >
               {busy ? '…' : 'Sign out'}

@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
-import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw, Plus } from 'lucide-react';
+import LoginModal from '@/components/LoginModal';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -71,13 +73,12 @@ const playMegaVibeFanfare = async () => {
   const audioContext = await getAudioContext();
   if (!audioContext) return;
   try {
-    // Triumphant fanfare sequence - multiple notes in quick succession
     const notes = [
-      { freq: 523.25, start: 0, duration: 0.15 },      // C5
-      { freq: 659.25, start: 0.15, duration: 0.15 },   // E5
-      { freq: 783.99, start: 0.3, duration: 0.15 },    // G5
-      { freq: 1046.5, start: 0.45, duration: 0.2 },    // C6 (high note)
-      { freq: 1174.66, start: 0.65, duration: 0.3 },   // D6 (climax)
+      { freq: 523.25, start: 0, duration: 0.15 },
+      { freq: 659.25, start: 0.15, duration: 0.15 },
+      { freq: 783.99, start: 0.3, duration: 0.15 },
+      { freq: 1046.5, start: 0.45, duration: 0.2 },
+      { freq: 1174.66, start: 0.65, duration: 0.3 },
     ];
 
     notes.forEach(({ freq, start, duration }) => {
@@ -95,12 +96,11 @@ const playMegaVibeFanfare = async () => {
       osc.stop(audioContext.currentTime + start + duration);
     });
 
-    // Add a bass note underneath for gravitas
     const bassOsc = audioContext.createOscillator();
     const bassGain = audioContext.createGain();
     bassOsc.connect(bassGain);
     bassGain.connect(audioContext.destination);
-    bassOsc.frequency.value = 261.63; // C4 (low note)
+    bassOsc.frequency.value = 261.63;
     bassOsc.type = 'sine';
     bassGain.gain.setValueAtTime(0.15, audioContext.currentTime);
     bassGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.95);
@@ -239,84 +239,6 @@ function MegaVibeCelebration({
   );
 }
 
-function ViewAllInterestsDrawer({
-  theirInterests,
-  myInterests,
-  sharedInterests,
-  theirName,
-  onClose,
-  onTeleport,
-}: {
-  theirInterests: string[];
-  myInterests: string[];
-  sharedInterests: string[];
-  theirName: string;
-  onClose: () => void;
-  onTeleport: (interest: string) => void;
-}) {
-  const otherInterests = theirInterests.filter(
-    (i) => !sharedInterests.some((s) => s.toLowerCase() === i.toLowerCase())
-  );
-
-  return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
-      />
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-t border-white/10 rounded-t-3xl"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-          <div className="w-12 h-1 rounded-full bg-white/30" />
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
-            <X size={24} className="text-white/70" />
-          </button>
-        </div>
-        <div className="max-h-[80vh] overflow-y-auto interests-scroll p-6">
-          <h3 className="text-lg font-black text-white mb-6">All {theirName}'s Interests</h3>
-          <div className="flex flex-wrap gap-3">
-            {otherInterests.map((interest: string) => {
-              const isAdded = myInterests.some(
-                (i: string) => i.toLowerCase() === interest.toLowerCase()
-              );
-              return (
-                <motion.button
-                  key={interest}
-                  whileHover={!isAdded ? { scale: 1.08 } : {}}
-                  whileTap={!isAdded ? { scale: 0.95 } : {}}
-                  onClick={() => {
-                    if (!isAdded) {
-                      onTeleport(interest);
-                      onClose();
-                    }
-                  }}
-                  disabled={isAdded}
-                  className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                    isAdded
-                      ? 'bg-white/20 text-white/50 border border-white/20 cursor-default'
-                      : 'bg-white/30 text-white border border-white/40 hover:bg-white/50 cursor-pointer'
-                  }`}
-                >
-                  {interest} {isAdded ? '✓' : '+'}
-                </motion.button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-white/50 mt-8 text-center">Tap any to add to your profile</p>
-        </div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
 export default function MatchPage() {
   const router = useRouter();
   const localVideoContainerRef = useRef<HTMLDivElement>(null);
@@ -327,6 +249,8 @@ export default function MatchPage() {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
 
+  const [user, setUser] = useState<any | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [myProfile, setMyProfile] = useState<UserData | null>(null);
   const [theirProfile, setTheirProfile] = useState<UserData | null>(null);
   const [vibeCount, setVibeCount] = useState(0);
@@ -352,6 +276,15 @@ export default function MatchPage() {
     );
   }, [theirProfile, sharedInterests]);
 
+  // Auth check - only show page if user is authenticated
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u || null);
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     setVibeCount(sharedInterests.length);
   }, [sharedInterests.length]);
@@ -361,18 +294,14 @@ export default function MatchPage() {
       playMegaVibeFanfare();
       setShowGoldenTicket(true);
       setMegaVibeTriggered(true);
-      // Auto-close after 3 seconds
       const timer = setTimeout(() => setShowGoldenTicket(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [sharedInterests.length, megaVibeTriggered]);
 
+  // Heavy initialization only runs AFTER user is authenticated
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      router.push('/auth');
-      return;
-    }
+    if (!authReady || !user) return;
 
     let mounted = true;
 
@@ -573,10 +502,10 @@ export default function MatchPage() {
         callObject.current = null;
       }
     };
-  }, [router]);
+  }, [authReady, user, router]);
 
   const handleTeleportInterest = async (interest: string) => {
-    if (!auth.currentUser || !myProfile) return;
+    if (!user || !myProfile) return;
     const alreadyAdded = myProfile.interests.some(
       (i: string) => i.toLowerCase() === interest.toLowerCase()
     );
@@ -591,7 +520,7 @@ export default function MatchPage() {
     setTimeout(() => setToastData(null), 2500);
 
     try {
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+      await updateDoc(doc(db, 'users', user.uid), {
         interests: newInterests,
       });
     } catch (err) {
@@ -631,7 +560,7 @@ export default function MatchPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: auth.currentUser?.uid,
+            userId: user?.uid,
             interests: myProfile.interests,
             selectedMode: 'video',
           }),
@@ -653,8 +582,8 @@ export default function MatchPage() {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
     }
-    if (auth.currentUser) {
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+    if (user) {
+      await updateDoc(doc(db, 'users', user.uid), {
         status: 'idle',
         currentRoomUrl: null,
         partnerId: null,
@@ -662,6 +591,46 @@ export default function MatchPage() {
     }
     router.push('/');
   };
+
+  // Show loading while auth is being checked
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
+        <Loader2 className="w-16 h-16 text-fuchsia-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Show LoginModal if not logged in
+  if (!user) {
+    return (
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
+        {/* Background aura */}
+        <div className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-fuchsia-500/20 blur-[140px] animate-pulse"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[140px] animate-pulse-reverse"></div>
+        </div>
+
+        {/* Blurred content area */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 blur-md pointer-events-none opacity-50">
+          <div className="text-center">
+            <h1 className="text-5xl font-black mb-4">
+              Ready to <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">Match?</span>
+            </h1>
+            <p className="text-xl text-white/70">Sign in to find your vibe</p>
+          </div>
+        </div>
+
+        {/* Login Modal - Shows immediately for non-logged-in users */}
+        <LoginModal
+          isOpen={true}
+          onClose={() => {/* User stays on page until they sign in */}}
+          auth={auth}
+          onLoginSuccess={() => {/* Component will re-render after auth */}}
+        />
+      </main>
+    );
+  }
 
   if (error) {
     return (
