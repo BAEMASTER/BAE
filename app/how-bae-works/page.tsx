@@ -337,7 +337,7 @@ export default function GuidePage() {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-white/50 text-center">Gold glowing = shared interests | Different interests below each person</p>
+              <p className="text-xs text-white/50 text-center">Gold glowing = shared interests | Unique interests below each person</p>
             </div>
           </div>
         </motion.section>
