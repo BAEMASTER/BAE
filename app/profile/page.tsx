@@ -125,6 +125,8 @@ export default function ProfilePage() {
   const [newInterest, setNewInterest] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
+  const [ageError, setAgeError] = useState(false);
+  const [ageError, setAgeError] = useState(false);
 
   // Check if locked: NO birthdate OR birthdate < 18
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
@@ -175,9 +177,12 @@ export default function ProfilePage() {
     
     // Check age when saving - require valid DOB
     if (!dob || !isAdult(dob)) {
-      // Stay locked
+      setAgeError(true);
+      setTimeout(() => setAgeError(false), 3000);
       return;
     }
+    
+    setAgeError(false);
     
     try {
       await setDoc(doc(db, 'users', user.uid), {
@@ -287,6 +292,19 @@ export default function ProfilePage() {
               </select>
             </div>
           </div>
+
+          <AnimatePresence>
+            {ageError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
+              >
+                You must be 18+ to use BAE
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <button 
             onClick={saveProfile}
@@ -414,6 +432,13 @@ export default function ProfilePage() {
         .input:focus {
           border-color: #fuchsia-400;
           box-shadow: 0 0 0 2px rgba(255,0,255,0.3);
+        }
+        select {
+          color-scheme: dark;
+        }
+        select option {
+          background: #1A0033;
+          color: white;
         }
       `}</style>
 
