@@ -518,7 +518,7 @@ function MatchPageContent() {
       // CRITICAL: Publish your video/audio to the room
       console.log('Publishing video to Daily room...');
       await daily.updateInputSettings({
-        video: { isScreenShare: false },
+        video: true,
         audio: true,
       });
 
