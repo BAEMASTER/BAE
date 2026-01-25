@@ -120,6 +120,9 @@ export default function ProfilePage() {
 
   // Check if locked: NO birthdate OR birthdate < 18
   const isProfileLocked = !birthDate || !isAdult(birthDate);
+
+  // --- Load user ---
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         // Not logged in - redirect to auth
