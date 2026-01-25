@@ -470,9 +470,12 @@ export default function MatchPage() {
 
       // Stop preview stream - Daily will own the camera now
       if (previewStreamRef.current) {
-        console.log('Stopping preview stream before Daily join');
-        previewStreamRef.current.getTracks().forEach(t => t.stop());
-        previewStreamRef.current = null;
+        console.log('Handing preview stream to Daily (not stopping it)');
+        // DON'T stop tracks - we'll reuse the stream on reset
+        // Just detach from video element
+        if (yourVideoRef.current) {
+          yourVideoRef.current.srcObject = null;
+        }
       }
 
       // Create Daily call with custom video handling (no UI)
@@ -610,8 +613,9 @@ export default function MatchPage() {
         dailyContainerRef.current.remove();
         dailyContainerRef.current = null;
       }
-      // Stop preview tracks on unmount
+      // Stop preview tracks only on page unmount (not on reset)
       if (previewStreamRef.current) {
+        console.log('Stopping preview stream on page unmount');
         previewStreamRef.current.getTracks().forEach(t => t.stop());
         previewStreamRef.current = null;
       }
@@ -669,19 +673,32 @@ export default function MatchPage() {
     if (theirVideoRef.current) theirVideoRef.current.srcObject = null;
 
     // Restart preview stream for next match
-    if (!previewStreamRef.current && yourVideoRef.current) {
-      try {
-        console.log('Restarting preview stream for next match...');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: true,
-        });
-        previewStreamRef.current = stream;
-        yourVideoRef.current.srcObject = stream;
-        await yourVideoRef.current.play();
-        console.log('Preview stream restarted');
-      } catch (err: any) {
-        console.error('Failed to restart preview:', err.message);
+    if (yourVideoRef.current) {
+      if (previewStreamRef.current) {
+        // Stream already exists - just reattach to video element
+        console.log('Reusing existing preview stream...');
+        yourVideoRef.current.srcObject = previewStreamRef.current;
+        try {
+          await yourVideoRef.current.play();
+          console.log('Preview stream reattached');
+        } catch (err) {
+          console.error('Failed to play preview:', err);
+        }
+      } else {
+        // Only request if stream was somehow lost
+        try {
+          console.log('Requesting new preview stream...');
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: true,
+          });
+          previewStreamRef.current = stream;
+          yourVideoRef.current.srcObject = stream;
+          await yourVideoRef.current.play();
+          console.log('New preview stream started');
+        } catch (err: any) {
+          console.error('Failed to get preview:', err.message);
+        }
       }
     }
 
