@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/authContext'; // You'll need to create this or use existing auth
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
 
@@ -26,9 +25,8 @@ export const isAdult = (dob: Date | string): boolean => {
  * - Redirects to Profile if underage
  * - Returns loading state and whether user is adult
  */
-export const useAgeGate = () => {
+export const useAgeGate = (user: any) => {
   const router = useRouter();
-  const { user } = useAuth(); // Assumes you have auth context
   const [isAdultUser, setIsAdultUser] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
