@@ -282,6 +282,8 @@ export default function MatchPage() {
   const router = useRouter();
   const yourVideoRef = useRef<HTMLVideoElement>(null);
   const theirVideoRef = useRef<HTMLVideoElement>(null);
+  const previewStreamRef = useRef<MediaStream | null>(null);
+  const dailyContainerRef = useRef<HTMLDivElement | null>(null);
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -300,6 +302,7 @@ export default function MatchPage() {
   const [megaVibeTriggered, setMegaVibeTriggered] = useState(false);
   const [celebratedLevels, setCelebratedLevels] = useState<Set<number>>(new Set());
   const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
+  const [audioEnabled, setAudioEnabled] = useState(false);
 
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
@@ -328,6 +331,57 @@ export default function MatchPage() {
     return () => unsub();
   }, [router]);
 
+  // Preview stream effect - starts immediately, independent of matching
+  useEffect(() => {
+    let cancelled = false;
+
+    const startPreview = async () => {
+      if (!yourVideoRef.current) return;
+      if (previewStreamRef.current) return;
+
+      try {
+        console.log('Starting preview stream...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: false,
+        });
+
+        if (cancelled) {
+          stream.getTracks().forEach(t => t.stop());
+          return;
+        }
+
+        previewStreamRef.current = stream;
+        yourVideoRef.current.srcObject = stream;
+        console.log('Preview stream started');
+
+        try {
+          await yourVideoRef.current.play();
+          console.log('Preview video playing');
+        } catch (e) {
+          console.error('Play failed:', e);
+        }
+      } catch (err: any) {
+        console.error('Camera error:', err.name, err.message);
+        if (!cancelled) {
+          setError(true);
+          setErrorMessage('Camera access required. Please enable permissions in browser settings.');
+        }
+      }
+    };
+
+    startPreview();
+
+    return () => {
+      cancelled = true;
+      // Stop preview tracks on unmount
+      if (previewStreamRef.current) {
+        previewStreamRef.current.getTracks().forEach(t => t.stop());
+        previewStreamRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     setVibeCount(sharedInterests.length);
   }, [sharedInterests.length]);
@@ -355,6 +409,17 @@ export default function MatchPage() {
       }
     }
   }, [sharedInterests.length, celebratedLevels]);
+
+  // Gate audio to first user gesture (iOS requirement)
+  const enableAudio = async () => {
+    if (audioEnabled) return;
+    try {
+      await getAudioContext();
+      setAudioEnabled(true);
+    } catch (err) {
+      console.error('Failed to enable audio:', err);
+    }
+  };
 
   const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
     try {
@@ -386,12 +451,19 @@ export default function MatchPage() {
 
       setIsMatched(true);
 
-      // Create Daily call with custom video handling (no UI)
-      const container = document.createElement('div');
-      container.style.display = 'none';
-      document.body.appendChild(container);
+      // Stop preview stream - Daily will own the camera now
+      if (previewStreamRef.current) {
+        console.log('Stopping preview stream before Daily join');
+        previewStreamRef.current.getTracks().forEach(t => t.stop());
+        previewStreamRef.current = null;
+      }
 
-      const daily = DailyIframe.createFrame(container, {
+      // Create Daily call with custom video handling (no UI)
+      dailyContainerRef.current = document.createElement('div');
+      dailyContainerRef.current.style.display = 'none';
+      document.body.appendChild(dailyContainerRef.current);
+
+      const daily = DailyIframe.createFrame(dailyContainerRef.current, {
         showLeaveButton: false,
         showFullscreenButton: false,
         showParticipantsBar: false,
@@ -401,49 +473,23 @@ export default function MatchPage() {
 
       callObject.current = daily;
       
-      // Set up video stream handling
-      daily.on('participant-joined', (evt: any) => {
-        const participant = evt.participant;
-        if (participant.session_id === daily.participants().local.session_id) {
-          // Local video
-          if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
-            yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-          }
-        } else {
-          // Remote video
-          if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
-            theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-          }
-        }
-      });
+      // Set up video stream handling with track-started (more reliable than participant-joined)
+      daily.on('track-started', (evt: any) => {
+        const { participant, track } = evt;
+        if (!track || track.kind !== 'video') return;
 
-      daily.on('participant-updated', (evt: any) => {
-        const participant = evt.participant;
-        if (participant.session_id === daily.participants().local.session_id) {
-          if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
-            yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-          }
-        } else {
-          if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
-            theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-          }
+        if (participant.local && yourVideoRef.current) {
+          yourVideoRef.current.srcObject = new MediaStream([track]);
+          yourVideoRef.current.play().catch(() => {});
+        }
+
+        if (!participant.local && theirVideoRef.current) {
+          theirVideoRef.current.srcObject = new MediaStream([track]);
+          theirVideoRef.current.play().catch(() => {});
         }
       });
 
       await daily.join({ url: roomUrl });
-
-      // Set initial participants
-      setTimeout(() => {
-        const participants = daily.participants();
-        if (participants.local?.tracks.video?.track && yourVideoRef.current) {
-          yourVideoRef.current.srcObject = new MediaStream([participants.local.tracks.video.track]);
-        }
-        Object.values(participants).forEach((p: any) => {
-          if (p.session_id !== participants.local.session_id && p.tracks.video?.track && theirVideoRef.current) {
-            theirVideoRef.current.srcObject = new MediaStream([p.tracks.video.track]);
-          }
-        });
-      }, 500);
 
     } catch (err: any) {
       setError(true);
@@ -458,28 +504,6 @@ export default function MatchPage() {
 
     const initEverything = async () => {
       try {
-        // REQUEST CAMERA PERMISSIONS FIRST - immediately
-        let localStream: MediaStream | null = null;
-        try {
-          console.log('Requesting camera/microphone permissions...');
-          localStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'user' },
-            audio: true 
-          });
-          console.log('Camera permissions granted, stream acquired');
-          // Display local video immediately
-          if (localStream && yourVideoRef.current) {
-            yourVideoRef.current.srcObject = localStream;
-          }
-        } catch (err: any) {
-          console.error('Camera permission error:', err.name, err.message);
-          if (mounted) {
-            setError(true);
-            setErrorMessage('Camera and microphone access required. Please enable permissions in browser settings.');
-          }
-          return;
-        }
-
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (!snap.exists()) {
           setError(true);
@@ -565,6 +589,10 @@ export default function MatchPage() {
         try { callObject.current.destroy(); } catch {}
         callObject.current = null;
       }
+      if (dailyContainerRef.current) {
+        dailyContainerRef.current.remove();
+        dailyContainerRef.current = null;
+      }
     };
   }, [authReady, user, router]);
 
@@ -601,6 +629,12 @@ export default function MatchPage() {
       callObject.current = null;
     }
 
+    // Clean up Daily container DOM node
+    if (dailyContainerRef.current) {
+      dailyContainerRef.current.remove();
+      dailyContainerRef.current = null;
+    }
+
     setIsMatched(false);
     setTheirProfile(null);
     setVibeCount(0);
@@ -611,6 +645,23 @@ export default function MatchPage() {
 
     if (yourVideoRef.current) yourVideoRef.current.srcObject = null;
     if (theirVideoRef.current) theirVideoRef.current.srcObject = null;
+
+    // Restart preview stream for next match
+    if (!previewStreamRef.current && yourVideoRef.current) {
+      try {
+        console.log('Restarting preview stream for next match...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: false,
+        });
+        previewStreamRef.current = stream;
+        yourVideoRef.current.srcObject = stream;
+        await yourVideoRef.current.play();
+        console.log('Preview stream restarted');
+      } catch (err: any) {
+        console.error('Failed to restart preview:', err.message);
+      }
+    }
 
     try {
       if (myProfile) {
@@ -707,7 +758,7 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
+    <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col" onClick={enableAudio}>
       <style>{scrollbarStyle}</style>
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px]"></div>
@@ -769,7 +820,7 @@ export default function MatchPage() {
               <div className="flex flex-wrap justify-center gap-3">
                 {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
                   <motion.div
-                    key={interest}
+                    key={`shared-${idx}`}
                     initial={{ opacity: 0, scale: 0, y: -30 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
