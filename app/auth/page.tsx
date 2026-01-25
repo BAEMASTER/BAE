@@ -128,7 +128,7 @@ export default function AuthPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="flex items-center gap-3 mb-6 cursor-pointer"
+              className="flex items-center justify-center gap-3 mb-6 cursor-pointer"
             >
               <input
                 type="checkbox"
