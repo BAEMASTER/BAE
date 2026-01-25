@@ -486,30 +486,30 @@ export default function MatchPage() {
       // Set up video stream handling with track-started (more reliable than participant-joined)
       daily.on('track-started', (evt: any) => {
         const { participant, track } = evt;
-        console.log('track-started event:', {
-          isLocal: participant.local,
-          trackKind: track?.kind,
-          hasTheirRef: !!theirVideoRef.current,
-          hasYourRef: !!yourVideoRef.current,
-        });
-
         if (!track || track.kind !== 'video') return;
 
-        if (participant.local && yourVideoRef.current) {
-          console.log('Setting YOUR video stream');
-          yourVideoRef.current.srcObject = new MediaStream([track]);
-          yourVideoRef.current.play().catch(() => {});
-        }
+        const targetRef = participant.local ? yourVideoRef : theirVideoRef;
+        const isLocal = participant.local;
 
-        if (!participant.local && theirVideoRef.current) {
-          console.log('Setting THEIR video stream');
-          theirVideoRef.current.srcObject = new MediaStream([track]);
-          theirVideoRef.current.play().catch(() => {});
-        }
+        console.log(`track-started (${isLocal ? 'LOCAL' : 'REMOTE'}):`, {
+          refExists: !!targetRef.current,
+          trackKind: track.kind,
+        });
 
-        if (!participant.local && !theirVideoRef.current) {
-          console.warn('⚠️ THEIR video ref is NULL! Remote track received but no ref to render to');
-        }
+        // Attach track, with retry if ref not yet mounted
+        const attachTrack = () => {
+          if (targetRef.current) {
+            console.log(`Attaching ${isLocal ? 'YOUR' : 'THEIR'} video track`);
+            targetRef.current.srcObject = new MediaStream([track]);
+            targetRef.current.play().catch(() => {});
+          } else {
+            console.warn(`⚠️ ${isLocal ? 'YOUR' : 'THEIR'} video ref is null, retrying in 100ms...`);
+            // Retry once if React hasn't painted the video tag yet
+            setTimeout(attachTrack, 100);
+          }
+        };
+
+        attachTrack();
       });
 
       await daily.join({ url: roomUrl });
