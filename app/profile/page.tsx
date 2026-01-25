@@ -126,7 +126,6 @@ export default function ProfilePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
   const [ageError, setAgeError] = useState(false);
-  const [ageError, setAgeError] = useState(false);
 
   // Check if locked: NO birthdate OR birthdate < 18
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
