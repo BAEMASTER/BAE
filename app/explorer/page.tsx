@@ -1,5 +1,6 @@
 'use client';
 
+import AgeGateWrapper from '@/components/AgeGateWrapper';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -59,8 +60,8 @@ function InterestPill({
   );
 }
 
-// --- MAIN PAGE ---
-export default function ExplorerPage() {
+// --- MAIN PAGE CONTENT ---
+function ExplorerPageContent() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [userInterests, setUserInterests] = useState<string[]>([]);
@@ -355,5 +356,14 @@ export default function ExplorerPage() {
       </AnimatePresence>
 
     </main>
+  );
+}
+
+// --- EXPORT WITH AGE GATE WRAPPER ---
+export default function ExplorerPage() {
+  return (
+    <AgeGateWrapper>
+      <ExplorerPageContent />
+    </AgeGateWrapper>
   );
 }
