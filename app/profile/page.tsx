@@ -27,6 +27,12 @@ const isAdult = (dob: string): boolean => {
   return age >= 18;
 };
 
+// Format year/month/day into ISO date string
+const formatDOB = (year: string, month: string, day: string): string => {
+  if (!year || !month || !day) return '';
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
+
 const playAddSound = () => {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -111,7 +117,9 @@ export default function ProfilePage() {
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
   const [website, setWebsite] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
 
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
@@ -119,6 +127,7 @@ export default function ProfilePage() {
   const [minInterestWarning, setMinInterestWarning] = useState(false);
 
   // Check if locked: NO birthdate OR birthdate < 18
+  const birthDate = formatDOB(birthYear, birthMonth, birthDay);
   const isProfileLocked = !birthDate || !isAdult(birthDate);
 
   // --- Load user ---
@@ -139,7 +148,15 @@ export default function ProfilePage() {
           setState(data.state || '');
           setCountry(data.country || '');
           setWebsite(data.website || '');
-          setBirthDate(data.birthDate || '');
+          
+          // Parse DOB into year/month/day
+          if (data.birthDate) {
+            const [year, month, day] = data.birthDate.split('-');
+            setBirthYear(year || '');
+            setBirthMonth(month || '');
+            setBirthDay(day || '');
+          }
+          
           setInterests(Array.isArray(data.interests) ? data.interests : []);
         } else {
           setDisplayName(u.displayName || u.email || 'Mystery BAE');
@@ -154,15 +171,17 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!user) return;
     
+    const dob = formatDOB(birthYear, birthMonth, birthDay);
+    
     // Check age when saving - require valid DOB
-    if (!birthDate || !isAdult(birthDate)) {
+    if (!dob || !isAdult(dob)) {
       // Stay locked
       return;
     }
     
     try {
       await setDoc(doc(db, 'users', user.uid), {
-        displayName, city, state, country, website, birthDate,
+        displayName, city, state, country, website, birthDate: dob,
         interests, updatedAt: new Date().toISOString()
       }, { merge: true });
       
@@ -229,13 +248,44 @@ export default function ProfilePage() {
           </p>
           
           <div className="mb-6 p-4 bg-white/10 rounded-2xl border border-white/20">
-            <label className="block text-sm font-semibold mb-3 text-left">Birthdate</label>
-            <input 
-              type="date" 
-              value={birthDate} 
-              onChange={(e) => setBirthDate(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
-            />
+            <label className="block text-sm font-semibold mb-4 text-left">Birthdate</label>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Month */}
+              <select 
+                value={birthMonth}
+                onChange={(e) => setBirthMonth(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+              >
+                <option value="">Month</option>
+                {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              
+              {/* Day */}
+              <select 
+                value={birthDay}
+                onChange={(e) => setBirthDay(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+              >
+                <option value="">Day</option>
+                {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              
+              {/* Year */}
+              <select 
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value)}
+                className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+              >
+                <option value="">Year</option>
+                {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button 
@@ -268,14 +318,44 @@ export default function ProfilePage() {
             <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="input" />
           </div>
 
-          <h4 className="font-semibold mt-4 mb-2">Birthdate</h4>
-          <input 
-            type="date" 
-            value={birthDate} 
-            onChange={(e) => setBirthDate(e.target.value)}
-            className="input mb-4"
-            required
-          />
+          <h4 className="font-semibold mt-4 mb-3">Birthdate</h4>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {/* Month */}
+            <select 
+              value={birthMonth}
+              onChange={(e) => setBirthMonth(e.target.value)}
+              className="input"
+            >
+              <option value="">Month</option>
+              {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            
+            {/* Day */}
+            <select 
+              value={birthDay}
+              onChange={(e) => setBirthDay(e.target.value)}
+              className="input"
+            >
+              <option value="">Day</option>
+              {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            
+            {/* Year */}
+            <select 
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value)}
+              className="input"
+            >
+              <option value="">Year</option>
+              {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
 
           <h4 className="font-semibold mt-4 mb-2">Personal/Professional Website</h4>
           <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="input mb-2" />
