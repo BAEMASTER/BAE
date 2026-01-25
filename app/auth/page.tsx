@@ -16,6 +16,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   // Redirect already-signed-in users to profile (no friction)
   useEffect(() => {
@@ -122,9 +123,27 @@ export default function AuthPage() {
             transition={{ delay: 0.3, duration: 0.4 }}
             className="w-full max-w-2xl"
           >
+            {/* Age confirmation checkbox */}
+            <motion.label
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-center gap-3 mb-6 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="w-5 h-5 rounded border-2 border-white/40 bg-white/10 cursor-pointer accent-yellow-300"
+              />
+              <span className="text-sm text-white/80 font-semibold">
+                I confirm I'm 18 or older
+              </span>
+            </motion.label>
+
             <button
               onClick={doSignIn}
-              disabled={loading || busy}
+              disabled={loading || busy || !ageConfirmed}
               className="w-full py-6 sm:py-8 rounded-full text-2xl sm:text-3xl font-extrabold text-white bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)] transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
             >
               {loading ? 'Loading…' : busy ? '…' : 'Continue with Google'}
