@@ -5,6 +5,7 @@ import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'f
 import { auth, db } from '@/lib/firebaseClient';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import Header from '@/components/Header';
 
 // Shared rotating config with home
 const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
@@ -50,41 +51,52 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-start justify-center pt-32 relative bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 overflow-hidden text-white">
+    <>
+      <Header />
+      <main className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] overflow-hidden text-white pt-[72px]">
 
       {/* Soft ambient center glow */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="w-[46rem] h-[46rem] rounded-full bg-fuchsia-300/18 blur-[140px]" />
+        <div className="w-[46rem] h-[46rem] rounded-full bg-fuchsia-500/15 blur-[140px] animate-pulse"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-fuchsia-500/10 blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/10 blur-[120px]"></div>
       </div>
 
       {/* AUTH CONTENT */}
       <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-xl w-full">
 
         {/* Headline */}
-        <motion.h2
-          initial={{ opacity: 0, y: 18 }}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="text-6xl sm:text-7xl font-extrabold leading-tight text-fuchsia-700 drop-shadow-2xl mb-6"
+          className="text-6xl sm:text-7xl font-black leading-tight text-white mb-2 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)]"
         >
-          Meet. Match.{` `}
-          <span className="bg-gradient-to-r from-yellow-400 to-pink-500 bg-clip-text text-transparent">
-            BAE.
+          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+            BAE
           </span>
+        </motion.h1>
+
+        {/* Subheadline */}
+        <motion.h2
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.7 }}
+          className="text-2xl sm:text-3xl font-bold text-white/90 mb-8"
+        >
+          Connect through shared interests
         </motion.h2>
 
-        {/* 3-interest onboarding copy (stands out in glowing pill style) */}
+        {/* 3-interest onboarding copy */}
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.7 }}
-          className="text-base font-semibold mb-8"
+          transition={{ delay: 0.2, duration: 0.7 }}
+          className="text-base text-white/80 font-semibold mb-10 leading-relaxed"
         >
           Add 3+ interests to start matching. Your shared interests will{' '}
           <span className="inline-flex">
-            <span
-              className="px-3 py-1 rounded-full bg-fuchsia-600 text-white font-bold shadow-[0_0_14px_rgba(236,72,153,0.65)]"
-            >
+            <span className="px-3 py-1 rounded-full bg-yellow-300/20 border border-yellow-300/40 text-yellow-300 font-bold">
               glow ✨
             </span>
           </span>
@@ -94,24 +106,30 @@ export default function AuthPage() {
         <AnimatePresence mode="wait">
           <motion.div
             key="auth-card"
-            initial={{ opacity: 0, scale: 0.97 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.35 }}
-            className="bg-white/65 backdrop-blur-xl shadow-xl rounded-2xl border border-white/50 px-10 py-8 w-full max-w-xl"
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="bg-white/5 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/10 px-8 sm:px-10 py-10 w-full max-w-md"
           >
-            <h3 className="text-fuchsia-700 text-2xl font-extrabold mb-6">See The Glow</h3>
+            <h3 className="text-white text-xl font-black mb-8 text-center">Let's Begin</h3>
+            
             <button
               onClick={doSignIn}
               disabled={loading || busy}
-              className="w-full py-5 rounded-full text-2xl font-extrabold text-white bg-gradient-to-r from-pink-500 via-fuchsia-500 to-indigo-500 shadow-[0_15px_40px_rgba(236,72,153,0.35)] hover:shadow-[0_20px_60px_rgba(236,72,153,0.48)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-4 rounded-full text-lg font-extrabold text-white bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)] transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
             >
               {loading ? 'Loading…' : busy ? '…' : 'Continue with Google'}
             </button>
+
+            <p className="text-white/50 text-xs text-center mt-6">
+              Your interests make you interesting
+            </p>
           </motion.div>
         </AnimatePresence>
 
       </div>
     </main>
+    </>
   );
 }
