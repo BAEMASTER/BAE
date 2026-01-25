@@ -68,6 +68,25 @@ const playVibe = async (level: number) => {
   } catch (e) {}
 };
 
+const playVibeLevel = async (level: number) => {
+  const audioContext = await getAudioContext();
+  if (!audioContext) return;
+  try {
+    const frequencies = [523.25, 659.25, 783.99, 987.77]; // C5, E5, G5, B5
+    const freq = frequencies[Math.min(level - 1, 3)];
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    osc.start(audioContext.currentTime);
+    osc.stop(audioContext.currentTime + 0.3);
+  } catch (e) {}
+};
+
 const playMegaVibeFanfare = async () => {
   const audioContext = await getAudioContext();
   if (!audioContext) return;
@@ -188,6 +207,31 @@ function VibeToast({ interest, newCount }: { interest: string; newCount: number 
   );
 }
 
+function CelebrationPopout({ level }: { level: number }) {
+  const labels = ['COOL', 'REAL', 'DEEP', 'SUPER'];
+  const label = labels[level - 1];
+  const sizes = ['text-4xl', 'text-5xl', 'text-6xl', 'text-7xl'];
+  const size = sizes[level - 1];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0, y: 50 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.5, y: -50 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none"
+    >
+      <motion.div
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 1 }}
+        className={`${size} font-black text-white drop-shadow-[0_0_30px_rgba(253,224,71,0.8)]`}
+      >
+        {label}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function MegaVibeCelebration() {
   return (
     <>
@@ -254,6 +298,8 @@ export default function MatchPage() {
   const [toastData, setToastData] = useState<{ interest: string; newCount: number } | null>(null);
   const [showGoldenTicket, setShowGoldenTicket] = useState(false);
   const [megaVibeTriggered, setMegaVibeTriggered] = useState(false);
+  const [celebratedLevels, setCelebratedLevels] = useState<Set<number>>(new Set());
+  const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
 
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
@@ -296,6 +342,33 @@ export default function MatchPage() {
       return () => clearTimeout(timer);
     }
   }, [sharedInterests.length, megaVibeTriggered]);
+
+  // Celebration popout for levels 1-4
+  useEffect(() => {
+    if (sharedInterests.length >= 1 && sharedInterests.length <= 4) {
+      if (!celebratedLevels.has(sharedInterests.length)) {
+        playVibeLevel(sharedInterests.length);
+        setCurrentCelebration(sharedInterests.length);
+        setCelebratedLevels(prev => new Set([...prev, sharedInterests.length]));
+        const timer = setTimeout(() => setCurrentCelebration(null), 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [sharedInterests.length, celebratedLevels]);
+
+  // Celebration popout for levels 1-4
+  const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
+  useEffect(() => {
+    if (sharedInterests.length >= 1 && sharedInterests.length <= 4) {
+      if (!celebratedLevels.has(sharedInterests.length)) {
+        playVibeLevel(sharedInterests.length);
+        setCurrentCelebration(sharedInterests.length);
+        setCelebratedLevels(prev => new Set([...prev, sharedInterests.length]));
+        const timer = setTimeout(() => setCurrentCelebration(null), 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [sharedInterests.length, celebratedLevels]);
 
   // Heavy initialization only after auth
   useEffect(() => {
@@ -410,6 +483,19 @@ export default function MatchPage() {
 
         if (!mounted) return;
         setIsMatched(true);
+
+        // Request camera permissions first
+        try {
+          await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user' },
+            audio: true 
+          });
+        } catch (err) {
+          console.error('Camera permission denied:', err);
+          setError(true);
+          setErrorMessage('Camera access required to use Match');
+          return;
+        }
 
         // Create Daily call with custom video handling (no UI)
         const container = document.createElement('div');
@@ -795,6 +881,10 @@ export default function MatchPage() {
 
       <AnimatePresence>
         {toastData && <VibeToast interest={toastData.interest} newCount={toastData.newCount} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {currentCelebration && <CelebrationPopout level={currentCelebration} />}
       </AnimatePresence>
 
       <AnimatePresence>
