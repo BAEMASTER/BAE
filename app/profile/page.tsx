@@ -112,15 +112,14 @@ export default function ProfilePage() {
   const [country, setCountry] = useState('');
   const [website, setWebsite] = useState('');
   const [birthDate, setBirthDate] = useState('');
-  const [ageLocked, setAgeLocked] = useState(false);
 
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
 
-  // --- Load user ---
-  useEffect(() => {
+  // Check if locked: NO birthdate OR birthdate < 18
+  const isProfileLocked = !birthDate || !isAdult(birthDate);
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         // Not logged in - redirect to auth
@@ -139,11 +138,6 @@ export default function ProfilePage() {
           setWebsite(data.website || '');
           setBirthDate(data.birthDate || '');
           setInterests(Array.isArray(data.interests) ? data.interests : []);
-          
-          // Check if underage - lock if so
-          if (data.birthDate && !isAdult(data.birthDate)) {
-            setAgeLocked(true);
-          }
         } else {
           setDisplayName(u.displayName || u.email || 'Mystery BAE');
         }
@@ -157,9 +151,9 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!user) return;
     
-    // Check age when saving
-    if (birthDate && !isAdult(birthDate)) {
-      setAgeLocked(true);
+    // Check age when saving - require valid DOB
+    if (!birthDate || !isAdult(birthDate)) {
+      // Stay locked
       return;
     }
     
@@ -168,11 +162,6 @@ export default function ProfilePage() {
         displayName, city, state, country, website, birthDate,
         interests, updatedAt: new Date().toISOString()
       }, { merge: true });
-      
-      // Unlock if age is valid
-      if (birthDate && isAdult(birthDate)) {
-        setAgeLocked(false);
-      }
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
@@ -203,7 +192,7 @@ export default function ProfilePage() {
   };
 
   const handleBAEClick = () => {
-    if (ageLocked) return; // Don't allow if locked
+    if (isProfileLocked) return; // Don't allow if locked
     if (interests.length < MIN_REQUIRED) {
       setMinInterestWarning(true);
       setTimeout(() => setMinInterestWarning(false), 1800);
@@ -221,8 +210,8 @@ export default function ProfilePage() {
 
   const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
 
-  // AGE LOCKED VIEW
-  if (ageLocked) {
+  // AGE/DOB LOCKED VIEW - shows if NO DOB or DOB < 18
+  if (isProfileLocked) {
     return (
       <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4">
         <motion.div
