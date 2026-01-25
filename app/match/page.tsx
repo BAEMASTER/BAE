@@ -220,28 +220,16 @@ function EnableCameraOverlay({ onClick }: { onClick: () => void }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center"
+      className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center"
     >
-      <motion.div
-        initial={{ scale: 0.8, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="text-center"
+      <motion.button
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClick}
+        className="px-8 py-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-extrabold rounded-full text-lg shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)]"
       >
-        <div className="text-5xl mb-4">📷</div>
-        <h2 className="text-2xl font-black text-white mb-3">Enable Your Camera</h2>
-        <p className="text-white/70 text-lg mb-8 max-w-xs">
-          Show who you are. Share your authentic self.
-        </p>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onClick}
-          className="px-8 py-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-extrabold rounded-full text-lg shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)]"
-        >
-          Enable Camera
-        </motion.button>
-      </motion.div>
+        Enable Camera
+      </motion.button>
     </motion.div>
   );
 }
@@ -342,6 +330,7 @@ export default function MatchPage() {
   const [celebratedLevels, setCelebratedLevels] = useState<Set<number>>(new Set());
   const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [previewStarted, setPreviewStarted] = useState(false);
 
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
@@ -385,6 +374,7 @@ export default function MatchPage() {
       previewStreamRef.current = stream;
       yourVideoRef.current.srcObject = stream;
       console.log('Preview stream started');
+      setPreviewStarted(true);
 
       try {
         await yourVideoRef.current.play();
@@ -668,6 +658,7 @@ export default function MatchPage() {
     setMegaVibeTriggered(false);
     setToastData(null);
     setCelebratedLevels(new Set()); // Reset celebrated levels for new match
+    setPreviewStarted(false); // Reset preview state for next match
 
     if (yourVideoRef.current) yourVideoRef.current.srcObject = null;
     if (theirVideoRef.current) theirVideoRef.current.srcObject = null;
@@ -826,7 +817,7 @@ export default function MatchPage() {
           
           {/* Enable camera overlay - shows until stream starts */}
           <AnimatePresence>
-            {!previewStreamRef.current && (
+            {!previewStarted && (
               <EnableCameraOverlay onClick={startPreviewStream} />
             )}
           </AnimatePresence>
