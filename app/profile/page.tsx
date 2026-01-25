@@ -225,7 +225,7 @@ export default function ProfilePage() {
           <div className="text-6xl mb-6">🔒</div>
           <h2 className="text-3xl font-black mb-4">Age Verification Required</h2>
           <p className="text-lg text-white/70 mb-8">
-            Your account must be 18+ to use BAE. Please update your birthdate below.
+            You must be 18+ to use BAE. Please update your birthdate below.
           </p>
           
           <div className="mb-6 p-4 bg-white/10 rounded-2xl border border-white/20">
