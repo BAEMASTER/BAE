@@ -8,7 +8,6 @@ import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw, Plus } from 'lucide-react';
-import LoginModal from '@/components/LoginModal';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -276,14 +275,19 @@ export default function MatchPage() {
     );
   }, [theirProfile, sharedInterests]);
 
-  // Auth check - only show page if user is authenticated
+  // Auth check
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u || null);
+      if (!u) {
+        // Not logged in - redirect to auth page
+        router.push('/auth');
+        return;
+      }
+      setUser(u);
       setAuthReady(true);
     });
     return () => unsub();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     setVibeCount(sharedInterests.length);
@@ -598,37 +602,6 @@ export default function MatchPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
         <Loader2 className="w-16 h-16 text-fuchsia-500 animate-spin" />
       </div>
-    );
-  }
-
-  // Show LoginModal if not logged in
-  if (!user) {
-    return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
-        {/* Background aura */}
-        <div className="pointer-events-none absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-fuchsia-500/20 blur-[140px] animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[140px] animate-pulse-reverse"></div>
-        </div>
-
-        {/* Blurred content area */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 blur-md pointer-events-none opacity-50">
-          <div className="text-center">
-            <h1 className="text-5xl font-black mb-4">
-              Ready to <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">Match?</span>
-            </h1>
-            <p className="text-xl text-white/70">Sign in to find your vibe</p>
-          </div>
-        </div>
-
-        {/* Login Modal - Shows immediately for non-logged-in users */}
-        <LoginModal
-          isOpen={true}
-          onClose={() => {/* User stays on page until they sign in */}}
-          auth={auth}
-          onLoginSuccess={() => {/* Component will re-render after auth */}}
-        />
-      </main>
     );
   }
 

@@ -7,14 +7,12 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
 import { Brain, Youtube, Music, ArrowRight } from 'lucide-react';
-import LoginModal from '@/components/LoginModal';
 
 export default function GuidePage() {
   const router = useRouter();
   const [user, setUser] = useState<any | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [userInterests, setUserInterests] = useState<string[]>([]);
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -38,7 +36,7 @@ export default function GuidePage() {
 
   const handleBAEClick = () => {
     if (!user) {
-      setShowLoginModal(true);
+      router.push('/auth');
       return;
     }
     if (userInterests.length < 3) {
@@ -337,7 +335,7 @@ export default function GuidePage() {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-white/50 text-center">Gold glowing = shared interests | See an interest you like? Tap to add it to your profile!</p>
+              <p className="text-xs text-white/50 text-center">See an interest you like? Tap to add it to your profile!</p>
             </div>
           </div>
         </motion.section>
@@ -433,18 +431,6 @@ export default function GuidePage() {
             Your interests make you interesting
           </p>
         </motion.div>
-
-        <LoginModal
-          isOpen={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-          auth={auth}
-          onLoginSuccess={() => {
-            setShowLoginModal(false);
-            if (userInterests.length < 3) {
-              router.push('/profile');
-            }
-          }}
-        />
 
       </div>
 

@@ -7,7 +7,6 @@ import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight } from 'lucide-react';
-import LoginModal from '@/components/LoginModal';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
@@ -70,16 +69,18 @@ export default function ExplorerPage() {
   const [unseenProfiles, setUnseenProfiles] = useState<any[]>([]);
   const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [newInterest, setNewInterest] = useState('');
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u || null);
-      if (!u) { 
-        setLoading(false); 
-        return; 
+      if (!u) {
+        // Not logged in - redirect to auth
+        router.push('/auth');
+        return;
       }
+      
+      setUser(u);
 
       // Only fetch user data and profiles when logged in
       const snap = await getDoc(doc(db, 'users', u.uid));
@@ -153,47 +154,9 @@ export default function ExplorerPage() {
 
   if (loading) return <div className="h-screen bg-[#1A0033] flex items-center justify-center text-white font-black text-2xl">IGNITING...</div>;
 
-  // GATED FOR NON-LOGGED-IN USERS
+  // REDIRECT TO AUTH IF NOT LOGGED IN
   if (!user) {
-    return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
-        {/* Background aura */}
-        <div className="pointer-events-none absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-fuchsia-500/20 blur-[140px] animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[140px] animate-pulse-reverse"></div>
-        </div>
-
-        {/* Blurred content area */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 blur-md pointer-events-none opacity-50">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
-            <div className="text-center sm:text-left">
-              <h1 className="text-4xl sm:text-6xl font-black mb-3">
-                Interest <span className={BAE_GRADIENT}>Explorer</span>
-              </h1>
-              <div className="text-xl sm:text-2xl font-bold leading-snug space-y-2">
-                <p className="text-white/95"><span className={BAE_GRADIENT}>Expand your interests</span> by seeing what others love</p>
-                <p className="text-white/90"><span className={BAE_GRADIENT}>Tap an interest</span> to add it to your profile</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center">
-              <div className="relative w-32 h-32 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 text-white shadow-[0_0_25px_rgba(255,160,255,0.7)] border-2 border-white/30 flex flex-col items-center justify-center text-center">
-                <span className="text-5xl font-extrabold">0</span>
-                <span className="text-sm font-semibold mt-1">Interests</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Login Modal - Shows immediately for non-logged-in users */}
-        <LoginModal
-          isOpen={true}
-          onClose={() => {/* User stays on page until they sign in */}}
-          auth={auth}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      </main>
-    );
+    return null; // Will redirect via useEffect
   }
 
   // FULL EXPLORER FOR LOGGED-IN USERS

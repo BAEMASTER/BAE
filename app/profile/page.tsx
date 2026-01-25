@@ -6,7 +6,6 @@ import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'fireb
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginModal from '@/components/LoginModal';
 
 // --- CONSTANTS ---
 const MIN_REQUIRED = 3;
@@ -106,8 +105,12 @@ export default function ProfilePage() {
   // --- Load user ---
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u || null);
-      if (!u) { setAuthReady(true); return; }
+      if (!u) {
+        // Not logged in - redirect to auth
+        router.push('/auth');
+        return;
+      }
+      setUser(u);
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
         const data = snap.exists() ? snap.data() as any : null;
@@ -125,7 +128,7 @@ export default function ProfilePage() {
       setAuthReady(true);
     });
     return () => unsub();
-  }, []);
+  }, [router]);
 
   const handleLoginSuccess = () => {
     // After successful login, page will re-render with user data
@@ -181,68 +184,9 @@ export default function ProfilePage() {
 
   const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
 
-  // GATED FOR NON-LOGGED-IN USERS
+  // REDIRECT TO AUTH IF NOT LOGGED IN
   if (!user) {
-    return (
-      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 px-4">
-        {/* Blurred content area */}
-        <div className="blur-md opacity-40 pointer-events-none">
-          <h1 className="text-4xl font-extrabold mb-6 drop-shadow-md">Your Profile</h1>
-
-          {/* SIDE-BY-SIDE CARDS */}
-          <div className="flex flex-col lg:flex-row gap-6 w-full max-w-6xl mx-auto">
-
-            {/* PERSONAL INFO */}
-            <motion.div className="flex-1 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
-              <h3 className="text-xl font-bold mb-4">Personal Info</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <div className="input" />
-                <div className="input" />
-                <div className="input" />
-                <div className="input" />
-              </div>
-
-              <h4 className="font-semibold mt-4 mb-2">Personal Website</h4>
-              <div className="input mb-2" />
-
-              <h4 className="font-semibold mt-4 mb-2">Social Links</h4>
-              <div className="input mb-2" />
-              <div className="input mb-2" />
-              <div className="input mb-2" />
-              <div className="input mb-2" />
-              <div className="input mb-2" />
-
-              <div className="w-full mt-4 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg" />
-            </motion.div>
-
-            {/* YOUR INTERESTS */}
-            <motion.div className="flex-1 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
-              <h3 className="text-xl font-bold mb-4 text-center">Your Interests</h3>
-              <div className="flex flex-wrap gap-3 mb-4 justify-center">
-                <div className="h-8 w-24 bg-white/10 rounded-full" />
-                <div className="h-8 w-24 bg-white/10 rounded-full" />
-                <div className="h-8 w-24 bg-white/10 rounded-full" />
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1 h-10 rounded-full bg-white/10" />
-                <div className="h-10 w-20 rounded-full bg-white/10" />
-              </div>
-            </motion.div>
-
-          </div>
-
-          <div className="mt-8 px-12 py-5 rounded-full font-black text-white text-xl shadow-lg bg-gray-500/50 w-fit mx-auto" />
-        </div>
-
-        {/* Login Modal - Shows immediately for non-logged-in users */}
-        <LoginModal
-          isOpen={true}
-          onClose={() => {/* User stays on page until they sign in */}}
-          auth={auth}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      </main>
-    );
+    return null; // Will redirect via useEffect
   }
 
   // FULL PROFILE FOR LOGGED-IN USERS

@@ -6,7 +6,6 @@ import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'fireb
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginModal from '@/components/LoginModal';
 
 // --- CONSTANTS ---
 const ROTATING_WORDS = ['UPLIFT', 'ELEVATE', 'INSPIRE', 'CHANGE']; 
@@ -37,7 +36,6 @@ export default function HomePage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [isChecking, setIsChecking] = useState(true);
   const [wordIndex, setWordIndex] = useState(0);
-  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -217,7 +215,7 @@ export default function HomePage() {
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             if (!user) {
-              setShowLoginModal(true);
+              router.push('/auth');
             } else if (userInterests.length < MIN_REQUIRED) {
               router.push('/profile');
             } else {
@@ -241,15 +239,6 @@ export default function HomePage() {
       <footer className="absolute bottom-6 inset-x-0 text-center text-white/20 text-sm font-medium z-10">
         Your interests make you interesting
       </footer>
-
-      {/* LOGIN MODAL */}
-      <LoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        auth={auth}
-        onLoginSuccess={handleLoginSuccess}
-      />
-
     </main>
   );
 }
