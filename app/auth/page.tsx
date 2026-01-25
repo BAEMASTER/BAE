@@ -76,7 +76,7 @@ export default function AuthPage() {
       </div>
 
       {/* AUTH CONTENT */}
-      <div className="relative z-10 flex flex-col items-center text-center px-6 max-w-xl w-full">
+      <div className="relative z-10 flex flex-col items-center text-center px-6 w-full">
 
         {/* Headline */}
         <motion.h1
