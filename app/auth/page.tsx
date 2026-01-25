@@ -83,7 +83,7 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight text-white mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)] whitespace-nowrap"
+          className="text-7xl sm:text-8xl lg:text-9xl font-black leading-tight text-white mb-8 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)]"
         >
           Log In to Access{' '}
           <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
@@ -91,25 +91,35 @@ export default function AuthPage() {
           </span>
         </motion.h1>
 
-        {/* Tagline with glowing pill */}
+        {/* Tagline with glowing pill - BIGGER */}
         <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.7 }}
-          className="text-lg sm:text-xl text-white/90 font-semibold mb-12 flex flex-wrap items-center justify-center gap-2"
+          className="text-2xl sm:text-3xl lg:text-4xl text-white/90 font-semibold mb-8 flex flex-wrap items-center justify-center gap-3"
         >
-          Authentic from{' '}
+          BAE is Where Your Shared Interests{' '}
           <span className="inline-flex">
             <motion.span
               animate={{ 
                 boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
               }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="px-4 py-2 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 whitespace-nowrap"
+              className="px-5 py-3 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 whitespace-nowrap text-2xl sm:text-3xl lg:text-4xl"
             >
-              DAY ONE
+              GLOW
             </motion.span>
           </span>
+        </motion.p>
+
+        {/* Philosophy tagline */}
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.7 }}
+          className="text-lg sm:text-xl text-white/70 font-semibold mb-10"
+        >
+          Authentic from Day One
         </motion.p>
 
         {/* Card UI */}
