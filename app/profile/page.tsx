@@ -12,6 +12,21 @@ const MIN_REQUIRED = 3;
 const NEUTRAL_PILL_CLASSES = 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm';
 const GOLD_PILL_CLASSES = 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] font-bold';
 
+// --- AGE CALCULATION ---
+const isAdult = (dob: string): boolean => {
+  if (!dob) return false;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age >= 18;
+};
+
 const playAddSound = () => {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -96,6 +111,8 @@ export default function ProfilePage() {
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
   const [website, setWebsite] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [ageLocked, setAgeLocked] = useState(false);
 
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
@@ -120,7 +137,13 @@ export default function ProfilePage() {
           setState(data.state || '');
           setCountry(data.country || '');
           setWebsite(data.website || '');
+          setBirthDate(data.birthDate || '');
           setInterests(Array.isArray(data.interests) ? data.interests : []);
+          
+          // Check if underage - lock if so
+          if (data.birthDate && !isAdult(data.birthDate)) {
+            setAgeLocked(true);
+          }
         } else {
           setDisplayName(u.displayName || u.email || 'Mystery BAE');
         }
@@ -130,19 +153,27 @@ export default function ProfilePage() {
     return () => unsub();
   }, [router]);
 
-  const handleLoginSuccess = () => {
-    // After successful login, page will re-render with user data
-    // No need to redirect since they came to profile intentionally
-  };
-
   // --- Handlers ---
   const saveProfile = async () => {
     if (!user) return;
+    
+    // Check age when saving
+    if (birthDate && !isAdult(birthDate)) {
+      setAgeLocked(true);
+      return;
+    }
+    
     try {
       await setDoc(doc(db, 'users', user.uid), {
-        displayName, city, state, country, website,
+        displayName, city, state, country, website, birthDate,
         interests, updatedAt: new Date().toISOString()
       }, { merge: true });
+      
+      // Unlock if age is valid
+      if (birthDate && isAdult(birthDate)) {
+        setAgeLocked(false);
+      }
+      
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (e) { console.error('Save failed', e); }
@@ -172,6 +203,7 @@ export default function ProfilePage() {
   };
 
   const handleBAEClick = () => {
+    if (ageLocked) return; // Don't allow if locked
     if (interests.length < MIN_REQUIRED) {
       setMinInterestWarning(true);
       setTimeout(() => setMinInterestWarning(false), 1800);
@@ -182,14 +214,50 @@ export default function ProfilePage() {
 
   if (!authReady) return <div className="min-h-screen flex items-center justify-center text-white font-black">Initializing BAE...</div>;
 
-  const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
-
   // REDIRECT TO AUTH IF NOT LOGGED IN
   if (!user) {
     return null; // Will redirect via useEffect
   }
 
-  // FULL PROFILE FOR LOGGED-IN USERS
+  const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
+
+  // AGE LOCKED VIEW
+  if (ageLocked) {
+    return (
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md"
+        >
+          <div className="text-6xl mb-6">🔒</div>
+          <h2 className="text-3xl font-black mb-4">Age Verification Required</h2>
+          <p className="text-lg text-white/70 mb-8">
+            Your account must be 18+ to use BAE. Please update your birthdate below.
+          </p>
+          
+          <div className="mb-6 p-4 bg-white/10 rounded-2xl border border-white/20">
+            <label className="block text-sm font-semibold mb-3 text-left">Birthdate</label>
+            <input 
+              type="date" 
+              value={birthDate} 
+              onChange={(e) => setBirthDate(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white"
+            />
+          </div>
+
+          <button 
+            onClick={saveProfile}
+            className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg"
+          >
+            Verify & Continue
+          </button>
+        </motion.div>
+      </main>
+    );
+  }
+
+  // FULL PROFILE FOR LOGGED-IN ADULTS
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 px-4">
       
@@ -207,6 +275,15 @@ export default function ProfilePage() {
             <input value={state} onChange={e => setState(e.target.value)} placeholder="State/Province" className="input" />
             <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="input" />
           </div>
+
+          <h4 className="font-semibold mt-4 mb-2">Birthdate</h4>
+          <input 
+            type="date" 
+            value={birthDate} 
+            onChange={(e) => setBirthDate(e.target.value)}
+            className="input mb-4"
+            required
+          />
 
           <h4 className="font-semibold mt-4 mb-2">Personal/Professional Website</h4>
           <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="input mb-2" />
