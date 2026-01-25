@@ -486,16 +486,29 @@ export default function MatchPage() {
       // Set up video stream handling with track-started (more reliable than participant-joined)
       daily.on('track-started', (evt: any) => {
         const { participant, track } = evt;
+        console.log('track-started event:', {
+          isLocal: participant.local,
+          trackKind: track?.kind,
+          hasTheirRef: !!theirVideoRef.current,
+          hasYourRef: !!yourVideoRef.current,
+        });
+
         if (!track || track.kind !== 'video') return;
 
         if (participant.local && yourVideoRef.current) {
+          console.log('Setting YOUR video stream');
           yourVideoRef.current.srcObject = new MediaStream([track]);
           yourVideoRef.current.play().catch(() => {});
         }
 
         if (!participant.local && theirVideoRef.current) {
+          console.log('Setting THEIR video stream');
           theirVideoRef.current.srcObject = new MediaStream([track]);
           theirVideoRef.current.play().catch(() => {});
+        }
+
+        if (!participant.local && !theirVideoRef.current) {
+          console.warn('⚠️ THEIR video ref is NULL! Remote track received but no ref to render to');
         }
       });
 
