@@ -165,10 +165,11 @@ export default function MatchPage() {
     callObjectRef.current = daily;
 
     daily.on('track-started', ({ track, participant }) => {
-      if (track.kind !== 'video') return;
-      const ref = participant.local ? yourVideoRef : theirVideoRef;
-      if (ref.current) ref.current.srcObject = new MediaStream([track]);
-    });
+  if (!participant || track.kind !== 'video') return; // <-- guard added
+  const ref = participant.local ? yourVideoRef : theirVideoRef;
+  if (ref.current) ref.current.srcObject = new MediaStream([track]);
+});
+
 
     await daily.join({ url, audioSource: mediaStreamRef.current!, videoSource: mediaStreamRef.current! });
   };
