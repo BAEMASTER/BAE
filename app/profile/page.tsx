@@ -305,6 +305,16 @@ export default function ProfilePage() {
             )}
           </AnimatePresence>
 
+          <style jsx>{`
+            select {
+              color-scheme: dark;
+            }
+            select option {
+              background: #1A0033;
+              color: white;
+            }
+          `}</style>
+
           <button 
             onClick={saveProfile}
             className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg"
