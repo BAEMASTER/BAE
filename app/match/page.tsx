@@ -523,7 +523,11 @@ function MatchPageContent() {
             type: 'none'
           }
         },
-        audio: true,
+        audio: {
+          processor: {
+            type: 'none'
+          }
+        },
       });
 
     } catch (err: any) {
