@@ -128,15 +128,21 @@ const playMegaVibeFanfare = async () => {
 };
 
 function Confetti() {
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    setViewport({ w: window.innerWidth, h: window.innerHeight });
+  }, []);
+
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
       {[...Array(50)].map((_, i) => (
         <motion.div
           key={i}
-          initial={{ x: window.innerWidth / 2, y: window.innerHeight / 2, opacity: 1 }}
+          initial={{ x: viewport.w / 2, y: viewport.h / 2, opacity: 1 }}
           animate={{
-            x: window.innerWidth / 2 + (Math.random() - 0.5) * 400,
-            y: window.innerHeight + 100,
+            x: viewport.w / 2 + (Math.random() - 0.5) * 400,
+            y: viewport.h + 100,
             opacity: 0,
             rotate: Math.random() * 360,
           }}
@@ -389,19 +395,19 @@ export default function MatchPage() {
   // MEGA VIBE trigger with auto-close
   useEffect(() => {
     if (sharedInterests.length === 5 && !megaVibeTriggered) {
-      playMegaVibeFanfare();
+      if (audioEnabled) playMegaVibeFanfare();
       setShowGoldenTicket(true);
       setMegaVibeTriggered(true);
       const timer = setTimeout(() => setShowGoldenTicket(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [sharedInterests.length, megaVibeTriggered]);
+  }, [sharedInterests.length, megaVibeTriggered, audioEnabled]);
 
   // Celebration popout for levels 1-4
   useEffect(() => {
     if (sharedInterests.length >= 1 && sharedInterests.length <= 4) {
       if (!celebratedLevels.has(sharedInterests.length)) {
-        playVibeLevel(sharedInterests.length);
+        if (audioEnabled) playVibeLevel(sharedInterests.length);
         setCurrentCelebration(sharedInterests.length);
         setCelebratedLevels(prev => new Set([...prev, sharedInterests.length]));
         const timer = setTimeout(() => setCurrentCelebration(null), 1000);
