@@ -356,20 +356,6 @@ export default function MatchPage() {
     }
   }, [sharedInterests.length, celebratedLevels]);
 
-  // Celebration popout for levels 1-4
-  const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
-  useEffect(() => {
-    if (sharedInterests.length >= 1 && sharedInterests.length <= 4) {
-      if (!celebratedLevels.has(sharedInterests.length)) {
-        playVibeLevel(sharedInterests.length);
-        setCurrentCelebration(sharedInterests.length);
-        setCelebratedLevels(prev => new Set([...prev, sharedInterests.length]));
-        const timer = setTimeout(() => setCurrentCelebration(null), 1000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [sharedInterests.length, celebratedLevels]);
-
   // Heavy initialization only after auth
   useEffect(() => {
     if (!authReady || !user) return;
