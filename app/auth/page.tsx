@@ -98,7 +98,7 @@ export default function AuthPage() {
           transition={{ delay: 0.15, duration: 0.7 }}
           className="text-lg sm:text-xl text-white/90 font-semibold mb-12 flex flex-wrap items-center justify-center gap-2"
         >
-          BAE is Where Your Shared Interests{' '}
+          Authentic from{' '}
           <span className="inline-flex">
             <motion.span
               animate={{ 
@@ -107,7 +107,7 @@ export default function AuthPage() {
               transition={{ duration: 2, repeat: Infinity }}
               className="px-4 py-2 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 whitespace-nowrap"
             >
-              GLOW
+              DAY ONE
             </motion.span>
           </span>
         </motion.p>
