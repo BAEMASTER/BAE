@@ -1,5 +1,6 @@
 'use client';
 
+import AgeGateWrapper from '@/components/AgeGateWrapper';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -305,7 +306,7 @@ function MegaVibeCelebration() {
   );
 }
 
-export default function MatchPage() {
+function MatchPageContent() {
   const router = useRouter();
   const yourVideoRef = useRef<HTMLVideoElement>(null);
   const theirVideoRef = useRef<HTMLVideoElement>(null);
@@ -513,6 +514,13 @@ export default function MatchPage() {
       });
 
       await daily.join({ url: roomUrl });
+
+      // CRITICAL: Publish your video/audio to the room
+      console.log('Publishing video to Daily room...');
+      await daily.updateInputSettings({
+        video: { isScreenShare: false },
+        audio: true,
+      });
 
     } catch (err: any) {
       setError(true);
@@ -1006,5 +1014,13 @@ export default function MatchPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function MatchPage() {
+  return (
+    <AgeGateWrapper>
+      <MatchPageContent />
+    </AgeGateWrapper>
   );
 }
