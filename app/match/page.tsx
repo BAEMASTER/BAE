@@ -223,7 +223,7 @@ await daily.join({
       {/* TOP SHARED INTERESTS + VIBE O METER */}
       <div className="absolute inset-x-0 top-10 flex flex-col items-center pointer-events-none z-50">
         <div className="flex flex-wrap justify-center gap-2 px-4 max-w-lg">
-          {shared.map((i, idx) => (
+          {shared.map((i: string, idx: number) => (
             <motion.div
               key={idx}
               initial={{ scale: 0 }}
