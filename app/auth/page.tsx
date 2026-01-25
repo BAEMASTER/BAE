@@ -83,10 +83,9 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="text-6xl sm:text-7xl font-black leading-tight text-white mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)]"
+          className="text-5xl sm:text-6xl lg:text-7xl font-black leading-tight text-white mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)] whitespace-nowrap"
         >
-          Log In to Access
-          <br />
+          Log In to Access{' '}
           <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
             BAE
           </span>
