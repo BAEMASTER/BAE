@@ -872,34 +872,40 @@ function MatchPageContent() {
         </div>
 
         {/* CENTER OVERLAY - SHARED INTERESTS + VIBE METER */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20 pt-20">
           <AnimatePresence>
             {isMatched && sharedInterests.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-wrap justify-center gap-3 mb-12">
                 {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
                   <motion.div
                     key={`shared-${idx}`}
                     initial={{ opacity: 0, scale: 0, y: -30 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
+                    className="px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
                   >
                     {interest}
                     <motion.div
                       animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
+                      className="-inset-3 bg-yellow-400 rounded-full -z-10 blur-lg pointer-events-none"
+                      style={{
+                        position: 'absolute',
+                        inset: '-12px',
+                      }}
                     />
                   </motion.div>
                 ))}
               </div>
             )}
           </AnimatePresence>
-        </div>
 
-        {/* VIBE METER - Left side, centered vertically */}
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          {isMatched && <FluidVibeOMeter count={vibeCount} />}
+          {/* VIBE METER - Centered below interests */}
+          {isMatched && (
+            <div className="pointer-events-none">
+              <FluidVibeOMeter count={vibeCount} />
+            </div>
+          )}
         </div>
 
         {/* THEIR VIDEO (RIGHT) */}
