@@ -1,6 +1,9 @@
 'use client';
 
-import { useAgeGate } from '@/hooks/useAgeGate';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebaseClient';
+import { useAgeGate } from '@/lib/hooks/useAgeGate';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -8,9 +11,19 @@ import { Loader2 } from 'lucide-react';
  * Usage: <AgeGateWrapper><YourPage /></AgeGateWrapper>
  */
 export default function AgeGateWrapper({ children }: { children: React.ReactNode }) {
-  const { isAdult, loading } = useAgeGate();
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const { isAdult, loading } = useAgeGate(user);
 
-  if (loading) {
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-fuchsia-500 animate-spin" />
