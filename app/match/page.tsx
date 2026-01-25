@@ -518,7 +518,11 @@ function MatchPageContent() {
       // CRITICAL: Publish your video/audio to the room
       console.log('Publishing video to Daily room...');
       await daily.updateInputSettings({
-        video: true,
+        video: {
+          processor: {
+            type: 'none'
+          }
+        },
         audio: true,
       });
 
