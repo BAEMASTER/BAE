@@ -188,11 +188,7 @@ function VibeToast({ interest, newCount }: { interest: string; newCount: number 
   );
 }
 
-function MegaVibeCelebration({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+function MegaVibeCelebration() {
   return (
     <>
       <Confetti />
@@ -240,9 +236,8 @@ function MegaVibeCelebration({
 
 export default function MatchPage() {
   const router = useRouter();
-  const localVideoContainerRef = useRef<HTMLDivElement>(null);
-  const remoteVideoContainerRef = useRef<HTMLDivElement>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
+  const yourVideoRef = useRef<HTMLVideoElement>(null);
+  const theirVideoRef = useRef<HTMLVideoElement>(null);
   const callObject = useRef<any>(null);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -256,7 +251,6 @@ export default function MatchPage() {
   const [isMatched, setIsMatched] = useState(false);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('Something went wrong.');
-  const [cameraReady, setCameraReady] = useState(false);
   const [toastData, setToastData] = useState<{ interest: string; newCount: number } | null>(null);
   const [showGoldenTicket, setShowGoldenTicket] = useState(false);
   const [megaVibeTriggered, setMegaVibeTriggered] = useState(false);
@@ -264,14 +258,14 @@ export default function MatchPage() {
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
     return myProfile.interests.filter((i: string) =>
-      theirProfile.interests.some((ti: string) => ti.toLowerCase() === i.toLowerCase())
+      theirProfile.interests.some((ti: string) => ti.trim().toLowerCase() === i.trim().toLowerCase())
     );
   }, [myProfile, theirProfile]);
 
   const displayedInterests = useMemo(() => {
     if (!theirProfile) return [];
     return theirProfile.interests.filter(
-      (i) => !sharedInterests.some((s) => s.toLowerCase() === i.toLowerCase())
+      (i) => !sharedInterests.some((s) => s.trim().toLowerCase() === i.trim().toLowerCase())
     );
   }, [theirProfile, sharedInterests]);
 
@@ -279,7 +273,6 @@ export default function MatchPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) {
-        // Not logged in - redirect to auth page
         router.push('/auth');
         return;
       }
@@ -293,6 +286,7 @@ export default function MatchPage() {
     setVibeCount(sharedInterests.length);
   }, [sharedInterests.length]);
 
+  // MEGA VIBE trigger with auto-close
   useEffect(() => {
     if (sharedInterests.length === 5 && !megaVibeTriggered) {
       playMegaVibeFanfare();
@@ -303,44 +297,11 @@ export default function MatchPage() {
     }
   }, [sharedInterests.length, megaVibeTriggered]);
 
-  // Heavy initialization only runs AFTER user is authenticated
+  // Heavy initialization only after auth
   useEffect(() => {
     if (!authReady || !user) return;
 
     let mounted = true;
-
-    const startNativeCamera = async () => {
-      try {
-        for (let i = 0; i < 20; i++) {
-          if (localVideoContainerRef.current) break;
-          await new Promise(r => setTimeout(r, 50));
-        }
-        if (!localVideoContainerRef.current || !mounted) return;
-
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'user' },
-          audio: true 
-        });
-        
-        localStreamRef.current = stream;
-        const video = document.createElement('video');
-        video.srcObject = stream;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.muted = true;
-        video.style.cssText = 'width:100%;height:100%;object-fit:cover;transform:scaleX(-1)';
-        
-        localVideoContainerRef.current.innerHTML = '';
-        localVideoContainerRef.current.appendChild(video);
-        await video.play();
-        if (mounted) setCameraReady(true);
-      } catch (err) {
-        if (mounted) {
-          setErrorMessage('Camera access required');
-          setError(true);
-        }
-      }
-    };
 
     const initEverything = async () => {
       try {
@@ -364,9 +325,6 @@ export default function MatchPage() {
           return;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        await startNativeCamera();
-        
         await updateDoc(doc(db, 'users', user.uid), {
           status: 'idle',
           queuedAt: null,
@@ -453,37 +411,65 @@ export default function MatchPage() {
         if (!mounted) return;
         setIsMatched(true);
 
-        if (localStreamRef.current) {
-          localStreamRef.current.getTracks().forEach(track => track.stop());
-          localStreamRef.current = null;
-        }
-        
-        if (localVideoContainerRef.current) {
-          localVideoContainerRef.current.innerHTML = '';
-        }
+        // Create Daily call with custom video handling (no UI)
+        const container = document.createElement('div');
+        container.style.display = 'none';
+        document.body.appendChild(container);
 
-        await new Promise(resolve => setTimeout(resolve, 300));
-        if (!localVideoContainerRef.current || !mounted) return;
-
-        const daily = DailyIframe.createFrame(localVideoContainerRef.current, {
+        const daily = DailyIframe.createFrame(container, {
           showLeaveButton: false,
           showFullscreenButton: false,
           showParticipantsBar: false,
-          showLocalVideo: true,
+          showLocalVideo: false,
           showUserNameChangeUI: false,
-          iframeStyle: {
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            zIndex: '1',
-          },
         });
 
         callObject.current = daily;
+        
+        // Set up video stream handling
+        daily.on('participant-joined', (evt: any) => {
+          const participant = evt.participant;
+          if (participant.session_id === daily.participants().local.session_id) {
+            // Local video
+            if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
+              yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+            }
+          } else {
+            // Remote video
+            if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
+              theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+            }
+          }
+        });
+
+        daily.on('participant-updated', (evt: any) => {
+          const participant = evt.participant;
+          if (participant.session_id === daily.participants().local.session_id) {
+            if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
+              yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+            }
+          } else {
+            if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
+              theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+            }
+          }
+        });
+
         await daily.join({ url: roomUrl });
+
+        // Set initial participants
+        setTimeout(() => {
+          const participants = daily.participants();
+          if (participants.local?.tracks.video?.track && yourVideoRef.current) {
+            yourVideoRef.current.srcObject = new MediaStream([participants.local.tracks.video.track]);
+          }
+          Object.values(participants).forEach((p: any) => {
+            if (p.session_id !== participants.local.session_id && p.tracks.video?.track && theirVideoRef.current) {
+              theirVideoRef.current.srcObject = new MediaStream([p.tracks.video.track]);
+            }
+          });
+        }, 500);
+
       } catch (err: any) {
         if (mounted) {
           setError(true);
@@ -498,9 +484,6 @@ export default function MatchPage() {
       if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
       if (unsubscribeRef.current) unsubscribeRef.current();
       if (partnerUnsubscribeRef.current) partnerUnsubscribeRef.current();
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-      }
       if (callObject.current) {
         try { callObject.current.destroy(); } catch {}
         callObject.current = null;
@@ -511,7 +494,7 @@ export default function MatchPage() {
   const handleTeleportInterest = async (interest: string) => {
     if (!user || !myProfile) return;
     const alreadyAdded = myProfile.interests.some(
-      (i: string) => i.toLowerCase() === interest.toLowerCase()
+      (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
     );
     if (alreadyAdded) return;
 
@@ -541,22 +524,15 @@ export default function MatchPage() {
       callObject.current = null;
     }
 
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-      localStreamRef.current = null;
-    }
-
     setIsMatched(false);
     setTheirProfile(null);
     setVibeCount(0);
     setShowGoldenTicket(false);
     setMegaVibeTriggered(false);
     setToastData(null);
-    setCameraReady(false);
 
-    if (localVideoContainerRef.current) {
-      localVideoContainerRef.current.innerHTML = '';
-    }
+    if (yourVideoRef.current) yourVideoRef.current.srcObject = null;
+    if (theirVideoRef.current) theirVideoRef.current.srcObject = null;
 
     try {
       if (myProfile) {
@@ -583,9 +559,6 @@ export default function MatchPage() {
     if (callObject.current) {
       try { await callObject.current.destroy(); } catch {}
     }
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-    }
     if (user) {
       await updateDoc(doc(db, 'users', user.uid), {
         status: 'idle',
@@ -596,7 +569,6 @@ export default function MatchPage() {
     router.push('/');
   };
 
-  // Show loading while auth is being checked
   if (!authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
@@ -636,57 +608,33 @@ export default function MatchPage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px]"></div>
       </div>
 
-      {/* Header - Absolute positioned, no extra space */}
+      {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
           BAE
         </div>
       </header>
 
-      {/* VIDEOS - Full flex, header is absolute so no padding needed */}
-      <div className="relative flex-1 flex overflow-hidden z-5">
-        <div className="relative flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
+      {/* VIDEOS - Full split screen */}
+      <div className="relative flex-1 flex overflow-hidden z-5 pt-14">
+        {/* YOUR VIDEO (LEFT) */}
+        <div className="relative flex-1 bg-black">
+          <video
+            ref={yourVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ transform: 'scaleX(-1)' }}
+          />
           
-          {/* MEGA VIBE Screen Flash */}
-          <AnimatePresence>
-            {megaVibeTriggered && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1.5 }}
-                className="absolute inset-0 pointer-events-none z-30 border-4"
-                style={{
-                  borderImage: 'conic-gradient(from 0deg, #FFD700, #FF69B4, #87CEEB, #FFD700) 1',
-                  animation: 'spin 1.5s linear forwards',
-                }}
-              />
-            )}
-          </AnimatePresence>
-
-          <style>{`
-            @keyframes spin {
-              from { border-image: conic-gradient(from 0deg, #FFD700, #FF69B4, #87CEEB, #FFD700) 1; }
-              to { border-image: conic-gradient(from 360deg, #FFD700, #FF69B4, #87CEEB, #FFD700) 1; }
-            }
-          `}</style>
-          
-          {/* YOUR VIDEO */}
-          <div className="relative flex-1 bg-black">
-            <div ref={localVideoContainerRef} className="absolute inset-0 w-full h-full" />
-            {!cameraReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-indigo-900/20">
-                <Loader2 className="w-12 h-12 text-white/70 animate-spin" />
-              </div>
-            )}
-            
-            {/* YOUR INTERESTS - High contrast backdrop, scrollable */}
+          {/* YOUR INTERESTS - Bottom */}
+          {myProfile && (
             <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
-              <div className="w-full max-w-4xl">
-                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto md:overflow-y-auto md:overflow-x-hidden">
-                  {/* Desktop: 2 rows × 3 cols, vertical scroll */}
+              <div className="w-full max-w-md">
+                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto">
                   <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
-                    {myProfile?.interests.map((interest: string) => (
+                    {myProfile.interests.map((interest: string) => (
                       <div
                         key={interest}
                         className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap text-center"
@@ -696,9 +644,8 @@ export default function MatchPage() {
                     ))}
                   </div>
                   
-                  {/* Mobile: 1 row × 4 cols, horizontal scroll */}
                   <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
-                    {myProfile?.interests.map((interest: string) => (
+                    {myProfile.interests.map((interest: string) => (
                       <div
                         key={interest}
                         className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap flex-shrink-0"
@@ -710,164 +657,139 @@ export default function MatchPage() {
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="absolute bottom-20 left-4 right-4 text-center">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-                <h3 className="text-sm font-bold text-white">{myProfile?.displayName || 'You'}</h3>
-              </div>
+          {/* YOUR NAME - Bottom left */}
+          <div className="absolute bottom-20 left-4 right-4 text-center">
+            <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+              <h3 className="text-sm font-bold text-white">{myProfile?.displayName || 'You'}</h3>
             </div>
           </div>
+        </div>
 
-          {/* CENTER OVERLAY - DESKTOP: Shared interests higher, vibe-o-meter centered | MOBILE: stacked horizontally between videos */}
-          <div className="hidden lg:absolute lg:inset-0 lg:flex lg:flex-col lg:items-center lg:pointer-events-none lg:z-20" style={{ justifyContent: '20%' }}>
-            <AnimatePresence>
-              {isMatched && sharedInterests.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-3">
-                  {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
+        {/* CENTER OVERLAY - SHARED INTERESTS + VIBE METER */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+          <AnimatePresence>
+            {isMatched && sharedInterests.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3">
+                {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
+                  <motion.div
+                    key={interest}
+                    initial={{ opacity: 0, scale: 0, y: -30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
+                  >
+                    {interest}
                     <motion.div
-                      key={interest}
-                      initial={{ opacity: 0, scale: 0, y: -30 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="relative px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
-                    >
-                      {interest}
-                      <motion.div
-                        animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* DESKTOP: VIBE-O-METER - CENTERED */}
-          <div className="hidden lg:absolute lg:inset-0 lg:flex lg:flex-col lg:items-center lg:justify-center lg:pointer-events-none lg:z-20">
-            {isMatched && <FluidVibeOMeter count={vibeCount} />}
-          </div>
-
-          {/* MOBILE: SHARED INTERESTS - Smack in the middle, bridging both videos */}
-          <div className="lg:hidden absolute left-0 right-0 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center py-3 px-3 pointer-events-none">
-            <AnimatePresence>
-              {isMatched && sharedInterests.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-2">
-                  {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
-                    <motion.div
-                      key={interest}
-                      initial={{ opacity: 0, scale: 0, y: -30 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className="relative px-4 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
-                    >
-                      {interest}
-                      <motion.div
-                        animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
-                      />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* MOBILE: VIBE-O-METER - Left side, middle */}
-          <div className="lg:hidden absolute left-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
-            {isMatched && <FluidVibeOMeter count={vibeCount} />}
-          </div>
-
-          {/* THEIR VIDEO */}
-          <div className="relative flex-1 bg-black">
-            {!isMatched ? (
-              <motion.div 
-                animate={{ opacity: [0.4, 0.7, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
-              >
-                <div className="text-center px-4">
-                  <div className="text-5xl mb-3">✨</div>
-                  <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
-                </div>
-              </motion.div>
-            ) : (
-              <>
-                <div ref={remoteVideoContainerRef} className="absolute inset-0 w-full h-full" />
-                <div className="absolute bottom-20 left-4 right-4 text-center">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-                    <h3 className="text-sm font-bold text-white">
-                      {theirProfile?.displayName || '...'}
-                      {theirProfile?.location && <span className="text-xs font-semibold text-white/70"> • {theirProfile.location}</span>}
-                    </h3>
-                  </div>
-                </div>
-              </>
+                      animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="absolute -inset-3 bg-yellow-400 rounded-full -z-10 blur-lg"
+                    />
+                  </motion.div>
+                ))}
+              </div>
             )}
+          </AnimatePresence>
+        </div>
 
-            {/* THEIR INTERESTS - High contrast backdrop, all interests visible, scrollable */}
-            {isMatched && theirProfile && (
-              <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
-                <div className="w-full max-w-4xl">
-                  <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto md:overflow-y-auto md:overflow-x-hidden">
-                    {/* Desktop: 2 rows × 3 cols, vertical scroll */}
-                    <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
-                      {displayedInterests.map((interest: string) => {
-                        const isAdded = myProfile?.interests.some(
-                          (i: string) => i.toLowerCase() === interest.toLowerCase()
-                        );
-                        return (
-                          <motion.button
-                            key={interest}
-                            whileHover={!isAdded ? { scale: 1.08 } : {}}
-                            whileTap={!isAdded ? { scale: 0.95 } : {}}
-                            onClick={() => !isAdded && handleTeleportInterest(interest)}
-                            disabled={isAdded}
-                            className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-center ${
-                              isAdded
-                                ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
-                                : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
-                            }`}
-                          >
-                            {interest}
-                            {!isAdded && <Plus size={10} className="absolute top-1 right-1" />}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                    
-                    {/* Mobile: 1 row × 4 cols, horizontal scroll */}
-                    <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
-                      {displayedInterests.map((interest: string) => {
-                        const isAdded = myProfile?.interests.some(
-                          (i: string) => i.toLowerCase() === interest.toLowerCase()
-                        );
-                        return (
-                          <motion.button
-                            key={interest}
-                            whileHover={!isAdded ? { scale: 1.08 } : {}}
-                            whileTap={!isAdded ? { scale: 0.95 } : {}}
-                            onClick={() => !isAdded && handleTeleportInterest(interest)}
-                            disabled={isAdded}
-                            className={`relative px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
-                              isAdded
-                                ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
-                                : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
-                            }`}
-                          >
-                            {interest}
-                            {!isAdded && <Plus size={8} className="absolute top-0.5 right-0.5" />}
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+        {/* VIBE METER - Left side, centered vertically */}
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
+          {isMatched && <FluidVibeOMeter count={vibeCount} />}
+        </div>
+
+        {/* THEIR VIDEO (RIGHT) */}
+        <div className="relative flex-1 bg-black">
+          {!isMatched ? (
+            <motion.div 
+              animate={{ opacity: [0.4, 0.7, 0.4] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
+            >
+              <div className="text-center px-4">
+                <div className="text-5xl mb-3">✨</div>
+                <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
+              </div>
+            </motion.div>
+          ) : (
+            <video
+              ref={theirVideoRef}
+              autoPlay
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+
+          {/* THEIR INTERESTS - Bottom */}
+          {isMatched && theirProfile && (
+            <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
+              <div className="w-full max-w-md">
+                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto">
+                  <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
+                    {displayedInterests.map((interest: string) => {
+                      const isAdded = myProfile?.interests.some(
+                        (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
+                      );
+                      return (
+                        <motion.button
+                          key={interest}
+                          whileHover={!isAdded ? { scale: 1.08 } : {}}
+                          whileTap={!isAdded ? { scale: 0.95 } : {}}
+                          onClick={() => !isAdded && handleTeleportInterest(interest)}
+                          disabled={isAdded}
+                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-center ${
+                            isAdded
+                              ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
+                              : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
+                          }`}
+                        >
+                          {interest}
+                          {!isAdded && <Plus size={10} className="absolute top-1 right-1" />}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
+                    {displayedInterests.map((interest: string) => {
+                      const isAdded = myProfile?.interests.some(
+                        (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
+                      );
+                      return (
+                        <motion.button
+                          key={interest}
+                          whileHover={!isAdded ? { scale: 1.08 } : {}}
+                          whileTap={!isAdded ? { scale: 0.95 } : {}}
+                          onClick={() => !isAdded && handleTeleportInterest(interest)}
+                          disabled={isAdded}
+                          className={`relative px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
+                            isAdded
+                              ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
+                              : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
+                          }`}
+                        >
+                          {interest}
+                          {!isAdded && <Plus size={8} className="absolute top-0.5 right-0.5" />}
+                        </motion.button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* THEIR NAME - Bottom center */}
+          {isMatched && (
+            <div className="absolute bottom-20 left-4 right-4 text-center">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+                <h3 className="text-sm font-bold text-white">
+                  {theirProfile?.displayName || '...'}
+                  {theirProfile?.location && <span className="text-xs font-semibold text-white/70"> • {theirProfile.location}</span>}
+                </h3>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -876,11 +798,7 @@ export default function MatchPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showGoldenTicket && (
-          <MegaVibeCelebration
-            onClose={() => setShowGoldenTicket(false)}
-          />
-        )}
+        {showGoldenTicket && <MegaVibeCelebration />}
       </AnimatePresence>
 
       <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
