@@ -6,6 +6,7 @@ import { auth, db } from '@/lib/firebaseClient';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Shared rotating config with home
 const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
@@ -39,8 +40,20 @@ export default function AuthPage() {
       setLoading(true);
       setBusy(true);
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push('/profile'); // ✅ forward after login success
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user has 3+ interests
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const interestCount = userDoc.exists() ? (userDoc.data().interests || []).length : 0;
+
+      if (interestCount >= 3) {
+        // Has 3+ interests → go to homepage
+        router.push('/');
+      } else {
+        // Has 0-2 interests → go to profile to add more
+        router.push('/profile');
+      }
     } catch (e) {
       console.error('Sign-in error:', e);
       alert('Sign-in failed, try again.');
@@ -70,35 +83,33 @@ export default function AuthPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="text-6xl sm:text-7xl font-black leading-tight text-white mb-2 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)]"
+          className="text-6xl sm:text-7xl font-black leading-tight text-white mb-6 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)]"
         >
+          Log In to Access
+          <br />
           <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
             BAE
           </span>
         </motion.h1>
 
-        {/* Subheadline */}
-        <motion.h2
+        {/* Tagline with glowing pill */}
+        <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.7 }}
-          className="text-2xl sm:text-3xl font-bold text-white/90 mb-8"
+          transition={{ delay: 0.15, duration: 0.7 }}
+          className="text-lg sm:text-xl text-white/90 font-semibold mb-12 flex flex-wrap items-center justify-center gap-2"
         >
-          Connect through shared interests
-        </motion.h2>
-
-        {/* 3-interest onboarding copy */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.7 }}
-          className="text-base text-white/80 font-semibold mb-10 leading-relaxed"
-        >
-          Add 3+ interests to start matching. Your shared interests will{' '}
+          BAE is Where Your Shared Interests{' '}
           <span className="inline-flex">
-            <span className="px-3 py-1 rounded-full bg-yellow-300/20 border border-yellow-300/40 text-yellow-300 font-bold">
-              glow ✨
-            </span>
+            <motion.span
+              animate={{ 
+                boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="px-4 py-2 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 whitespace-nowrap"
+            >
+              GLOW
+            </motion.span>
           </span>
         </motion.p>
 
