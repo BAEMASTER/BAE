@@ -171,7 +171,12 @@ export default function MatchPage() {
 });
 
 
-    await daily.join({ url, audioSource: mediaStreamRef.current!, videoSource: mediaStreamRef.current! });
+await daily.join({ 
+  url, 
+  audioSource: mediaStreamRef.current!.getAudioTracks()[0] || true, 
+  videoSource: mediaStreamRef.current!.getVideoTracks()[0] || true 
+});
+
   };
 
   /* --- ADD INTEREST (TAP TO STEAL) --- */
