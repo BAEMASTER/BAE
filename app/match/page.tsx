@@ -364,6 +364,28 @@ export default function MatchPage() {
 
     const initEverything = async () => {
       try {
+        // REQUEST CAMERA PERMISSIONS FIRST - immediately
+        let localStream: MediaStream | null = null;
+        try {
+          console.log('Requesting camera/microphone permissions...');
+          localStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user' },
+            audio: true 
+          });
+          console.log('Camera permissions granted, stream acquired');
+          // Display local video immediately
+          if (localStream && yourVideoRef.current) {
+            yourVideoRef.current.srcObject = localStream;
+          }
+        } catch (err: any) {
+          console.error('Camera permission error:', err.name, err.message);
+          if (mounted) {
+            setError(true);
+            setErrorMessage('Camera and microphone access required. Please enable permissions in browser settings.');
+          }
+          return;
+        }
+
         const snap = await getDoc(doc(db, 'users', user.uid));
         if (!snap.exists()) {
           setError(true);
@@ -469,22 +491,6 @@ export default function MatchPage() {
 
         if (!mounted) return;
         setIsMatched(true);
-
-        // Request camera permissions first
-        let localStream: MediaStream | null = null;
-        try {
-          console.log('Requesting camera/microphone permissions...');
-          localStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'user' },
-            audio: true 
-          });
-          console.log('Camera permissions granted, stream acquired');
-        } catch (err: any) {
-          console.error('Camera permission error:', err.name, err.message);
-          setError(true);
-          setErrorMessage('Camera and microphone access required. Please enable permissions in browser settings.');
-          return;
-        }
 
         // Create Daily call with custom video handling (no UI)
         const container = document.createElement('div');
@@ -605,6 +611,7 @@ export default function MatchPage() {
     setShowGoldenTicket(false);
     setMegaVibeTriggered(false);
     setToastData(null);
+    setCelebratedLevels(new Set()); // Reset celebrated levels for new match
 
     if (yourVideoRef.current) yourVideoRef.current.srcObject = null;
     if (theirVideoRef.current) theirVideoRef.current.srcObject = null;
@@ -623,7 +630,35 @@ export default function MatchPage() {
 
         if (!matchRes.ok) {
           setError(true);
+          return;
         }
+
+        const matchData = await matchRes.json();
+
+        // If immediate match, connect
+        if (matchData.matched) {
+          await handleMatch(matchData.partnerId, matchData.roomUrl, myProfile);
+          return;
+        }
+
+        // Otherwise, wait for Firestore listener to pick up the match
+        timeoutIdRef.current = setTimeout(async () => {
+          await updateDoc(doc(db, 'users', user.uid), {
+            status: 'idle',
+            queuedAt: null,
+          });
+          setError(true);
+        }, 300000);
+
+        const userDocRef = doc(db, 'users', user.uid);
+        unsubscribeRef.current = onSnapshot(userDocRef, async (docSnap) => {
+          const data = docSnap.data();
+          if (data?.status === 'matched' && data?.partnerId && data?.currentRoomUrl) {
+            if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
+            await handleMatch(data.partnerId, data.currentRoomUrl, myProfile);
+            if (unsubscribeRef.current) unsubscribeRef.current();
+          }
+        });
       }
     } catch (err: any) {
       setError(true);
@@ -859,17 +894,19 @@ export default function MatchPage() {
           </motion.button>
         )}
 
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleEndCall}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm"
-        >
-          <X size={14} />
-          End
-        </motion.button>
+        {!isMatched && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleEndCall}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm"
+          >
+            <X size={14} />
+            End
+          </motion.button>
+        )}
       </div>
     </main>
   );
