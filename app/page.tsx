@@ -115,7 +115,7 @@ export default function HomePage() {
           <div className="text-white/80 text-sm font-medium">{userName}</div>
         ) : (
           <button
-            onClick={() => setShowLoginModal(true)}
+            onClick={() => router.push('/auth')}
             className="px-8 py-2.5 rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold text-base hover:shadow-lg hover:shadow-pink-500/50 transition-all"
           >
             Sign In
