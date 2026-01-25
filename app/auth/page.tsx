@@ -91,12 +91,12 @@ export default function AuthPage() {
           </span>
         </motion.h1>
 
-        {/* Tagline with glowing pill - BIGGER */}
+        {/* Tagline with glowing pill */}
         <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.7 }}
-          className="text-2xl sm:text-3xl lg:text-4xl text-white/90 font-semibold mb-8 flex flex-wrap items-center justify-center gap-3"
+          className="text-2xl sm:text-3xl lg:text-4xl text-white/90 font-semibold mb-12 flex flex-wrap items-center justify-center gap-3"
         >
           BAE is Where Your Shared Interests{' '}
           <span className="inline-flex">
@@ -112,17 +112,7 @@ export default function AuthPage() {
           </span>
         </motion.p>
 
-        {/* Philosophy tagline */}
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.7 }}
-          className="text-lg sm:text-xl text-white/70 font-semibold mb-10"
-        >
-          Authentic from Day One
-        </motion.p>
-
-        {/* Card UI */}
+        {/* Big Login Button - Main CTA */}
         <AnimatePresence mode="wait">
           <motion.div
             key="auth-card"
@@ -130,21 +120,15 @@ export default function AuthPage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ delay: 0.3, duration: 0.4 }}
-            className="bg-white/5 backdrop-blur-xl shadow-2xl rounded-3xl border border-white/10 px-8 sm:px-10 py-10 w-full max-w-md"
+            className="w-full max-w-2xl"
           >
-            <h3 className="text-white text-xl font-black mb-8 text-center">Let's Begin</h3>
-            
             <button
               onClick={doSignIn}
               disabled={loading || busy}
-              className="w-full py-4 rounded-full text-lg font-extrabold text-white bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)] transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+              className="w-full py-6 sm:py-8 rounded-full text-2xl sm:text-3xl font-extrabold text-white bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)] transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
             >
               {loading ? 'Loading…' : busy ? '…' : 'Continue with Google'}
             </button>
-
-            <p className="text-white/50 text-xs text-center mt-6">
-              Your interests make you interesting
-            </p>
           </motion.div>
         </AnimatePresence>
 
