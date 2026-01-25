@@ -213,6 +213,39 @@ function VibeToast({ interest, newCount }: { interest: string; newCount: number 
   );
 }
 
+function EnableCameraOverlay({ onClick }: { onClick: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center"
+    >
+      <motion.div
+        initial={{ scale: 0.8, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+        className="text-center"
+      >
+        <div className="text-5xl mb-4">📷</div>
+        <h2 className="text-2xl font-black text-white mb-3">Enable Your Camera</h2>
+        <p className="text-white/70 text-lg mb-8 max-w-xs">
+          Show who you are. Share your authentic self.
+        </p>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onClick}
+          className="px-8 py-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-extrabold rounded-full text-lg shadow-[0_0_30px_rgba(236,72,153,0.5)] hover:shadow-[0_0_50px_rgba(236,72,153,0.7)]"
+        >
+          Enable Camera
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function CelebrationPopout({ level }: { level: number }) {
   const labels = ['COOL', 'REAL', 'DEEP', 'SUPER'];
   const label = labels[level - 1];
@@ -337,56 +370,34 @@ export default function MatchPage() {
     return () => unsub();
   }, [router]);
 
-  // Preview stream effect - starts immediately, independent of matching
-  useEffect(() => {
-    let cancelled = false;
+  // Preview stream function (triggered by user click, not auto)
+  const startPreviewStream = async () => {
+    if (previewStreamRef.current) return;
+    if (!yourVideoRef.current) return;
 
-    const startPreview = async () => {
-      if (!yourVideoRef.current) return;
-      if (previewStreamRef.current) return;
+    try {
+      console.log('Starting preview stream (user-triggered)...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: true,
+      });
+
+      previewStreamRef.current = stream;
+      yourVideoRef.current.srcObject = stream;
+      console.log('Preview stream started');
 
       try {
-        console.log('Starting preview stream...');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: false,
-        });
-
-        if (cancelled) {
-          stream.getTracks().forEach(t => t.stop());
-          return;
-        }
-
-        previewStreamRef.current = stream;
-        yourVideoRef.current.srcObject = stream;
-        console.log('Preview stream started');
-
-        try {
-          await yourVideoRef.current.play();
-          console.log('Preview video playing');
-        } catch (e) {
-          console.error('Play failed:', e);
-        }
-      } catch (err: any) {
-        console.error('Camera error:', err.name, err.message);
-        if (!cancelled) {
-          setError(true);
-          setErrorMessage('Camera access required. Please enable permissions in browser settings.');
-        }
+        await yourVideoRef.current.play();
+        console.log('Preview video playing');
+      } catch (e) {
+        console.error('Play failed:', e);
       }
-    };
-
-    startPreview();
-
-    return () => {
-      cancelled = true;
-      // Stop preview tracks on unmount
-      if (previewStreamRef.current) {
-        previewStreamRef.current.getTracks().forEach(t => t.stop());
-        previewStreamRef.current = null;
-      }
-    };
-  }, []);
+    } catch (err: any) {
+      console.error('Camera error:', err.name, err.message);
+      setError(true);
+      setErrorMessage('Camera and microphone access required. Please enable permissions in browser settings.');
+    }
+  };
 
   useEffect(() => {
     setVibeCount(sharedInterests.length);
@@ -599,6 +610,11 @@ export default function MatchPage() {
         dailyContainerRef.current.remove();
         dailyContainerRef.current = null;
       }
+      // Stop preview tracks on unmount
+      if (previewStreamRef.current) {
+        previewStreamRef.current.getTracks().forEach(t => t.stop());
+        previewStreamRef.current = null;
+      }
     };
   }, [authReady, user, router]);
 
@@ -658,7 +674,7 @@ export default function MatchPage() {
         console.log('Restarting preview stream for next match...');
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'user' },
-          audio: false,
+          audio: true,
         });
         previewStreamRef.current = stream;
         yourVideoRef.current.srcObject = stream;
@@ -790,6 +806,13 @@ export default function MatchPage() {
             className="absolute inset-0 w-full h-full object-cover"
             style={{ transform: 'scaleX(-1)' }}
           />
+          
+          {/* Enable camera overlay - shows until stream starts */}
+          <AnimatePresence>
+            {!previewStreamRef.current && (
+              <EnableCameraOverlay onClick={startPreviewStream} />
+            )}
+          </AnimatePresence>
           
           {/* YOUR INTERESTS - Bottom, full width, 2 rows with vertical scroll */}
           {myProfile && (
