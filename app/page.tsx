@@ -69,14 +69,7 @@ export default function HomePage() {
       setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
     }, 2500);
     return () => clearInterval(id);
-  }, []);
-
-  const handleLoginSuccess = () => {
-    setShowLoginModal(false);
-    if (userInterests.length < MIN_REQUIRED) {
-      router.push('/profile');
-    }
-  };
+  });
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
