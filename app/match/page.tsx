@@ -471,15 +471,18 @@ export default function MatchPage() {
         setIsMatched(true);
 
         // Request camera permissions first
+        let localStream: MediaStream | null = null;
         try {
-          await navigator.mediaDevices.getUserMedia({ 
+          console.log('Requesting camera/microphone permissions...');
+          localStream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'user' },
             audio: true 
           });
-        } catch (err) {
-          console.error('Camera permission denied:', err);
+          console.log('Camera permissions granted, stream acquired');
+        } catch (err: any) {
+          console.error('Camera permission error:', err.name, err.message);
           setError(true);
-          setErrorMessage('Camera access required to use Match');
+          setErrorMessage('Camera and microphone access required. Please enable permissions in browser settings.');
           return;
         }
 
@@ -705,7 +708,7 @@ export default function MatchPage() {
             <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
               <div className="w-full">
                 <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
-                  <div className="grid grid-cols-auto gap-2 auto-rows-max">
+                  <div className="grid gap-2 auto-rows-max" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
                     {myProfile.interests.map((interest: string) => (
                       <div
                         key={interest}
@@ -786,7 +789,7 @@ export default function MatchPage() {
             <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
               <div className="w-full">
                 <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
-                  <div className="grid grid-cols-auto gap-2 auto-rows-max">
+                  <div className="grid gap-2 auto-rows-max" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
                     {displayedInterests.map((interest: string) => {
                       const isAdded = myProfile?.interests.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
