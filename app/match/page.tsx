@@ -356,6 +356,100 @@ export default function MatchPage() {
     }
   }, [sharedInterests.length, celebratedLevels]);
 
+  const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
+    try {
+      const partnerSnap = await getDoc(doc(db, 'users', partnerId));
+      if (partnerSnap.exists()) {
+        const theirData: UserData = {
+          displayName: partnerSnap.data().displayName || 'Match',
+          interests: partnerSnap.data().interests || [],
+          location: partnerSnap.data().location || '',
+        };
+        setTheirProfile(theirData);
+
+        if (partnerUnsubscribeRef.current) {
+          partnerUnsubscribeRef.current();
+        }
+        
+        const partnerDocRef = doc(db, 'users', partnerId);
+        partnerUnsubscribeRef.current = onSnapshot(partnerDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const updatedTheirData: UserData = {
+              displayName: docSnap.data().displayName || 'Match',
+              interests: docSnap.data().interests || [],
+              location: docSnap.data().location || '',
+            };
+            setTheirProfile(updatedTheirData);
+          }
+        });
+      }
+
+      setIsMatched(true);
+
+      // Create Daily call with custom video handling (no UI)
+      const container = document.createElement('div');
+      container.style.display = 'none';
+      document.body.appendChild(container);
+
+      const daily = DailyIframe.createFrame(container, {
+        showLeaveButton: false,
+        showFullscreenButton: false,
+        showParticipantsBar: false,
+        showLocalVideo: false,
+        showUserNameChangeUI: false,
+      });
+
+      callObject.current = daily;
+      
+      // Set up video stream handling
+      daily.on('participant-joined', (evt: any) => {
+        const participant = evt.participant;
+        if (participant.session_id === daily.participants().local.session_id) {
+          // Local video
+          if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
+            yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+          }
+        } else {
+          // Remote video
+          if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
+            theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+          }
+        }
+      });
+
+      daily.on('participant-updated', (evt: any) => {
+        const participant = evt.participant;
+        if (participant.session_id === daily.participants().local.session_id) {
+          if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
+            yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+          }
+        } else {
+          if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
+            theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
+          }
+        }
+      });
+
+      await daily.join({ url: roomUrl });
+
+      // Set initial participants
+      setTimeout(() => {
+        const participants = daily.participants();
+        if (participants.local?.tracks.video?.track && yourVideoRef.current) {
+          yourVideoRef.current.srcObject = new MediaStream([participants.local.tracks.video.track]);
+        }
+        Object.values(participants).forEach((p: any) => {
+          if (p.session_id !== participants.local.session_id && p.tracks.video?.track && theirVideoRef.current) {
+            theirVideoRef.current.srcObject = new MediaStream([p.tracks.video.track]);
+          }
+        });
+      }, 500);
+
+    } catch (err: any) {
+      setError(true);
+    }
+  };
+
   // Heavy initialization only after auth
   useEffect(() => {
     if (!authReady || !user) return;
@@ -452,104 +546,6 @@ export default function MatchPage() {
             if (unsubscribeRef.current) unsubscribeRef.current();
           }
         });
-
-      } catch (err: any) {
-        if (mounted) {
-          setError(true);
-        }
-      }
-    };
-
-    const handleMatch = async (partnerId: string, roomUrl: string, myData: UserData) => {
-      try {
-        const partnerSnap = await getDoc(doc(db, 'users', partnerId));
-        if (partnerSnap.exists()) {
-          const theirData: UserData = {
-            displayName: partnerSnap.data().displayName || 'Match',
-            interests: partnerSnap.data().interests || [],
-            location: partnerSnap.data().location || '',
-          };
-          if (!mounted) return;
-          setTheirProfile(theirData);
-
-          if (partnerUnsubscribeRef.current) {
-            partnerUnsubscribeRef.current();
-          }
-          
-          const partnerDocRef = doc(db, 'users', partnerId);
-          partnerUnsubscribeRef.current = onSnapshot(partnerDocRef, (docSnap) => {
-            if (docSnap.exists() && mounted) {
-              const updatedTheirData: UserData = {
-                displayName: docSnap.data().displayName || 'Match',
-                interests: docSnap.data().interests || [],
-                location: docSnap.data().location || '',
-              };
-              setTheirProfile(updatedTheirData);
-            }
-          });
-        }
-
-        if (!mounted) return;
-        setIsMatched(true);
-
-        // Create Daily call with custom video handling (no UI)
-        const container = document.createElement('div');
-        container.style.display = 'none';
-        document.body.appendChild(container);
-
-        const daily = DailyIframe.createFrame(container, {
-          showLeaveButton: false,
-          showFullscreenButton: false,
-          showParticipantsBar: false,
-          showLocalVideo: false,
-          showUserNameChangeUI: false,
-        });
-
-        callObject.current = daily;
-        
-        // Set up video stream handling
-        daily.on('participant-joined', (evt: any) => {
-          const participant = evt.participant;
-          if (participant.session_id === daily.participants().local.session_id) {
-            // Local video
-            if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
-              yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-            }
-          } else {
-            // Remote video
-            if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
-              theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-            }
-          }
-        });
-
-        daily.on('participant-updated', (evt: any) => {
-          const participant = evt.participant;
-          if (participant.session_id === daily.participants().local.session_id) {
-            if (participant.tracks.video.state === 'playable' && yourVideoRef.current) {
-              yourVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-            }
-          } else {
-            if (participant.tracks.video.state === 'playable' && theirVideoRef.current) {
-              theirVideoRef.current.srcObject = new MediaStream([participant.tracks.video.track]);
-            }
-          }
-        });
-
-        await daily.join({ url: roomUrl });
-
-        // Set initial participants
-        setTimeout(() => {
-          const participants = daily.participants();
-          if (participants.local?.tracks.video?.track && yourVideoRef.current) {
-            yourVideoRef.current.srcObject = new MediaStream([participants.local.tracks.video.track]);
-          }
-          Object.values(participants).forEach((p: any) => {
-            if (p.session_id !== participants.local.session_id && p.tracks.video?.track && theirVideoRef.current) {
-              theirVideoRef.current.srcObject = new MediaStream([p.tracks.video.track]);
-            }
-          });
-        }, 500);
 
       } catch (err: any) {
         if (mounted) {
