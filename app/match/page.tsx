@@ -714,27 +714,16 @@ export default function MatchPage() {
             style={{ transform: 'scaleX(-1)' }}
           />
           
-          {/* YOUR INTERESTS - Bottom */}
+          {/* YOUR INTERESTS - Bottom, full width, 2 rows with vertical scroll */}
           {myProfile && (
-            <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
-              <div className="w-full max-w-md">
-                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto">
-                  <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
+            <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
+              <div className="w-full">
+                <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
+                  <div className="grid grid-cols-auto gap-2 auto-rows-max">
                     {myProfile.interests.map((interest: string) => (
                       <div
                         key={interest}
                         className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap text-center"
-                      >
-                        {interest}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
-                    {myProfile.interests.map((interest: string) => (
-                      <div
-                        key={interest}
-                        className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap flex-shrink-0"
                       >
                         {interest}
                       </div>
@@ -806,12 +795,12 @@ export default function MatchPage() {
             />
           )}
 
-          {/* THEIR INTERESTS - Bottom */}
+          {/* THEIR INTERESTS - Bottom, full width, 2 rows with vertical scroll */}
           {isMatched && theirProfile && (
-            <div className="absolute bottom-0 left-0 right-0 z-15 flex justify-center pb-4 px-4">
-              <div className="w-full max-w-md">
-                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-3 interests-scroll max-h-[18vh] overflow-y-auto">
-                  <div className="hidden md:grid grid-cols-3 gap-2 auto-rows-max">
+            <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
+              <div className="w-full">
+                <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
+                  <div className="grid grid-cols-auto gap-2 auto-rows-max">
                     {displayedInterests.map((interest: string) => {
                       const isAdded = myProfile?.interests.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -823,7 +812,7 @@ export default function MatchPage() {
                           whileTap={!isAdded ? { scale: 0.95 } : {}}
                           onClick={() => !isAdded && handleTeleportInterest(interest)}
                           disabled={isAdded}
-                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-center ${
+                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                             isAdded
                               ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
                               : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
@@ -831,31 +820,6 @@ export default function MatchPage() {
                         >
                           {interest}
                           {!isAdded && <Plus size={10} className="absolute top-1 right-1" />}
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-                  
-                  <div className="md:hidden flex gap-2 min-w-max overflow-x-auto">
-                    {displayedInterests.map((interest: string) => {
-                      const isAdded = myProfile?.interests.some(
-                        (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
-                      );
-                      return (
-                        <motion.button
-                          key={interest}
-                          whileHover={!isAdded ? { scale: 1.08 } : {}}
-                          whileTap={!isAdded ? { scale: 0.95 } : {}}
-                          onClick={() => !isAdded && handleTeleportInterest(interest)}
-                          disabled={isAdded}
-                          className={`relative px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
-                            isAdded
-                              ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
-                              : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
-                          }`}
-                        >
-                          {interest}
-                          {!isAdded && <Plus size={8} className="absolute top-0.5 right-0.5" />}
                         </motion.button>
                       );
                     })}
