@@ -226,6 +226,19 @@ export default function MatchPage() {
     if (!authReady || !user || !myProfile) return;
 
     const startMatching = async () => {
+      // Clean up any previous match state first
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          status: 'idle',
+          currentRoomUrl: null,
+          partnerId: null,
+          matchedAt: null,
+        });
+        console.log('✅ Cleaned up previous match state');
+      } catch (e) {
+        console.error('Cleanup failed:', e);
+      }
+
       // Get camera
       if (!mediaStreamRef.current) {
         try {
@@ -318,14 +331,35 @@ export default function MatchPage() {
 
       // Attach video tracks
       daily.on('track-started', ({ track, participant }: any) => {
-        if (!participant || track.kind !== 'video') return;
+        console.log('🎥 track-started event fired!', {
+          trackKind: track.kind,
+          isLocal: participant?.local,
+          participantId: participant?.user_id,
+        });
+
+        if (!participant || track.kind !== 'video') {
+          console.log('❌ Skipping: not a video track or no participant');
+          return;
+        }
+
         const ref = participant.local ? yourVideoRef : theirVideoRef;
+        const refName = participant.local ? 'YOUR' : 'THEIR';
+
+        console.log(`📹 Attempting to attach ${refName} video track`);
+        console.log(`ref.current exists? ${!!ref.current}`);
+
         const attempt = (count = 0) => {
           if (ref.current) {
+            console.log(`✅ ${refName} ref ready! Attaching track...`);
             ref.current.srcObject = new MediaStream([track]);
-            ref.current.play().catch(() => {});
+            ref.current.play().catch((err: any) => {
+              console.error(`❌ Play failed for ${refName}:`, err);
+            });
           } else if (count < 20) {
+            console.log(`⏳ ${refName} ref not ready, retry ${count + 1}/20`);
             setTimeout(() => attempt(count + 1), 100);
+          } else {
+            console.error(`❌ FAILED: ${refName} ref never became ready`);
           }
         };
         attempt();
@@ -350,6 +384,17 @@ export default function MatchPage() {
         videoSource: mediaStreamRef.current?.getVideoTracks()[0] || true,
         audioSource: mediaStreamRef.current?.getAudioTracks()[0] || true,
       });
+
+      // Force video/audio to be published to room
+      console.log('Forcing video/audio publishing to room...');
+      await daily.updateInputSettings({
+        video: { isScreenShare: false },
+        audio: { processor: { type: 'none' } },
+      });
+
+      // Explicitly unmute audio
+      daily.setLocalAudio(true);
+      console.log('✅ Audio enabled and unmuted');
     } catch (err: any) {
       console.error('Join room failed:', err);
       setError(true);
