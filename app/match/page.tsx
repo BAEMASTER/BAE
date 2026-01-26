@@ -331,6 +331,19 @@ export default function MatchPage() {
         attempt();
       });
 
+      // Ensure fresh tracks before joining
+      if (mediaStreamRef.current) {
+        const videoTracks = mediaStreamRef.current.getVideoTracks();
+        const audioTracks = mediaStreamRef.current.getAudioTracks();
+        
+        console.log('Video tracks active?', videoTracks.length > 0, videoTracks[0]?.enabled);
+        console.log('Audio tracks active?', audioTracks.length > 0, audioTracks[0]?.enabled);
+        
+        // Ensure enabled
+        videoTracks.forEach(t => t.enabled = true);
+        audioTracks.forEach(t => t.enabled = true);
+      }
+
       // Join with media stream
       await daily.join({
         url,
@@ -504,7 +517,7 @@ export default function MatchPage() {
         </div>
 
         {/* CENTER - SHARED INTERESTS + VIBE METER */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20 pt-20">
+        <div className="absolute inset-0 flex flex-col items-center pointer-events-none z-20" style={{ paddingTop: '40px' }}>
           <AnimatePresence>
             {isMatched && sharedInterests.length > 0 && (
               <div className="flex flex-wrap justify-center gap-3">
