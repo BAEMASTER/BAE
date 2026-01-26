@@ -15,8 +15,11 @@ export async function POST(req: NextRequest) {
 
     const waitingUsers = queueQuery.docs.filter(doc => doc.id !== userId);
 
+    // 🚫 PREVENT SELF-MATCHING - Double check to exclude self
+    const availableUsers = waitingUsers.filter(doc => doc.id !== userId);
+
     // 🧍 YOU ARE FIRST — enter queue
-    if (waitingUsers.length === 0) {
+    if (availableUsers.length === 0) {
       await db.collection(usersCollection).doc(userId).set(
         {
           status: "waiting",
@@ -26,12 +29,11 @@ export async function POST(req: NextRequest) {
         },
         { merge: true }
       );
-
       return NextResponse.json({ matched: false, message: "Waiting for next person..." }, { status: 200 });
     }
 
     // 💞 YOU ARE SECOND — match with first waiting user
-    const partnerId = waitingUsers[0].id;
+    const partnerId = availableUsers[0].id;
 
     // ✅ Create Daily.co room
     const roomRes = await fetch("https://api.daily.co/v1/rooms", {
@@ -76,7 +78,6 @@ export async function POST(req: NextRequest) {
     }, { merge: true });
 
     return NextResponse.json({ matched: true, roomUrl, partnerId, autoJoin: true }, { status: 200 });
-
   } catch (error: any) {
     console.error("Match API error:", error);
     return NextResponse.json({ error: error.message || "Matching failed" }, { status: 500 });
