@@ -147,6 +147,27 @@ function MegaVibeCelebration() {
   );
 }
 
+// --- INTEREST MILESTONE POP-OUT ---
+function InterestMilestonePop({ count }: { count: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0, y: 50 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.5, y: -50 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99] pointer-events-none"
+    >
+      <motion.div
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 1 }}
+        className="text-7xl font-black text-white drop-shadow-[0_0_30px_rgba(253,224,71,0.8)]"
+      >
+        {count} SHARED!
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // --- MAIN PAGE ---
 export default function MatchPage() {
   const router = useRouter();
@@ -163,6 +184,8 @@ export default function MatchPage() {
   const [theirProfile, setTheirProfile] = useState<any>(null);
   const [isMatched, setIsMatched] = useState(false);
   const [showTicket, setShowTicket] = useState(false);
+  const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
+  const [celebratedCounts, setCelebratedCounts] = useState<Set<number>>(new Set());
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -321,13 +344,20 @@ export default function MatchPage() {
     }
   };
 
-  // --- GOLDEN TICKET TRIGGER ---
+  // --- CELEBRATION TRIGGERS ---
   useEffect(() => {
-    if (sharedInterests.length === 5 && !showTicket) {
+    if (!isMatched) return;
+
+    if (sharedInterests.length >= 5 && !celebratedCounts.has(5)) {
+      setCelebratedCounts(prev => new Set([...prev, 5]));
       setShowTicket(true);
       setTimeout(() => setShowTicket(false), 3000);
+    } else if (sharedInterests.length > 5 && !celebratedCounts.has(sharedInterests.length)) {
+      setCelebratedCounts(prev => new Set([...prev, sharedInterests.length]));
+      setCurrentCelebration(sharedInterests.length);
+      setTimeout(() => setCurrentCelebration(null), 1500);
     }
-  }, [sharedInterests.length, showTicket]);
+  }, [sharedInterests.length, isMatched, celebratedCounts]);
 
   // --- NEXT MATCH ---
   const handleNext = async () => {
@@ -341,6 +371,7 @@ export default function MatchPage() {
 
     setIsMatched(false);
     setTheirProfile(null);
+    setCelebratedCounts(new Set()); // Reset celebrations for new match
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
@@ -427,6 +458,9 @@ export default function MatchPage() {
 
       {/* TICKET OVERLAY */}
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
+
+      {/* INTEREST MILESTONE POP-OUT */}
+      <AnimatePresence>{currentCelebration && <InterestMilestonePop count={currentCelebration} />}</AnimatePresence>
 
       {/* VIDEO GRID */}
       <div className="relative flex-1 flex overflow-hidden z-5 pt-14">
