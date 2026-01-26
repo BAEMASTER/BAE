@@ -388,7 +388,7 @@ export default function MatchPage() {
       // Force video/audio to be published to room
       console.log('Forcing video/audio publishing to room...');
       await daily.updateInputSettings({
-        video: { isScreenShare: false },
+        video: { processor: { type: 'none' } },
         audio: { processor: { type: 'none' } },
       });
 
@@ -462,16 +462,36 @@ export default function MatchPage() {
 
   // --- ADD INTEREST (TAP THEIRS) ---
   const addInterest = async (interest: string) => {
-    if (!user || !myProfile) return;
-    if (myProfile.interests.some((i: string) => i.toLowerCase() === interest.toLowerCase())) return;
+    if (!user || !myProfile) {
+      console.error('No user or profile');
+      return;
+    }
+
+    // Check if already added
+    const alreadyAdded = myProfile.interests.some(
+      (i: string) => i.toLowerCase() === interest.toLowerCase()
+    );
+    
+    if (alreadyAdded) {
+      console.log('Interest already added:', interest);
+      return;
+    }
+
+    console.log('Adding interest:', interest);
 
     const updated = [...myProfile.interests, interest];
     setMyProfile({ ...myProfile, interests: updated });
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), { interests: updated });
+      await updateDoc(doc(db, 'users', user.uid), { 
+        interests: updated,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log('✅ Interest added to Firestore:', interest);
     } catch (e) {
-      console.error('Add interest failed:', e);
+      console.error('❌ Failed to add interest:', e);
+      // Revert on error
+      setMyProfile(myProfile);
     }
   };
 
@@ -622,9 +642,14 @@ export default function MatchPage() {
                           key={interest}
                           whileHover={!isAdded ? { scale: 1.08 } : {}}
                           whileTap={!isAdded ? { scale: 0.95 } : {}}
-                          onClick={() => !isAdded && addInterest(interest)}
+                          onClick={() => {
+                            console.log('Tapped interest:', interest);
+                            if (!isAdded) {
+                              addInterest(interest);
+                            }
+                          }}
                           disabled={isAdded}
-                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-center ${
+                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-center pointer-events-auto ${
                             isAdded
                               ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
                               : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
