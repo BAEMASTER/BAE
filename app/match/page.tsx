@@ -834,35 +834,33 @@ export default function MatchPage() {
             style={{ transform: 'scaleX(-1)' }}
           />
 
-          {/* YOUR INTERESTS - Bottom, stacked rows */}
+          {/* YOUR NAME + INTERESTS - Unified bottom overlay */}
           {myProfile && (
-            <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
-              <div className="w-full">
-                <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
-                  <div className="flex flex-wrap gap-2">
-                    {myInterestNames.map((interest: string) => (
-                      <div
-                        key={interest}
-                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap"
-                      >
-                        {interest}
-                      </div>
-                    ))}
+            <div className="absolute bottom-0 left-0 right-0 z-15 pb-[52px]">
+              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3">
+                {/* Name badge */}
+                <div className="text-center mb-2">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+                    <h3 className="text-sm font-bold text-white">
+                      {myProfile?.displayName || 'You'}
+                      {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
+                    </h3>
                   </div>
+                </div>
+                {/* Interest pills - horizontal scroll */}
+                <div className="flex gap-1.5 overflow-x-auto interests-scroll">
+                  {myInterestNames.map((interest: string) => (
+                    <div
+                      key={interest}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
+                    >
+                      {interest}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
-
-          {/* YOUR NAME + LOCATION */}
-          <div className="absolute bottom-20 left-4 right-4 text-center">
-            <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-              <h3 className="text-sm font-bold text-white">
-                {myProfile?.displayName || 'You'}
-                {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
-              </h3>
-            </div>
-          </div>
         </div>
 
         {/* SHARED INTERESTS - Top of video area */}
@@ -970,12 +968,37 @@ export default function MatchPage() {
             )}
           </AnimatePresence>
 
-          {/* THEIR INTERESTS - Bottom, stacked rows */}
-          {isMatched && theirProfile && (
-            <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
-              <div className="w-full">
-                <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
-                  <div className="flex flex-wrap gap-2">
+          {/* THEIR NAME + INTERESTS - Unified bottom overlay */}
+          {isMatched && (
+            <div className="absolute bottom-0 left-0 right-0 z-15 pb-[52px]">
+              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3">
+                {/* Name + heart badge */}
+                <div className="text-center mb-2">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">
+                      {theirProfile?.displayName || '...'}
+                      {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(theirProfile)}</span>}
+                    </h3>
+                    {currentPartnerId && (
+                      <motion.button
+                        whileTap={{ scale: 0.85 }}
+                        onClick={handleToggleSave}
+                        className="pointer-events-auto cursor-pointer p-0.5"
+                      >
+                        <Heart
+                          size={16}
+                          strokeWidth={1.5}
+                          className={savedUids.has(currentPartnerId)
+                            ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
+                            : 'text-white/60 hover:text-pink-300 transition-colors'}
+                        />
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+                {/* Interest pills - horizontal scroll */}
+                {theirProfile && (
+                  <div className="flex gap-1.5 overflow-x-auto interests-scroll">
                     {theirInterestNames.map((interest: string) => {
                       const isAdded = myInterestNames.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -995,7 +1018,7 @@ export default function MatchPage() {
                           disabled={isAdded && !isFlashing}
                           animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                           transition={isFlashing ? { duration: 0.4 } : {}}
-                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all pointer-events-auto ${
+                          className={`relative px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap flex-shrink-0 transition-all pointer-events-auto ${
                             isFlashing
                               ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                               : isAdded
@@ -1009,33 +1032,6 @@ export default function MatchPage() {
                       );
                     })}
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* THEIR NAME + HEART */}
-          {isMatched && (
-            <div className="absolute bottom-20 left-4 right-4 text-center">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">
-                  {theirProfile?.displayName || '...'}
-                  {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(theirProfile)}</span>}
-                </h3>
-                {currentPartnerId && (
-                  <motion.button
-                    whileTap={{ scale: 0.85 }}
-                    onClick={handleToggleSave}
-                    className="pointer-events-auto cursor-pointer p-0.5"
-                  >
-                    <Heart
-                      size={16}
-                      strokeWidth={1.5}
-                      className={savedUids.has(currentPartnerId)
-                        ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
-                        : 'text-white/60 hover:text-pink-300 transition-colors'}
-                    />
-                  </motion.button>
                 )}
               </div>
             </div>
@@ -1043,25 +1039,9 @@ export default function MatchPage() {
         </div>
       </div>
 
-      {/* NEXT BUTTON */}
-      <div className="absolute bottom-6 right-6 z-20 flex flex-col gap-2">
-        {isMatched && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleNext}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm"
-          >
-            Next
-            <RefreshCw size={14} />
-          </motion.button>
-        )}
-      </div>
-
-      {/* END BUTTON */}
-      <div className="absolute bottom-6 left-6 z-20">
+      {/* BOTTOM CONTROLS BAR */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-3 bg-black/60 backdrop-blur-sm">
+        {/* End button - left */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -1088,6 +1068,23 @@ export default function MatchPage() {
           <X size={14} />
           End
         </motion.button>
+
+        <div className="flex-1" />
+
+        {/* Next button - right */}
+        {isMatched && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleNext}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm"
+          >
+            Next
+            <RefreshCw size={14} />
+          </motion.button>
+        )}
       </div>
     </main>
   );
