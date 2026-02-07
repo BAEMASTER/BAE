@@ -6,36 +6,70 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, interests, selectedMode } = await req.json();
     const usersCollection = 'users';
+    const userRef = db.collection(usersCollection).doc(userId);
 
-    // Make a reference to the queue collection
-    const queueQuery = await db.collection(usersCollection)
-      .where("status", "==", "waiting")
-      .where("selectedMode", "==", selectedMode)
-      .get();
+    // Issue 6 fix: Check if user is already matched — reject if so
+    const currentUser = await userRef.get();
+    if (currentUser.exists && currentUser.data()?.status === 'matched') {
+      return NextResponse.json(
+        { error: "Already in an active match. Leave current match first." },
+        { status: 409 }
+      );
+    }
 
-    const waitingUsers = queueQuery.docs.filter(doc => doc.id !== userId);
+    // Issue 5 fix: Use a transaction to atomically find and claim a waiting partner
+    const result = await db.runTransaction(async (transaction) => {
+      const queueQuery = await transaction.get(
+        db.collection(usersCollection)
+          .where("status", "==", "waiting")
+          .where("selectedMode", "==", selectedMode)
+      );
 
-    // 🚫 PREVENT SELF-MATCHING - Double check to exclude self
-    const availableUsers = waitingUsers.filter(doc => doc.id !== userId);
+      const availableUsers = queueQuery.docs.filter(doc => doc.id !== userId);
 
-    // 🧍 YOU ARE FIRST — enter queue
-    if (availableUsers.length === 0) {
-      await db.collection(usersCollection).doc(userId).set(
-        {
+      if (availableUsers.length === 0) {
+        // No one waiting — enter queue
+        transaction.set(userRef, {
           status: "waiting",
           selectedMode,
           interests,
           queuedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+        }, { merge: true });
+
+        return { matched: false };
+      }
+
+      const partnerDoc = availableUsers[0];
+      const partnerId = partnerDoc.id;
+      const partnerRef = db.collection(usersCollection).doc(partnerId);
+
+      // Verify partner is still waiting (transaction will retry if doc changed)
+      const partnerSnap = await transaction.get(partnerRef);
+      if (!partnerSnap.exists || partnerSnap.data()?.status !== 'waiting') {
+        // Partner was claimed by another request — enter queue instead
+        transaction.set(userRef, {
+          status: "waiting",
+          selectedMode,
+          interests,
+          queuedAt: new Date().toISOString(),
+        }, { merge: true });
+
+        return { matched: false };
+      }
+
+      // Claim partner inside transaction to prevent double-claiming
+      transaction.update(partnerRef, { status: 'claiming' });
+
+      return { matched: true, partnerId };
+    });
+
+    if (!result.matched) {
       return NextResponse.json({ matched: false, message: "Waiting for next person..." }, { status: 200 });
     }
 
-    // 💞 YOU ARE SECOND — match with first waiting user
-    const partnerId = availableUsers[0].id;
+    const { partnerId } = result;
 
-    // ✅ Create Daily.co room
+    // Create Daily.co room (outside transaction — external API call)
     const roomRes = await fetch("https://api.daily.co/v1/rooms", {
       method: "POST",
       headers: {
@@ -43,7 +77,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name: `bae-${userId}-${partnerId}`,
+        name: `bae-${Date.now()}-${userId.slice(0, 6)}`,
         properties: {
           enable_prejoin_ui: false,
           enable_chat: true,
@@ -57,25 +91,33 @@ export async function POST(req: NextRequest) {
 
     const roomData = await roomRes.json();
     if (!roomRes.ok || !roomData.url) {
+      // Room creation failed — revert both users to idle so they can retry
+      const batch = db.batch();
+      batch.set(userRef, { status: "idle" }, { merge: true });
+      batch.set(db.collection(usersCollection).doc(partnerId!), { status: "idle" }, { merge: true });
+      await batch.commit();
       throw new Error("Daily.co room creation failed");
     }
 
     const roomUrl = roomData.url;
 
-    // ✅ FIXED: Use set with merge instead of update
-    await db.collection(usersCollection).doc(userId).set({
+    // Update both users atomically with match info
+    const batch = db.batch();
+    batch.set(userRef, {
       status: "matched",
       currentRoomUrl: roomUrl,
       partnerId,
       matchedAt: new Date().toISOString(),
     }, { merge: true });
 
-    await db.collection(usersCollection).doc(partnerId).set({
+    batch.set(db.collection(usersCollection).doc(partnerId!), {
       status: "matched",
       currentRoomUrl: roomUrl,
       partnerId: userId,
       matchedAt: new Date().toISOString(),
     }, { merge: true });
+
+    await batch.commit();
 
     return NextResponse.json({ matched: true, roomUrl, partnerId, autoJoin: true }, { status: 200 });
   } catch (error: any) {

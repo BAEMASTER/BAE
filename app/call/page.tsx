@@ -31,26 +31,22 @@ function CallContent() {
     const load = async () => {
 
       // user
-      const userDoc = await getDoc(doc(
-        db,
-        'artifacts', 'SO-INTERESTING', 'users', userId, 'profile', 'main'
-      ));
+      const userDoc = await getDoc(doc(db, 'users', userId));
       const myData = userDoc.data() || {};
-      const mine = myData.interests || [];
+      const mine: string[] = myData.interests || [];
       setMyInterests(mine);
 
       // partner
       if (partnerId) {
-        const partnerDoc = await getDoc(doc(
-          db,
-          'artifacts', 'SO-INTERESTING', 'users', partnerId, 'profile', 'main'
-        ));
+        const partnerDoc = await getDoc(doc(db, 'users', partnerId));
         const pData = partnerDoc.data() || {};
-        const pInts = pData.interests || [];
+        const pInts: string[] = pData.interests || [];
         setPartnerInterests(pInts);
 
-        // shared
-        setShared(mine.filter((i: string) => pInts.includes(i)));
+        // shared (case-insensitive comparison)
+        setShared(mine.filter((i: string) =>
+          pInts.some((pi: string) => pi.trim().toLowerCase() === i.trim().toLowerCase())
+        ));
       }
     };
 

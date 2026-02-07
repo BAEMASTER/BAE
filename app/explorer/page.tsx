@@ -124,9 +124,9 @@ function SearchBar({ query, onChange }: { query: string; onChange: (v: string) =
       {query && (
         <button
           onClick={() => onChange('')}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2"
         >
-          <X className="w-4 h-4 text-white/60" />
+          <X size={16} strokeWidth={1.5} className="text-black/60 hover:text-pink-300 transition-colors" />
         </button>
       )}
     </div>
@@ -193,15 +193,16 @@ function VibeGlowCard({
         <motion.button
           whileTap={{ scale: 0.85 }}
           onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
-          className="shrink-0 cursor-pointer"
+          className="shrink-0 cursor-pointer p-1"
         >
           <motion.div
             animate={isSaved ? { scale: [1.3, 1] } : { scale: 1 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
           >
             <Heart
-              size={20}
-              className={isSaved ? 'text-pink-400 fill-pink-400' : 'text-white/20 hover:text-white/50 transition-colors'}
+              size={18}
+              strokeWidth={1.5}
+              className={isSaved ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]' : 'text-black/60 hover:text-pink-300 transition-colors'}
             />
           </motion.div>
         </motion.button>
@@ -282,14 +283,14 @@ function InterestDrawer({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative w-full max-w-2xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-2xl bg-gradient-to-br from-[#2A0845] via-[#4D004D] to-[#1A0033] backdrop-blur-3xl border border-yellow-300/20 rounded-3xl p-8 sm:p-10 shadow-[0_0_40px_rgba(253,224,71,0.1),0_0_80px_rgba(168,85,247,0.15)] overflow-hidden"
           >
             {/* Close */}
             <button
               onClick={onClose}
-              className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              className="absolute top-3 right-4 z-50 text-white text-2xl font-light w-10 h-10 flex items-center justify-center hover:text-yellow-300 transition-colors"
             >
-              <X size={20} className="text-white/70" />
+              ✕
             </button>
 
             {/* Title */}
@@ -302,7 +303,7 @@ function InterestDrawer({
               <input
                 type="text"
                 placeholder="Add new interest..."
-                className="flex-1 px-5 py-3 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 text-sm transition-all"
+                className="flex-1 px-5 py-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-300/40 text-sm transition-all"
                 value={newInterest}
                 onChange={(e) => onNewInterestChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onAdd()}
@@ -534,24 +535,24 @@ function ExplorerPageContent() {
               <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''}</span>
             )}
           </div>
-          <div className="flex rounded-full bg-white/5 border border-white/10 p-1">
+          <div className="flex gap-2">
             <button
               onClick={() => setShowSaved(false)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                !showSaved ? 'bg-white/10 text-white font-bold' : 'text-white/40 hover:text-white/60'
+              className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white/10 text-white transition-all ${
+                !showSaved ? 'ring-1 ring-yellow-300/60 shadow-[0_0_8px_rgba(253,224,71,0.3)]' : 'hover:bg-white/15'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setShowSaved(true)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
-                showSaved ? 'bg-white/10 text-white font-bold' : 'text-white/40 hover:text-white/60'
+              className={`px-4 py-1.5 rounded-full text-sm font-medium bg-white/10 text-white transition-all flex items-center gap-1.5 ${
+                showSaved ? 'ring-1 ring-yellow-300/60 shadow-[0_0_8px_rgba(253,224,71,0.3)]' : 'hover:bg-white/15'
               }`}
             >
               Saved
               {savedProfileIds.size > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${showSaved ? 'bg-pink-400/20 text-pink-300' : 'bg-white/10 text-white/50'}`}>
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-pink-400/20 text-pink-200 font-bold">
                   {savedProfileIds.size}
                 </span>
               )}

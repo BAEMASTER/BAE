@@ -28,8 +28,8 @@ const scrollbarStyle = `
 
 // --- VIBE METER ---
 function FluidVibeOMeter({ count }: { count: number }) {
-  const levels = ['COOL', 'REAL', 'DEEP', 'SUPER', 'GOLDEN'];
-  const currentLevel = count > 0 ? levels[Math.min(count - 1, 5)] : null;
+  const levels = ['COOL', 'REAL', 'DEEP', 'SUPER', 'MEGAVIBE'];
+  const currentLevel = count > 0 ? levels[Math.min(count - 1, 4)] : null;
 
   if (count === 0) return null;
 
@@ -177,6 +177,7 @@ export default function MatchPage() {
   const callObjectRef = useRef<any>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
+  const isMatchedRef = useRef(false);
 
   const [user, setUser] = useState<any>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -188,6 +189,7 @@ export default function MatchPage() {
   const [celebratedCounts, setCelebratedCounts] = useState<Set<number>>(new Set());
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [partnerDisconnected, setPartnerDisconnected] = useState(false);
 
   // --- SHARED INTERESTS ---
   const sharedInterests = useMemo(() => {
@@ -287,7 +289,7 @@ export default function MatchPage() {
         if (unsubscribeRef.current) unsubscribeRef.current();
         unsubscribeRef.current = onSnapshot(doc(db, 'users', user.uid), async (snap) => {
           const d = snap.data();
-          if (d?.status === 'matched' && d?.currentRoomUrl && d?.partnerId && !isMatched) {
+          if (d?.status === 'matched' && d?.currentRoomUrl && d?.partnerId && !isMatchedRef.current) {
             await joinRoom(d.currentRoomUrl, d.partnerId);
           }
         });
@@ -301,8 +303,9 @@ export default function MatchPage() {
 
     return () => {
       if (unsubscribeRef.current) unsubscribeRef.current();
+      if (partnerUnsubscribeRef.current) partnerUnsubscribeRef.current();
     };
-  }, [authReady, user, myProfile, isMatched]);
+  }, [authReady, user, myProfile]);
 
   // --- JOIN ROOM ---
   const joinRoom = async (url: string, partnerId: string) => {
@@ -323,6 +326,7 @@ export default function MatchPage() {
         });
       }
 
+      isMatchedRef.current = true;
       setIsMatched(true);
 
       // Create Daily call
@@ -363,6 +367,17 @@ export default function MatchPage() {
           }
         };
         attempt();
+      });
+
+      // Detect partner disconnect
+      daily.on('participant-left', ({ participant }: any) => {
+        if (participant && !participant.local) {
+          console.log('Partner left the call');
+          setPartnerDisconnected(true);
+          if (theirVideoRef.current) {
+            theirVideoRef.current.srcObject = null;
+          }
+        }
       });
 
       // Ensure fresh tracks before joining
@@ -417,6 +432,27 @@ export default function MatchPage() {
     }
   }, [sharedInterests.length, isMatched, celebratedCounts]);
 
+  // --- CLEANUP ON UNMOUNT ---
+  useEffect(() => {
+    return () => {
+      if (callObjectRef.current) {
+        try { callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
+        callObjectRef.current = null;
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop());
+        mediaStreamRef.current = null;
+      }
+      if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
+      if (partnerUnsubscribeRef.current) { partnerUnsubscribeRef.current(); partnerUnsubscribeRef.current = null; }
+      if (user) {
+        updateDoc(doc(db, 'users', user.uid), {
+          status: 'idle', currentRoomUrl: null, partnerId: null, matchedAt: null,
+        }).catch(() => {});
+      }
+    };
+  }, [user]);
+
   // --- NEXT MATCH ---
   const handleNext = async () => {
     if (callObjectRef.current) {
@@ -427,17 +463,26 @@ export default function MatchPage() {
       callObjectRef.current = null;
     }
 
+    isMatchedRef.current = false;
     setIsMatched(false);
     setTheirProfile(null);
+    setPartnerDisconnected(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
 
-    // Request new match
+    // Reset status to idle before requesting new match (Issue 6: prevent double-match)
     if (user && myProfile) {
       try {
-        await fetch('/api/match', {
+        await updateDoc(doc(db, 'users', user.uid), {
+          status: 'idle',
+          currentRoomUrl: null,
+          partnerId: null,
+          matchedAt: null,
+        });
+
+        const res = await fetch('/api/match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -447,10 +492,16 @@ export default function MatchPage() {
           }),
         });
 
+        const data = await res.json();
+        if (data.matched) {
+          await joinRoom(data.roomUrl, data.partnerId);
+          return;
+        }
+
         if (unsubscribeRef.current) unsubscribeRef.current();
         unsubscribeRef.current = onSnapshot(doc(db, 'users', user.uid), async (snap) => {
           const d = snap.data();
-          if (d?.status === 'matched' && d?.currentRoomUrl && d?.partnerId && !isMatched) {
+          if (d?.status === 'matched' && d?.currentRoomUrl && d?.partnerId && !isMatchedRef.current) {
             await joinRoom(d.currentRoomUrl, d.partnerId);
           }
         });
@@ -619,12 +670,38 @@ export default function MatchPage() {
               </div>
             </motion.div>
           ) : (
-            <video
-              ref={theirVideoRef}
-              autoPlay
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            <>
+              <video
+                ref={theirVideoRef}
+                autoPlay
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* Partner disconnect overlay */}
+              <AnimatePresence>
+                {partnerDisconnected && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                  >
+                    <div className="text-center px-4">
+                      <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleNext}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                      >
+                        Find Next Match
+                        <RefreshCw size={16} />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           )}
 
           {/* THEIR INTERESTS - Bottom, stacked rows */}
@@ -701,7 +778,24 @@ export default function MatchPage() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => router.push('/')}
+          onClick={async () => {
+            if (callObjectRef.current) {
+              try { await callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
+              callObjectRef.current = null;
+            }
+            if (mediaStreamRef.current) {
+              mediaStreamRef.current.getTracks().forEach(t => t.stop());
+              mediaStreamRef.current = null;
+            }
+            if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
+            if (partnerUnsubscribeRef.current) { partnerUnsubscribeRef.current(); partnerUnsubscribeRef.current = null; }
+            if (user) {
+              await updateDoc(doc(db, 'users', user.uid), {
+                status: 'idle', currentRoomUrl: null, partnerId: null, matchedAt: null,
+              }).catch(() => {});
+            }
+            router.push('/');
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm"
         >
           <X size={14} />
