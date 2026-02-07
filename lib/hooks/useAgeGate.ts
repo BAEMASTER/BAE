@@ -36,6 +36,10 @@ export const useAgeGate = (user: any) => {
       return;
     }
 
+    // Reset loading when user changes — prevents a frame where
+    // loading=false and isAdultUser=null, which flashes the lock screen
+    setLoading(true);
+
     const checkAge = async () => {
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
