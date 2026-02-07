@@ -12,6 +12,36 @@ const MIN_REQUIRED = 3;
 const NEUTRAL_PILL_CLASSES = 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm';
 const GOLD_PILL_CLASSES = 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] font-bold';
 
+const INTEREST_EXAMPLES = [
+  'Italian food', 'rock climbing', '90s hip hop', 'astrophysics',
+  'street photography', 'board games', 'Korean dramas', 'open source',
+  'jazz piano', 'sustainable fashion', 'lucid dreaming', 'manga',
+  'film noir', 'sourdough bread', 'muay thai', 'vintage synths',
+];
+
+const COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria',
+  'Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan',
+  'Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia',
+  'Cameroon','Canada','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Costa Rica',
+  'Croatia','Cuba','Cyprus','Czech Republic','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt',
+  'El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon',
+  'Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana',
+  'Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel',
+  'Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kosovo','Kuwait','Kyrgyzstan',
+  'Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar',
+  'Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia',
+  'Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal',
+  'Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan',
+  'Palau','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar',
+  'Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa','San Marino',
+  'Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia',
+  'Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden',
+  'Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga','Trinidad and Tobago',
+  'Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay',
+  'Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe',
+];
+
 // --- AGE CALCULATION ---
 const isAdult = (dob: string): boolean => {
   if (!dob) return false;
@@ -63,9 +93,9 @@ const playRemoveSound = () => {
   } catch {}
 };
 
-// --- Interest Pill ---
+// --- Interest Pill (tap OR hover to reveal delete) ---
 function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: string) => void }) {
-  const [hovered, setHovered] = useState(false);
+  const [active, setActive] = useState(false);
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.7 }}
@@ -73,20 +103,20 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       whileHover={{ scale: 1.05 }}
-      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-default ${GOLD_PILL_CLASSES}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES} ${active ? 'ring-2 ring-pink-400/60' : ''}`}
+      onClick={() => setActive(a => !a)}
+      onMouseEnter={() => setActive(true)}
+      onMouseLeave={() => setActive(false)}
     >
       {interest}
       <AnimatePresence>
-        {hovered && (
+        {active && (
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => { onRemove(interest); playRemoveSound(); }}
-            whileHover={{ backgroundColor: '#ef4444' }}
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm z-10"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10"
           >
             ×
           </motion.button>
@@ -116,7 +146,7 @@ export default function ProfilePage() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
-  const [website, setWebsite] = useState('');
+
   const [birthYear, setBirthYear] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
@@ -126,6 +156,8 @@ export default function ProfilePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
   const [ageError, setAgeError] = useState(false);
+  const [locationError, setLocationError] = useState(false);
+  const [exampleIdx, setExampleIdx] = useState(0);
 
   // Check if locked: NO birthdate OR birthdate < 18
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
@@ -148,8 +180,6 @@ export default function ProfilePage() {
           setCity(data.city || '');
           setState(data.state || '');
           setCountry(data.country || '');
-          setWebsite(data.website || '');
-          
           // Parse DOB into year/month/day
           if (data.birthDate) {
             const [year, month, day] = data.birthDate.split('-');
@@ -168,6 +198,12 @@ export default function ProfilePage() {
     return () => unsub();
   }, [router]);
 
+  // Rotate placeholder examples
+  useEffect(() => {
+    const t = setInterval(() => setExampleIdx(i => (i + 1) % INTEREST_EXAMPLES.length), 2500);
+    return () => clearInterval(t);
+  }, []);
+
   // --- Handlers ---
   const saveProfile = async () => {
     if (!user) return;
@@ -182,10 +218,18 @@ export default function ProfilePage() {
     }
     
     setAgeError(false);
-    
+
+    // Require city and country
+    if (!city.trim() || !country.trim()) {
+      setLocationError(true);
+      setTimeout(() => setLocationError(false), 3000);
+      return;
+    }
+    setLocationError(false);
+
     try {
       await setDoc(doc(db, 'users', user.uid), {
-        displayName, city, state, country, website, birthDate: dob,
+        displayName, city, state, country, birthDate: dob,
         interests, updatedAt: new Date().toISOString()
       }, { merge: true });
       
@@ -195,16 +239,25 @@ export default function ProfilePage() {
   };
 
   const addInterest = async () => {
-    const i = newInterest.trim();
-    if (!i || !user) return;
-    const normalized = i.charAt(0).toUpperCase() + i.slice(1);
-    if (!interests.includes(normalized)) {
-      const newInterests = [...interests, normalized];
-      setInterests(newInterests);
-      playAddSound();
-      try { await setDoc(doc(db, 'users', user.uid), { interests: newInterests, updatedAt: new Date().toISOString() }, { merge: true }); }
-      catch(e) { console.error(e); }
+    const raw = newInterest.trim();
+    if (!raw || !user) return;
+
+    // Split on commas so "Italian food, hiking, yoga" → 3 separate pills
+    const items = raw.split(',').map(s => s.trim()).filter(Boolean);
+    const toAdd: string[] = [];
+    for (const item of items) {
+      const normalized = item.charAt(0).toUpperCase() + item.slice(1);
+      if (!interests.includes(normalized) && !toAdd.includes(normalized)) {
+        toAdd.push(normalized);
+      }
     }
+    if (!toAdd.length) { setNewInterest(''); return; }
+
+    const newInterests = [...interests, ...toAdd];
+    setInterests(newInterests);
+    playAddSound();
+    try { await setDoc(doc(db, 'users', user.uid), { interests: newInterests, updatedAt: new Date().toISOString() }, { merge: true }); }
+    catch(e) { console.error(e); }
     setNewInterest('');
   };
 
@@ -330,53 +383,96 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 px-4">
       
-      <h1 className="text-4xl font-extrabold mb-6 drop-shadow-md">Your Profile</h1>
+      <h1 className="text-4xl sm:text-5xl font-black mb-8 flex items-center justify-center gap-3 flex-wrap drop-shadow-[0_0_30px_rgba(255,160,255,0.6)]">
+        <span>All About</span>
+        <motion.span
+          animate={{
+            boxShadow: ['0 0 15px rgba(253,224,71,0.6)', '0 0 25px rgba(253,224,71,0.9)', '0 0 15px rgba(253,224,71,0.6)']
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="px-6 py-2 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-3xl sm:text-4xl"
+        >
+          YOU
+        </motion.span>
+      </h1>
 
-      {/* SIDE-BY-SIDE CARDS */}
+      {/* SIDE-BY-SIDE CARDS — interests first (the star of BAE) */}
       <div className="flex flex-col lg:flex-row gap-6 w-full max-w-6xl">
+
+        {/* YOUR INTERESTS — the hero section */}
+        <motion.div className="flex-[1.2] bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-xl font-bold">Your Interests</h3>
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${interests.length >= MIN_REQUIRED ? 'bg-green-400/15 text-green-300' : 'bg-yellow-400/15 text-yellow-300'}`}>
+              {interests.length >= MIN_REQUIRED
+                ? `${interests.length} interests`
+                : `${interests.length}/${MIN_REQUIRED} minimum`}
+            </span>
+          </div>
+          <p className="text-white/40 text-xs mb-4">These help show who you are! Tap any to remove.</p>
+
+          <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
+            <AnimatePresence>
+              {interests.map(i => <InterestPill key={i} interest={i} onRemove={removeInterest} />)}
+            </AnimatePresence>
+            {interests.length === 0 && (
+              <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              value={newInterest}
+              onChange={e => setNewInterest(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addInterest()}
+              placeholder={`e.g. ${INTEREST_EXAMPLES[exampleIdx]}`}
+              className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-fuchsia-400/50 focus:ring-2 focus:ring-fuchsia-400/20 outline-none"
+            />
+            <button onClick={addInterest} className="px-6 py-2.5 bg-pink-500 hover:bg-pink-400 rounded-full font-bold transition-colors">Add</button>
+          </div>
+        </motion.div>
 
         {/* PERSONAL INFO */}
         <motion.div className="flex-1 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
           <h3 className="text-xl font-bold mb-4">Personal Info</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display Name" className="input" />
-            <input value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="input" />
+            <input value={city} onChange={e => setCity(e.target.value)} placeholder="City *" className={`input ${locationError && !city.trim() ? 'border-red-400/70' : ''}`} />
             <input value={state} onChange={e => setState(e.target.value)} placeholder="State/Province" className="input" />
-            <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="input" />
+            <select value={country} onChange={e => setCountry(e.target.value)} className={`input ${locationError && !country.trim() ? 'border-red-400/70' : ''}`}>
+              <option value="">Country *</option>
+              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
+
+          <AnimatePresence>
+            {locationError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-3 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
+              >
+                City and country are required to save your profile
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <h4 className="font-semibold mt-4 mb-3">Birthdate</h4>
           <div className="grid grid-cols-3 gap-3 mb-4">
-            {/* Month */}
-            <select 
-              value={birthMonth}
-              onChange={(e) => setBirthMonth(e.target.value)}
-              className="input"
-            >
+            <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="input">
               <option value="">Month</option>
               {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
-            
-            {/* Day */}
-            <select 
-              value={birthDay}
-              onChange={(e) => setBirthDay(e.target.value)}
-              className="input"
-            >
+            <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="input">
               <option value="">Day</option>
               {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
-            
-            {/* Year */}
-            <select 
-              value={birthYear}
-              onChange={(e) => setBirthYear(e.target.value)}
-              className="input"
-            >
+            <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} className="input">
               <option value="">Year</option>
               {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -384,12 +480,8 @@ export default function ProfilePage() {
             </select>
           </div>
 
-          <h4 className="font-semibold mt-4 mb-2">Personal/Professional Website</h4>
-          <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://yourwebsite.com" className="input mb-2" />
+          <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg hover:shadow-fuchsia-500/25 transition-shadow">Save Changes</button>
 
-          <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg">Save Changes</button>
-          
-          {/* Save Success Message */}
           <AnimatePresence>
             {saveSuccess && (
               <motion.div
@@ -398,24 +490,10 @@ export default function ProfilePage() {
                 exit={{ opacity: 0, y: -10 }}
                 className="mt-3 text-center text-green-400 font-semibold text-sm"
               >
-                ✓ Saved!
+                Saved!
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
-
-        {/* YOUR INTERESTS */}
-        <motion.div className="flex-1 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
-          <h3 className="text-xl font-bold mb-4 text-center">Your Interests</h3>
-          <div className="flex flex-wrap gap-3 mb-4 justify-center">
-            <AnimatePresence>
-              {interests.map(i => <InterestPill key={i} interest={i} onRemove={removeInterest} />)}
-            </AnimatePresence>
-          </div>
-          <div className="flex gap-2">
-            <input value={newInterest} onChange={e => setNewInterest(e.target.value)} onKeyDown={e => e.key === 'Enter' && addInterest()} placeholder="Add interest..." className="flex-1 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white" />
-            <button onClick={addInterest} className="px-6 py-2 bg-pink-500 rounded-full font-bold">Add</button>
-          </div>
         </motion.div>
 
       </div>
