@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
-import { Brain, Youtube, Music, ArrowRight } from 'lucide-react';
+import { Brain, Youtube, Music, ArrowRight, Heart } from 'lucide-react';
 
 export default function GuidePage() {
   const router = useRouter();
@@ -106,25 +106,25 @@ export default function GuidePage() {
                   transition={{ duration: 2, repeat: Infinity }}
                   className="px-6 py-3 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200"
                 >
-                  ⭐ Physics ⭐
+                  Physics
                 </motion.span>
-                <motion.span 
-                  animate={{ 
+                <motion.span
+                  animate={{
                     boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
                   }}
                   transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
                   className="px-6 py-3 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200"
                 >
-                  ⭐ Rock Climbing ⭐
+                  Rock Climbing
                 </motion.span>
-                <motion.span 
-                  animate={{ 
+                <motion.span
+                  animate={{
                     boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
                   }}
                   transition={{ duration: 2, repeat: Infinity, delay: 0.6 }}
                   className="px-6 py-3 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200"
                 >
-                  ⭐ Jazz ⭐
+                  Jazz
                 </motion.span>
               </div>
             </div>
@@ -192,11 +192,14 @@ export default function GuidePage() {
           className="mb-20"
         >
           <div className="bg-gradient-to-br from-fuchsia-900/30 to-indigo-900/30 backdrop-blur-lg rounded-3xl border border-purple-400/30 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Interest Explorer</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">Interest Explorer</h2>
+            <p className="text-sm font-semibold text-yellow-300/80 tracking-wide mb-6">THE CORE OF BAE</p>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
-              <p>Scroll through real people and see what they actually care about. One profile at a time.</p>
-              <p>Your shared interests <strong className="text-yellow-300">glow gold</strong>. The other stuff they love? Add any of it to your profile. Discover things you forgot about. Find new passions. Get inspired.</p>
-              <p>The more diverse your interests, the richer your conversations. Every profile you explore makes your own profile stronger.</p>
+              <p>This is where BAE gets deep.</p>
+              <p>You&apos;re not scrolling photos. You&apos;re browsing people by <strong className="text-white">what they actually care about</strong> — interests, passions, curiosities, all out in the open. No filters. No performance. Just the real stuff.</p>
+              <p>See something that resonates? <strong className="text-yellow-300">Tap it.</strong> That interest transfers from their world to yours. Just like real life — a stranger introduces you to jazz, or philosophy, or a hobby you never knew you&apos;d love. Every person you encounter has the potential to expand who you are.</p>
+              <p>This is how interests naturally travel between people. Your profile grows richer over time — not because you&apos;re curating an image, but because you&apos;re genuinely discovering through real human connection. People are doorways to experiences you never saw coming.</p>
+              <p>Found someone whose interests fascinate you? <Heart size={14} className="inline text-pink-400 fill-pink-400 -mt-0.5" /> <strong className="text-pink-300">Heart their profile</strong> to save them — whether you discover them exploring or meet them on a video match. Your saved profiles become a map of the people who expanded your world.</p>
             </div>
 
             {/* Visual Example: Interest Explorer Preview */}
@@ -205,30 +208,31 @@ export default function GuidePage() {
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-2xl font-black text-white">
                   M
                 </div>
-                <div>
+                <div className="flex-1">
                   <div className="text-2xl font-black text-white">Maya S</div>
                   <div className="text-sm text-white/70">San Francisco</div>
                 </div>
+                <Heart size={18} className="text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]" />
               </div>
               <p className="text-xs text-white/60 mb-3">Her interests:</p>
               <div className="flex flex-wrap gap-2">
-                <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.6)]">
-                  ⭐ Venture capital
+                <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.6)]">
+                  Venture Capital
                 </span>
-                <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.6)]">
-                  ⭐ Mindfulness
-                </span>
-                <span className="px-4 py-2 bg-white/10 text-white/80 rounded-full text-sm border border-white/20">
-                  Matcha + 👆
+                <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.6)]">
+                  Mindfulness
                 </span>
                 <span className="px-4 py-2 bg-white/10 text-white/80 rounded-full text-sm border border-white/20">
-                  Tech conferences + 👆
+                  Matcha <span className="ml-1 text-white/30">+</span>
                 </span>
                 <span className="px-4 py-2 bg-white/10 text-white/80 rounded-full text-sm border border-white/20">
-                  Gardening + 👆
+                  Tech Conferences <span className="ml-1 text-white/30">+</span>
+                </span>
+                <span className="px-4 py-2 bg-white/10 text-white/80 rounded-full text-sm border border-white/20">
+                  Gardening <span className="ml-1 text-white/30">+</span>
                 </span>
               </div>
-              <p className="text-xs text-white/50 mt-4 text-center">Gold = you both like it | Tap + to add to yours</p>
+              <p className="text-xs text-white/50 mt-4 text-center">Gold = you both share it · Tap + to add to yours · Heart to save</p>
             </div>
           </div>
         </motion.section>
@@ -243,18 +247,42 @@ export default function GuidePage() {
           <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Video Match</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
-              <p>Get matched with someone new. Hop on video. See what you both care about.</p>
-              <p>Your shared interests glow in the middle. But their other interests are right there too—add any of them to your own profile in real time. The conversation deepens. Both of you grow.</p>
+              <p>Get matched with someone new. Hop on video. See what you both care about — your shared interests glow at the top of the screen the moment you connect.</p>
+              <p>Their other interests are right there too. Tap any of them to add to your own profile in real time. The conversation deepens. Both of you grow. Meet someone amazing? <Heart size={14} className="inline text-pink-400 fill-pink-400 -mt-0.5" /> <strong className="text-pink-300">Heart them</strong> right from the call.</p>
               <p>Real connection happens when you discover new things together.</p>
             </div>
 
             {/* Visual Example: Video Match Preview */}
             <div className="bg-black/40 rounded-2xl p-6 border border-white/10">
-              <div className="flex gap-4 items-stretch mb-6 relative">
+              {/* Shared interests at top — matches current design */}
+              <div className="flex flex-wrap gap-2 justify-center mb-5">
+                <motion.span
+                  animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.4)', '0 0 18px rgba(253,224,71,0.7)', '0 0 10px rgba(253,224,71,0.4)'] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="px-3.5 py-1.5 bg-yellow-300 text-black font-bold rounded-full text-xs border border-yellow-200/80"
+                >
+                  Jazz
+                </motion.span>
+                <motion.span
+                  animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.4)', '0 0 18px rgba(253,224,71,0.7)', '0 0 10px rgba(253,224,71,0.4)'] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
+                  className="px-3.5 py-1.5 bg-yellow-300 text-black font-bold rounded-full text-xs border border-yellow-200/80"
+                >
+                  Meditation
+                </motion.span>
+                <motion.span
+                  animate={{ boxShadow: ['0 0 10px rgba(253,224,71,0.4)', '0 0 18px rgba(253,224,71,0.7)', '0 0 10px rgba(253,224,71,0.4)'] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
+                  className="px-3.5 py-1.5 bg-yellow-300 text-black font-bold rounded-full text-xs border border-yellow-200/80"
+                >
+                  Poetry
+                </motion.span>
+              </div>
+
+              <div className="flex gap-4 items-stretch relative">
                 {/* Your Video */}
                 <div className="flex-1">
                   <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-48 mb-3">
-                    {/* Silhouette */}
                     <svg className="w-28 h-28 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
                       <circle cx="50" cy="30" r="15" />
                       <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
@@ -262,7 +290,6 @@ export default function GuidePage() {
                     <p className="text-sm font-bold text-white">You</p>
                     <p className="text-xs text-white/60">Los Angeles</p>
                   </div>
-                  {/* Your Unique Interests */}
                   <div className="flex flex-wrap gap-1 justify-center">
                     <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Surfing</span>
                     <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Photography</span>
@@ -270,64 +297,52 @@ export default function GuidePage() {
                   </div>
                 </div>
 
-                {/* Center: Shared Interests + Vibe Meter */}
-                <div className="flex flex-col items-center justify-center gap-3 px-4">
-                  {/* Shared Interests */}
-                  <div className="flex flex-col gap-2">
-                    <motion.span 
-                      animate={{ 
-                        boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="px-3 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
-                    >
-                      ⭐ Jazz
-                    </motion.span>
-                    <motion.span 
-                      animate={{ 
-                        boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
-                      }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 0.2 }}
-                      className="px-3 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
-                    >
-                      ⭐ Meditation
-                    </motion.span>
-                    <motion.span 
-                      animate={{ 
-                        boxShadow: ['0 0 10px rgba(253,224,71,0.5)', '0 0 20px rgba(253,224,71,0.8)', '0 0 10px rgba(253,224,71,0.5)']
-                      }}
-                      transition={{ duration: 2, repeat: Infinity, delay: 0.4 }}
-                      className="px-3 py-2 bg-yellow-300 text-black font-bold rounded-full text-xs border-2 border-yellow-200 whitespace-nowrap"
-                    >
-                      ⭐ Poetry
-                    </motion.span>
-                  </div>
-
-                  {/* Vibe Meter */}
-                  <div className="mt-2 flex flex-col items-center gap-1">
-                    <div className="relative w-6 h-20 rounded-full bg-white/10 border border-white/20 overflow-hidden">
+                {/* Frosted Vibe Meter — centered between panels */}
+                <div className="flex flex-col items-center justify-center px-1">
+                  <div
+                    className="relative w-8 h-24 rounded-full overflow-hidden"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 0 20px rgba(252,211,77,0.12)',
+                    }}
+                  >
+                    <div className="absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-1.5 rounded-full bg-white/[0.06]">
                       <motion.div
                         animate={{ height: '60%' }}
                         transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-                        className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-300 via-pink-400 to-fuchsia-500"
+                        className="absolute bottom-0 w-full rounded-full"
+                        style={{
+                          background: 'linear-gradient(to top, #7dd3fc, #6ee7b7, #fcd34d)',
+                          boxShadow: '0 0 6px rgba(252,211,77,0.3)',
+                        }}
                       />
                     </div>
-                    <p className="text-[9px] font-black text-yellow-300 tracking-tight">DEEP</p>
+                  </div>
+                  <div
+                    className="mt-2 px-2 py-0.5 rounded-full"
+                    style={{
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <span className="text-[9px] font-medium tracking-[0.15em] text-amber-300">DEEP</span>
                   </div>
                 </div>
 
                 {/* Their Video */}
                 <div className="flex-1">
                   <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-48 mb-3">
-                    {/* Silhouette */}
                     <svg className="w-28 h-28 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
                       <circle cx="50" cy="30" r="15" />
                       <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
                     </svg>
-                    <p className="text-sm font-bold text-white">Alex</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold text-white">Alex</p>
+                      <Heart size={12} className="text-pink-400 fill-pink-400" />
+                    </div>
                     <p className="text-xs text-white/60">New York</p>
                   </div>
-                  {/* Their Unique Interests */}
                   <div className="flex flex-wrap gap-1 justify-center">
                     <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Cooking</span>
                     <span className="px-2 py-1 bg-white/20 text-white/80 rounded-full text-[10px] border border-white/30">Art History</span>
@@ -335,7 +350,7 @@ export default function GuidePage() {
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-white/50 text-center">See an interest you like? Tap to add it to your profile!</p>
+              <p className="text-xs text-white/50 text-center mt-4">Shared interests glow at the top · Tap any interest to add it · Heart to save</p>
             </div>
           </div>
         </motion.section>
