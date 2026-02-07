@@ -139,7 +139,7 @@ export default function GuidePage() {
           viewport={{ once: true }}
           className="mb-20"
         >
-          <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-8 sm:p-12 shadow-2xl">
+          <div className="bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 p-5 sm:p-8 md:p-12 shadow-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Build Your Interests</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
               <p>Add anything you actually like. Big passions. Small hobbies. Forgotten favorites.</p>
@@ -149,7 +149,7 @@ export default function GuidePage() {
             </div>
 
             {/* Visual Example: Interest Adder */}
-            <div className="bg-black/30 rounded-2xl p-4 sm:p-6 border border-white/10">
+            <div className="bg-black/30 rounded-2xl p-3 sm:p-6 border border-white/10 overflow-hidden">
               <p className="text-sm text-white/60 mb-4 text-center">How it looks on your profile:</p>
 
               {/* Current Interests */}
