@@ -73,7 +73,7 @@ export default function GuidePage() {
                 boxShadow: ['0 0 15px rgba(253,224,71,0.6)', '0 0 25px rgba(253,224,71,0.9)', '0 0 15px rgba(253,224,71,0.6)']
               }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="px-8 py-3 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-3xl sm:text-5xl"
+              className="px-5 py-2 sm:px-8 sm:py-3 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-3xl sm:text-5xl"
             >
               Works
             </motion.span>
@@ -206,7 +206,7 @@ export default function GuidePage() {
             {/* Visual Example: Interest Explorer Preview */}
             <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
               <div className="flex items-center gap-4 mb-6 pb-4 border-b border-white/10">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-2xl font-black text-white">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-2xl font-black text-white">
                   M
                 </div>
                 <div className="flex-1">
@@ -280,11 +280,11 @@ export default function GuidePage() {
                 </motion.span>
               </div>
 
-              <div className="flex gap-4 items-stretch relative">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch relative">
                 {/* Your Video */}
                 <div className="flex-1">
-                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-48 mb-3">
-                    <svg className="w-28 h-28 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center min-h-32 sm:min-h-48 mb-3">
+                    <svg className="w-16 h-16 sm:w-28 sm:h-28 text-white/30 mb-2 sm:mb-4" viewBox="0 0 100 100" fill="currentColor">
                       <circle cx="50" cy="30" r="15" />
                       <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
                     </svg>
@@ -298,17 +298,18 @@ export default function GuidePage() {
                   </div>
                 </div>
 
-                {/* Frosted Vibe Meter — centered between panels */}
-                <div className="flex flex-col items-center justify-center px-1">
+                {/* Frosted Vibe Meter — vertical on desktop, horizontal on mobile */}
+                <div className="flex sm:flex-col items-center justify-center px-1 py-2 sm:py-0">
                   <div
-                    className="relative w-8 h-24 rounded-full overflow-hidden"
+                    className="relative rounded-full overflow-hidden w-20 h-8 sm:w-8 sm:h-24"
                     style={{
                       background: 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,255,255,0.08)',
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05), 0 0 20px rgba(252,211,77,0.12)',
                     }}
                   >
-                    <div className="absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-1.5 rounded-full bg-white/[0.06]">
+                    {/* Vertical track (desktop) */}
+                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-1.5 rounded-full bg-white/[0.06]">
                       <motion.div
                         animate={{ height: '60%' }}
                         transition={{ type: 'spring', stiffness: 50, damping: 20 }}
@@ -319,9 +320,21 @@ export default function GuidePage() {
                         }}
                       />
                     </div>
+                    {/* Horizontal track (mobile) */}
+                    <div className="sm:hidden absolute top-1/2 -translate-y-1/2 left-2 right-2 h-1.5 rounded-full bg-white/[0.06]">
+                      <motion.div
+                        animate={{ width: '60%' }}
+                        transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+                        className="absolute left-0 h-full rounded-full"
+                        style={{
+                          background: 'linear-gradient(to right, #7dd3fc, #6ee7b7, #fcd34d)',
+                          boxShadow: '0 0 6px rgba(252,211,77,0.3)',
+                        }}
+                      />
+                    </div>
                   </div>
                   <div
-                    className="mt-2 px-2 py-0.5 rounded-full"
+                    className="ml-2 sm:ml-0 sm:mt-2 px-2 py-0.5 rounded-full"
                     style={{
                       background: 'rgba(255,255,255,0.04)',
                       border: '1px solid rgba(255,255,255,0.06)',
@@ -333,8 +346,8 @@ export default function GuidePage() {
 
                 {/* Their Video */}
                 <div className="flex-1">
-                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-6 flex flex-col items-center justify-center min-h-48 mb-3">
-                    <svg className="w-28 h-28 text-white/30 mb-4" viewBox="0 0 100 100" fill="currentColor">
+                  <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center min-h-32 sm:min-h-48 mb-3">
+                    <svg className="w-16 h-16 sm:w-28 sm:h-28 text-white/30 mb-2 sm:mb-4" viewBox="0 0 100 100" fill="currentColor">
                       <circle cx="50" cy="30" r="15" />
                       <path d="M 35 50 Q 35 45 50 45 Q 65 45 65 50 L 65 70 Q 65 75 60 75 L 40 75 Q 35 75 35 70 Z" />
                     </svg>
