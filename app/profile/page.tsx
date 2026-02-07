@@ -508,6 +508,19 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* Latest Interest */}
+              {interests.length > 0 && (
+                <div className="bg-white/5 backdrop-blur-lg p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                  <div>
+                    <p className="text-white/40 text-xs font-medium mb-1">Most recent interest added</p>
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-300/15 text-yellow-200 border border-yellow-300/25">
+                      {interests[interests.length - 1]}
+                    </span>
+                  </div>
+                  <span className="text-white/25 text-xs">—</span>
+                </div>
+              )}
+
               {/* Conversations */}
               <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
                 <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Conversations</h4>
