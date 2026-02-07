@@ -190,6 +190,7 @@ export default function MatchPage() {
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [partnerDisconnected, setPartnerDisconnected] = useState(false);
+  const myProfileRef = useRef<any>(null);
 
   // --- SHARED INTERESTS ---
   const sharedInterests = useMemo(() => {
@@ -211,7 +212,9 @@ export default function MatchPage() {
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
         if (snap.exists()) {
-          setMyProfile(snap.data());
+          const profileData = snap.data();
+          myProfileRef.current = profileData;
+          setMyProfile(profileData);
         }
       } catch (e) {
         console.error('Profile load failed:', e);
@@ -225,7 +228,7 @@ export default function MatchPage() {
 
   // --- GET CAMERA + INITIATE MATCH ---
   useEffect(() => {
-    if (!authReady || !user || !myProfile) return;
+    if (!authReady || !user || !myProfileRef.current) return;
 
     const startMatching = async () => {
       // Clean up any previous match state first
@@ -266,7 +269,7 @@ export default function MatchPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user.uid,
-            interests: myProfile.interests,
+            interests: myProfileRef.current.interests,
             selectedMode: 'video',
           }),
         });
@@ -305,7 +308,8 @@ export default function MatchPage() {
       if (unsubscribeRef.current) unsubscribeRef.current();
       if (partnerUnsubscribeRef.current) partnerUnsubscribeRef.current();
     };
-  }, [authReady, user, myProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, user]);
 
   // --- JOIN ROOM ---
   const joinRoom = async (url: string, partnerId: string) => {
@@ -333,40 +337,44 @@ export default function MatchPage() {
       const daily = DailyIframe.createCallObject();
       callObjectRef.current = daily;
 
+      // Helper: attach a video track to a ref
+      const attachTrack = (ref: React.RefObject<HTMLVideoElement | null>, track: MediaStreamTrack, label: string) => {
+        if (ref.current) {
+          ref.current.srcObject = new MediaStream([track]);
+          ref.current.play().catch((err: any) => {
+            console.error(`Play failed for ${label}:`, err);
+          });
+        }
+      };
+
       // Attach video tracks
       daily.on('track-started', ({ track, participant }: any) => {
-        console.log('🎥 track-started event fired!', {
-          trackKind: track.kind,
-          isLocal: participant?.local,
-          participantId: participant?.user_id,
-        });
+        if (!participant || track.kind !== 'video') return;
 
-        if (!participant || track.kind !== 'video') {
-          console.log('❌ Skipping: not a video track or no participant');
-          return;
+        if (participant.local) {
+          // Local track — update to Daily's managed version for consistency
+          console.log('📹 Local video track from Daily');
+          attachTrack(yourVideoRef, track, 'LOCAL');
+        } else {
+          // Remote track — attach to partner panel
+          console.log('📹 Remote video track received');
+          attachTrack(theirVideoRef, track, 'REMOTE');
         }
+      });
 
-        const ref = participant.local ? yourVideoRef : theirVideoRef;
-        const refName = participant.local ? 'YOUR' : 'THEIR';
-
-        console.log(`📹 Attempting to attach ${refName} video track`);
-        console.log(`ref.current exists? ${!!ref.current}`);
-
-        const attempt = (count = 0) => {
-          if (ref.current) {
-            console.log(`✅ ${refName} ref ready! Attaching track...`);
-            ref.current.srcObject = new MediaStream([track]);
-            ref.current.play().catch((err: any) => {
-              console.error(`❌ Play failed for ${refName}:`, err);
-            });
-          } else if (count < 20) {
-            console.log(`⏳ ${refName} ref not ready, retry ${count + 1}/20`);
-            setTimeout(() => attempt(count + 1), 100);
-          } else {
-            console.error(`❌ FAILED: ${refName} ref never became ready`);
+      // Backup: participant-updated fires when track state changes
+      // Catches cases where track-started was missed or track was replaced
+      daily.on('participant-updated', ({ participant }: any) => {
+        if (!participant || participant.local) return;
+        const videoTrack = participant.tracks?.video?.persistentTrack || participant.tracks?.video?.track;
+        if (videoTrack && videoTrack.readyState === 'live' && theirVideoRef.current) {
+          // Only set if partner panel has no active video
+          if (!theirVideoRef.current.srcObject ||
+              !(theirVideoRef.current.srcObject as MediaStream).getVideoTracks().some(t => t.readyState === 'live')) {
+            console.log('📹 Attaching remote video via participant-updated fallback');
+            attachTrack(theirVideoRef, videoTrack, 'REMOTE-FALLBACK');
           }
-        };
-        attempt();
+        }
       });
 
       // Detect partner disconnect
@@ -424,7 +432,7 @@ export default function MatchPage() {
     if (sharedInterests.length >= 5 && !celebratedCounts.has(5)) {
       setCelebratedCounts(prev => new Set([...prev, 5]));
       setShowTicket(true);
-      setTimeout(() => setShowTicket(false), 3000);
+      setTimeout(() => setShowTicket(false), 1500);
     } else if (sharedInterests.length > 5 && !celebratedCounts.has(sharedInterests.length)) {
       setCelebratedCounts(prev => new Set([...prev, sharedInterests.length]));
       setCurrentCelebration(sharedInterests.length);
@@ -473,7 +481,7 @@ export default function MatchPage() {
     }
 
     // Reset status to idle before requesting new match (Issue 6: prevent double-match)
-    if (user && myProfile) {
+    if (user && myProfileRef.current) {
       try {
         await updateDoc(doc(db, 'users', user.uid), {
           status: 'idle',
@@ -487,7 +495,7 @@ export default function MatchPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user.uid,
-            interests: myProfile.interests,
+            interests: myProfileRef.current.interests,
             selectedMode: 'video',
           }),
         });
@@ -531,7 +539,9 @@ export default function MatchPage() {
     console.log('Adding interest:', interest);
 
     const updated = [...myProfile.interests, interest];
-    setMyProfile({ ...myProfile, interests: updated });
+    const updatedProfile = { ...myProfile, interests: updated };
+    myProfileRef.current = updatedProfile;
+    setMyProfile(updatedProfile);
 
     try {
       await updateDoc(doc(db, 'users', user.uid), { 
@@ -609,11 +619,11 @@ export default function MatchPage() {
             <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
               <div className="w-full">
                 <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
-                  <div className="grid gap-2 auto-rows-max" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+                  <div className="flex flex-wrap gap-2">
                     {myProfile.interests.map((interest: string) => (
                       <div
                         key={interest}
-                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap text-center"
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap"
                       >
                         {interest}
                       </div>
@@ -658,8 +668,15 @@ export default function MatchPage() {
 
         {/* THEIR VIDEO (RIGHT) */}
         <div className="relative flex-1 bg-black">
-          {!isMatched ? (
-            <motion.div 
+          {/* Always render video element so ref is available when track-started fires */}
+          <video
+            ref={theirVideoRef}
+            autoPlay
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {!isMatched && (
+            <motion.div
               animate={{ opacity: [0.4, 0.7, 0.4] }}
               transition={{ duration: 2, repeat: Infinity }}
               className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
@@ -669,47 +686,38 @@ export default function MatchPage() {
                 <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
               </div>
             </motion.div>
-          ) : (
-            <>
-              <video
-                ref={theirVideoRef}
-                autoPlay
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              {/* Partner disconnect overlay */}
-              <AnimatePresence>
-                {partnerDisconnected && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                  >
-                    <div className="text-center px-4">
-                      <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleNext}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg mx-auto"
-                      >
-                        Find Next Match
-                        <RefreshCw size={16} />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
           )}
+          {/* Partner disconnect overlay */}
+          <AnimatePresence>
+            {isMatched && partnerDisconnected && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              >
+                <div className="text-center px-4">
+                  <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleNext}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                  >
+                    Find Next Match
+                    <RefreshCw size={16} />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* THEIR INTERESTS - Bottom, stacked rows */}
           {isMatched && theirProfile && (
             <div className="absolute bottom-0 left-0 right-0 z-15 pb-4">
               <div className="w-full">
                 <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
-                  <div className="grid gap-2 auto-rows-max" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+                  <div className="flex flex-wrap gap-2">
                     {theirProfile.interests.map((interest: string) => {
                       const isAdded = myProfile?.interests.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -726,7 +734,7 @@ export default function MatchPage() {
                             }
                           }}
                           disabled={isAdded}
-                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-center pointer-events-auto ${
+                          className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all pointer-events-auto ${
                             isAdded
                               ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
                               : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
