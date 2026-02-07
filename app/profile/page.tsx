@@ -103,7 +103,7 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       whileHover={{ scale: 1.05 }}
-      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES} ${active ? 'ring-2 ring-pink-400/60' : ''}`}
+      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES} ${active ? 'ring-2 ring-violet-400/60' : ''}`}
       onClick={() => setActive(a => !a)}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
@@ -116,7 +116,7 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.5 }}
             onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
-            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10"
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10"
           >
             ×
           </motion.button>
@@ -370,7 +370,7 @@ export default function ProfilePage() {
 
           <button 
             onClick={saveProfile}
-            className="w-full py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg"
+            className="w-full py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg"
           >
             Verify & Continue
           </button>
@@ -381,7 +381,7 @@ export default function ProfilePage() {
 
   // FULL PROFILE FOR LOGGED-IN ADULTS
   return (
-    <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 px-4">
+    <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 pb-16 px-4">
       
       <h1 className="text-4xl sm:text-5xl font-black mb-8 flex items-center justify-center gap-3 flex-wrap drop-shadow-[0_0_30px_rgba(255,160,255,0.6)]">
         <span>All About</span>
@@ -409,7 +409,7 @@ export default function ProfilePage() {
                 : `${interests.length}/${MIN_REQUIRED} minimum`}
             </span>
           </div>
-          <p className="text-white/40 text-xs mb-4">These help show who you are! Tap any to remove.</p>
+          <p className="text-white/40 text-xs mb-4">Have fun adding your unique interests! The more interests, the better!</p>
 
           <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
             <AnimatePresence>
@@ -426,9 +426,9 @@ export default function ProfilePage() {
               onChange={e => setNewInterest(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addInterest()}
               placeholder={`e.g. ${INTEREST_EXAMPLES[exampleIdx]}`}
-              className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-fuchsia-400/50 focus:ring-2 focus:ring-fuchsia-400/20 outline-none"
+              className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
             />
-            <button onClick={addInterest} className="px-6 py-2.5 bg-pink-500 hover:bg-pink-400 rounded-full font-bold transition-colors">Add</button>
+            <button onClick={addInterest} className="px-6 py-2.5 bg-violet-500 hover:bg-violet-400 rounded-full font-bold transition-colors">Add</button>
           </div>
         </motion.div>
 
@@ -480,7 +480,7 @@ export default function ProfilePage() {
             </select>
           </div>
 
-          <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-fuchsia-500 to-pink-500 font-bold rounded-xl shadow-lg hover:shadow-fuchsia-500/25 transition-shadow">Save Changes</button>
+          <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg hover:shadow-violet-500/25 transition-shadow">Save Changes</button>
 
           <AnimatePresence>
             {saveSuccess && (
@@ -499,12 +499,36 @@ export default function ProfilePage() {
       </div>
 
       {/* BAE BUTTON */}
-      <button 
-        onClick={handleBAEClick} 
-        className={`mt-8 px-12 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${interests.length >= MIN_REQUIRED ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85]' : 'bg-gray-500/50 cursor-not-allowed'}`}
-      >
-        {interests.length >= MIN_REQUIRED ? 'BAE SOMEONE NOW!' : `Need ${requiredRemaining} More`}
-      </button>
+      <div className="mt-12 flex flex-col items-center gap-3">
+        {interests.length >= MIN_REQUIRED ? (
+          <>
+            <p className="text-white/50 text-sm font-medium">Your profile is ready. Go meet someone.</p>
+            <motion.button
+              onClick={handleBAEClick}
+              animate={{
+                boxShadow: [
+                  '0 0 20px rgba(139,92,246,0.4), 0 0 60px rgba(59,130,246,0.15)',
+                  '0 0 30px rgba(139,92,246,0.7), 0 0 80px rgba(59,130,246,0.3)',
+                  '0 0 20px rgba(139,92,246,0.4), 0 0 60px rgba(59,130,246,0.15)',
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-16 py-6 rounded-full font-black text-white text-2xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 border-2 border-violet-300/30"
+            >
+              BAE SOMEONE NOW
+            </motion.button>
+          </>
+        ) : (
+          <>
+            <p className="text-white/30 text-sm">Add {requiredRemaining} more interest{requiredRemaining !== 1 ? 's' : ''} to get started</p>
+            <div className="px-16 py-6 rounded-full font-black text-white/30 text-2xl bg-white/5 border border-white/10 cursor-not-allowed">
+              BAE SOMEONE NOW
+            </div>
+          </>
+        )}
+      </div>
 
       <style jsx>{`
         .input {
@@ -517,8 +541,8 @@ export default function ProfilePage() {
           outline: none;
         }
         .input:focus {
-          border-color: #fuchsia-400;
-          box-shadow: 0 0 0 2px rgba(255,0,255,0.3);
+          border-color: #8b5cf6;
+          box-shadow: 0 0 0 2px rgba(139,92,246,0.3);
         }
         select {
           color-scheme: dark;
