@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
+import { parseInterests, interestNames } from '@/lib/structuredInterests';
 import { Brain, Youtube, Music, ArrowRight, Heart } from 'lucide-react';
 
 export default function GuidePage() {
@@ -24,7 +25,7 @@ export default function GuidePage() {
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
         if (snap.exists()) {
-          setUserInterests(snap.data().interests || []);
+          setUserInterests(interestNames(parseInterests(snap.data().interests)));
         }
       } catch (e) {
         console.error('Load interests failed', e);

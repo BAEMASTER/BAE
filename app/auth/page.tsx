@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import { doc, getDoc } from 'firebase/firestore';
+import { parseInterests } from '@/lib/structuredInterests';
 
 // Shared rotating config with home
 const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
@@ -46,7 +47,7 @@ export default function AuthPage() {
 
       // Check if user has 3+ interests
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const interestCount = userDoc.exists() ? (userDoc.data().interests || []).length : 0;
+      const interestCount = userDoc.exists() ? parseInterests(userDoc.data().interests).length : 0;
 
       if (interestCount >= 3) {
         // Has 3+ interests → go to homepage

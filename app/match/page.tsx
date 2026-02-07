@@ -9,6 +9,7 @@ import { doc, getDoc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw, Heart } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
+import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -332,12 +333,14 @@ export default function MatchPage() {
   const myProfileRef = useRef<any>(null);
 
   // --- SHARED INTERESTS ---
+  const myInterestNames = useMemo(() => interestNames(parseInterests(myProfile?.interests)), [myProfile?.interests]);
+  const theirInterestNames = useMemo(() => interestNames(parseInterests(theirProfile?.interests)), [theirProfile?.interests]);
   const sharedInterests = useMemo(() => {
     if (!myProfile || !theirProfile) return [];
-    return myProfile.interests.filter((i: string) =>
-      theirProfile.interests.some((ti: string) => ti.trim().toLowerCase() === i.trim().toLowerCase())
+    return myInterestNames.filter((i: string) =>
+      theirInterestNames.some((ti: string) => ti.trim().toLowerCase() === i.trim().toLowerCase())
     );
-  }, [myProfile, theirProfile]);
+  }, [myProfile, theirProfile, myInterestNames, theirInterestNames]);
 
   // --- AUTH ---
   useEffect(() => {
@@ -727,10 +730,11 @@ export default function MatchPage() {
     }
 
     // Check if already added
-    const alreadyAdded = myProfile.interests.some(
-      (i: string) => i.toLowerCase() === interest.toLowerCase()
+    const currentStructured = parseInterests(myProfile.interests);
+    const alreadyAdded = currentStructured.some(
+      (i) => i.name.toLowerCase() === interest.toLowerCase()
     );
-    
+
     if (alreadyAdded) {
       console.log('Interest already added:', interest);
       return;
@@ -744,13 +748,14 @@ export default function MatchPage() {
     setJustAdded(prev => new Set([...prev, key]));
     setTimeout(() => setJustAdded(prev => { const n = new Set(prev); n.delete(key); return n; }), 700);
 
-    const updated = [...myProfile.interests, interest];
+    const newEntry = createInterest(interest, 'match', currentPartnerId || undefined);
+    const updated = addStructuredInterests(currentStructured, [newEntry]);
     const updatedProfile = { ...myProfile, interests: updated };
     myProfileRef.current = updatedProfile;
     setMyProfile(updatedProfile);
 
     try {
-      await updateDoc(doc(db, 'users', user.uid), { 
+      await updateDoc(doc(db, 'users', user.uid), {
         interests: updated,
         updatedAt: new Date().toISOString(),
       });
@@ -835,7 +840,7 @@ export default function MatchPage() {
               <div className="w-full">
                 <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
                   <div className="flex flex-wrap gap-2">
-                    {myProfile.interests.map((interest: string) => (
+                    {myInterestNames.map((interest: string) => (
                       <div
                         key={interest}
                         className="px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap"
@@ -971,8 +976,8 @@ export default function MatchPage() {
               <div className="w-full">
                 <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3 interests-scroll overflow-y-auto" style={{ maxHeight: 'calc(2 * 2.5rem + 1.5rem)' }}>
                   <div className="flex flex-wrap gap-2">
-                    {theirProfile.interests.map((interest: string) => {
-                      const isAdded = myProfile?.interests.some(
+                    {theirInterestNames.map((interest: string) => {
+                      const isAdded = myInterestNames.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
                       );
                       const isFlashing = justAdded.has(interest.toLowerCase());

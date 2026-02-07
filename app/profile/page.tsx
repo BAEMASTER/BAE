@@ -1,11 +1,21 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'firebase/auth';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  StructuredInterest,
+  parseInterests,
+  interestNames,
+  createInterest,
+  addInterests as addStructuredInterests,
+  removeInterest as removeStructuredInterest,
+  countBySource,
+  mostRecentInterest,
+} from '@/lib/structuredInterests';
 
 // --- CONSTANTS ---
 const MIN_REQUIRED = 3;
@@ -151,7 +161,8 @@ export default function ProfilePage() {
   const [birthMonth, setBirthMonth] = useState('');
   const [birthDay, setBirthDay] = useState('');
 
-  const [interests, setInterests] = useState<string[]>([]);
+  const [structuredInterests, setStructuredInterests] = useState<StructuredInterest[]>([]);
+  const interests = useMemo(() => interestNames(structuredInterests), [structuredInterests]);
   const [newInterest, setNewInterest] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [minInterestWarning, setMinInterestWarning] = useState(false);
@@ -189,7 +200,7 @@ export default function ProfilePage() {
             setBirthDay(day || '');
           }
           
-          setInterests(Array.isArray(data.interests) ? data.interests : []);
+          setStructuredInterests(parseInterests(data.interests));
         } else {
           setDisplayName(u.displayName || u.email || 'Mystery BAE');
         }
@@ -231,7 +242,7 @@ export default function ProfilePage() {
     try {
       await setDoc(doc(db, 'users', user.uid), {
         displayName, city, state, country, birthDate: dob,
-        interests, updatedAt: new Date().toISOString()
+        interests: structuredInterests, updatedAt: new Date().toISOString()
       }, { merge: true });
       
       setSaveSuccess(true);
@@ -245,29 +256,30 @@ export default function ProfilePage() {
 
     // Split on commas so "Italian food, hiking, yoga" → 3 separate pills
     const items = raw.split(',').map(s => s.trim()).filter(Boolean);
-    const toAdd: string[] = [];
+    const toAdd: StructuredInterest[] = [];
     for (const item of items) {
       const normalized = item.charAt(0).toUpperCase() + item.slice(1);
-      if (!interests.includes(normalized) && !toAdd.includes(normalized)) {
-        toAdd.push(normalized);
+      if (!interests.some(i => i.toLowerCase() === normalized.toLowerCase()) &&
+          !toAdd.some(i => i.name.toLowerCase() === normalized.toLowerCase())) {
+        toAdd.push(createInterest(normalized, 'profile'));
       }
     }
     if (!toAdd.length) { setNewInterest(''); return; }
 
-    const newInterests = [...interests, ...toAdd];
-    setInterests(newInterests);
+    const updated = addStructuredInterests(structuredInterests, toAdd);
+    setStructuredInterests(updated);
     playAddSound();
-    try { await setDoc(doc(db, 'users', user.uid), { interests: newInterests, updatedAt: new Date().toISOString() }, { merge: true }); }
+    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
     catch(e) { console.error(e); }
     setNewInterest('');
   };
 
-  const removeInterest = async (val: string) => {
-    const newInterests = interests.filter(x => x !== val);
-    setInterests(newInterests);
+  const handleRemoveInterest = async (val: string) => {
+    const updated = removeStructuredInterest(structuredInterests, val);
+    setStructuredInterests(updated);
     playRemoveSound();
     if (!user) return;
-    try { await setDoc(doc(db, 'users', user.uid), { interests: newInterests, updatedAt: new Date().toISOString() }, { merge: true }); }
+    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
     catch(e) { console.error(e); }
   };
 
@@ -446,7 +458,7 @@ export default function ProfilePage() {
 
               <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
                 <AnimatePresence>
-                  {interests.map(i => <InterestPill key={i} interest={i} onRemove={removeInterest} />)}
+                  {interests.map(i => <InterestPill key={i} interest={i} onRemove={handleRemoveInterest} />)}
                 </AnimatePresence>
                 {interests.length === 0 && (
                   <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
@@ -495,7 +507,7 @@ export default function ProfilePage() {
                   <p className="text-white/40 text-xs font-medium mt-1">Total Interests</p>
                 </div>
                 <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                  <div className="text-3xl font-black text-emerald-300">0</div>
+                  <div className="text-3xl font-black text-emerald-300">{countBySource(structuredInterests, 'match') + countBySource(structuredInterests, 'explorer')}</div>
                   <p className="text-white/40 text-xs font-medium mt-1">Collected from Others</p>
                 </div>
                 <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
@@ -509,17 +521,24 @@ export default function ProfilePage() {
               </div>
 
               {/* Latest Interest */}
-              {interests.length > 0 && (
-                <div className="bg-white/5 backdrop-blur-lg p-4 rounded-2xl border border-white/10 flex items-center justify-between">
-                  <div>
-                    <p className="text-white/40 text-xs font-medium mb-1">Most recent interest added</p>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-300/15 text-yellow-200 border border-yellow-300/25">
-                      {interests[interests.length - 1]}
-                    </span>
+              {structuredInterests.length > 0 && (() => {
+                const recent = mostRecentInterest(structuredInterests);
+                if (!recent) return null;
+                const dateStr = recent.addedAt
+                  ? new Date(recent.addedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                  : '—';
+                return (
+                  <div className="bg-white/5 backdrop-blur-lg p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+                    <div>
+                      <p className="text-white/40 text-xs font-medium mb-1">Most recent interest added</p>
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-300/15 text-yellow-200 border border-yellow-300/25">
+                        {recent.name}
+                      </span>
+                    </div>
+                    <span className="text-white/25 text-xs">{dateStr}</span>
                   </div>
-                  <span className="text-white/25 text-xs">—</span>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Conversations */}
               <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">

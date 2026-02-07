@@ -9,6 +9,14 @@ import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Heart } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
+import {
+  StructuredInterest,
+  parseInterests,
+  interestNames,
+  createInterest,
+  addInterests as addStructuredInterests,
+  removeInterest as removeStructuredInterest,
+} from '@/lib/structuredInterests';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
@@ -158,7 +166,8 @@ function VibeGlowCard({
   onToggleSave: () => void;
   saveSource?: 'match' | 'explorer';
 }) {
-  const sharedCount = profile.interests.filter((i: string) =>
+  const profileInterestNames = useMemo(() => interestNames(parseInterests(profile.interests)), [profile.interests]);
+  const sharedCount = profileInterestNames.filter((i: string) =>
     userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())
   ).length;
 
@@ -226,7 +235,7 @@ function VibeGlowCard({
       {/* Interests */}
       <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[200px] sm:max-h-[250px]">
         <div className="flex flex-wrap gap-2">
-          {profile.interests.map((interest: string) => {
+          {profileInterestNames.map((interest: string) => {
             const lower = interest.toLowerCase();
             const isTeleportedOnThisCard = teleportedMap.get(lower) === profile.id;
             const isPreExisting = baselineInterests.has(lower)
@@ -364,7 +373,8 @@ function InterestDrawer({
 function ExplorerPageContent() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [structuredInterests, setStructuredInterests] = useState<StructuredInterest[]>([]);
+  const userInterests = useMemo(() => interestNames(structuredInterests), [structuredInterests]);
   const [displayName, setDisplayName] = useState('');
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -390,7 +400,7 @@ function ExplorerPageContent() {
       if (snap.exists()) {
         const data = snap.data();
         setDisplayName(data?.displayName || 'Mystery BAE');
-        setUserInterests(data?.interests || []);
+        setStructuredInterests(parseInterests(data?.interests));
         const parsed = parseSavedProfiles(data?.savedProfiles);
         setSavedProfilesList(parsed);
         setSavedProfileIds(savedProfileUids(parsed));
@@ -402,8 +412,8 @@ function ExplorerPageContent() {
         .filter((p: any) => p.id !== u.uid && Array.isArray(p.interests) && p.interests.length > 0);
       setAllProfiles(profiles);
 
-      const currentInterests: string[] = snap.exists() ? (snap.data()?.interests || []) : [];
-      setBaselineInterests(new Set(currentInterests.map(s => s.toLowerCase())));
+      const currentParsed = snap.exists() ? interestNames(parseInterests(snap.data()?.interests)) : [];
+      setBaselineInterests(new Set(currentParsed.map(s => s.toLowerCase())));
       setTeleportedMap(new Map());
       setLoading(false);
     });
@@ -415,7 +425,7 @@ function ExplorerPageContent() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       profiles = profiles.filter((p: any) =>
-        p.interests.some((i: string) => i.toLowerCase().includes(q))
+        interestNames(parseInterests(p.interests)).some((i: string) => i.toLowerCase().includes(q))
       );
     }
     if (showSaved) {
@@ -440,45 +450,47 @@ function ExplorerPageContent() {
 
   const handleTeleport = async (interest: string, cardId: string) => {
     if (userInterests.some(i => i.toLowerCase() === interest.toLowerCase())) return;
-    const newInterests = [...userInterests, interest];
+    const newEntry = createInterest(interest, 'explorer', cardId);
+    const updated = addStructuredInterests(structuredInterests, [newEntry]);
     playSound([440, 880]);
-    setUserInterests(newInterests);
+    setStructuredInterests(updated);
     setTeleportedMap(prev => {
       const next = new Map(prev);
       next.set(interest.toLowerCase(), cardId);
       return next;
     });
-    if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
+    if (user) await setDoc(doc(db, 'users', user.uid), { interests: updated }, { merge: true });
   };
 
   const handleUndoTeleport = async (interest: string, cardId: string) => {
-    const newInterests = userInterests.filter(i => i.toLowerCase() !== interest.toLowerCase());
+    const updated = removeStructuredInterest(structuredInterests, interest);
     playSound([330, 110]);
-    setUserInterests(newInterests);
+    setStructuredInterests(updated);
     setTeleportedMap(prev => {
       const next = new Map(prev);
       next.delete(interest.toLowerCase());
       return next;
     });
-    if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
+    if (user) await setDoc(doc(db, 'users', user.uid), { interests: updated }, { merge: true });
   };
 
   const handleDeleteInterest = async (interest: string) => {
-    const newInterests = userInterests.filter(i => i.toLowerCase() !== interest.toLowerCase());
-    setUserInterests(newInterests);
+    const updated = removeStructuredInterest(structuredInterests, interest);
+    setStructuredInterests(updated);
     playSound([330, 110]);
-    if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
+    if (user) await setDoc(doc(db, 'users', user.uid), { interests: updated }, { merge: true });
   };
 
   const handleAddInterest = async () => {
     const trimmed = newInterest.trim();
     if (!trimmed || userInterests.some(i => i.toLowerCase() === trimmed.toLowerCase())) return;
     const normalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-    const newInterests = [...userInterests, normalized];
-    setUserInterests(newInterests);
+    const newEntry = createInterest(normalized, 'profile');
+    const updated = addStructuredInterests(structuredInterests, [newEntry]);
+    setStructuredInterests(updated);
     setNewInterest('');
     playSound([440, 880]);
-    if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
+    if (user) await setDoc(doc(db, 'users', user.uid), { interests: updated }, { merge: true });
   };
 
   if (loading) return (

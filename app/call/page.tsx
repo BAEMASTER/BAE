@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { db } from '@/lib/firebaseClient';
 import { doc, getDoc } from 'firebase/firestore';
+import { parseInterests, interestNames } from '@/lib/structuredInterests';
 import { auth } from '@/lib/firebaseClient';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -33,14 +34,14 @@ function CallContent() {
       // user
       const userDoc = await getDoc(doc(db, 'users', userId));
       const myData = userDoc.data() || {};
-      const mine: string[] = myData.interests || [];
+      const mine: string[] = interestNames(parseInterests(myData.interests));
       setMyInterests(mine);
 
       // partner
       if (partnerId) {
         const partnerDoc = await getDoc(doc(db, 'users', partnerId));
         const pData = partnerDoc.data() || {};
-        const pInts: string[] = pData.interests || [];
+        const pInts: string[] = interestNames(parseInterests(pData.interests));
         setPartnerInterests(pInts);
 
         // shared (case-insensitive comparison)
