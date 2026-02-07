@@ -155,28 +155,28 @@ export default function GuidePage() {
               {/* Current Interests */}
               <div className="mb-6">
                 <p className="text-xs text-white/50 mb-3">Your interests:</p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  <span className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-yellow-300 text-black font-bold rounded-full text-xs sm:text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
                     Jazz
                   </span>
-                  <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
+                  <span className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-yellow-300 text-black font-bold rounded-full text-xs sm:text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
                     Meditation
                   </span>
-                  <span className="px-4 py-2 bg-yellow-300 text-black font-bold rounded-full text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
+                  <span className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-yellow-300 text-black font-bold rounded-full text-xs sm:text-sm border-2 border-yellow-200 shadow-[0_0_10px_rgba(253,224,71,0.6)]">
                     Architecture
                   </span>
                 </div>
               </div>
 
               {/* Add Interest Input */}
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Add interest..." 
-                  className="flex-1 px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm"
+              <div className="flex gap-1.5 sm:gap-2">
+                <input
+                  type="text"
+                  placeholder="Add interest..."
+                  className="flex-1 min-w-0 px-3 py-2 sm:px-4 sm:py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-xs sm:text-sm"
                   disabled
                 />
-                <button className="px-4 sm:px-6 py-3 rounded-full bg-pink-500 text-white font-bold text-sm hover:bg-pink-600 transition-colors flex-shrink-0">
+                <button className="px-3 py-2 sm:px-6 sm:py-3 rounded-full bg-pink-500 text-white font-bold text-xs sm:text-sm hover:bg-pink-600 transition-colors flex-shrink-0">
                   Add
                 </button>
               </div>
