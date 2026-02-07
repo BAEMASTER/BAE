@@ -1,20 +1,16 @@
 'use client';
 
 import AgeGateWrapper from '@/components/AgeGateWrapper';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
-
-// --- PILL STYLES ---
-const GOLD_PILL = 'text-black bg-gradient-to-r from-yellow-300 to-yellow-500 border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.8)] font-bold';
-const NEUTRAL_PILL = 'text-white bg-white/10 border border-white/20 backdrop-blur-md hover:bg-white/20 hover:border-white/40 font-semibold';
 
 // --- SOUND EFFECT ---
 const playSound = (freqs: number[]) => {
@@ -31,32 +27,301 @@ const playSound = (freqs: number[]) => {
   } catch {}
 };
 
+// --- VIBE GLOW ---
+function getVibeGlow(sharedCount: number): { boxShadow: string; borderClass: string; pulse: boolean } {
+  if (sharedCount === 0) return { boxShadow: 'none', borderClass: 'border-white/10', pulse: false };
+  if (sharedCount <= 2) return {
+    boxShadow: '0 0 15px rgba(253,224,71,0.15), 0 0 8px rgba(253,224,71,0.08)',
+    borderClass: 'border-yellow-300/20',
+    pulse: false,
+  };
+  if (sharedCount <= 4) return {
+    boxShadow: '0 0 25px rgba(253,224,71,0.3), 0 0 12px rgba(253,224,71,0.2)',
+    borderClass: 'border-yellow-300/30',
+    pulse: false,
+  };
+  return {
+    boxShadow: '0 0 40px rgba(253,224,71,0.45), 0 0 20px rgba(253,224,71,0.35), 0 0 8px rgba(253,224,71,0.25)',
+    borderClass: 'border-yellow-300/40',
+    pulse: true,
+  };
+}
+
+// --- INTEREST PILL ---
 function InterestPill({
   interest,
-  isAdded,
-  isShared,
-  onToggle,
+  isPreExisting,
+  isTeleported,
+  onTeleport,
+  onUndoTeleport,
 }: {
   interest: string;
-  isAdded: boolean;
-  isShared: boolean;
-  onToggle: (i: string) => void;
+  isPreExisting: boolean;
+  isTeleported: boolean;
+  onTeleport: (i: string) => void;
+  onUndoTeleport: (i: string) => void;
 }) {
-  const classes = isShared && isAdded
-    ? 'bg-gradient-to-r from-yellow-300 to-yellow-400 text-black font-bold border border-yellow-200' 
-    : isAdded
-    ? 'bg-white/40 text-black border-white/40 font-bold'
-    : isShared
-    ? 'text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 font-bold' 
-    : 'text-white bg-white/10 border border-white/20 font-semibold hover:bg-white/20 hover:border-white/40';
+  if (isPreExisting) {
+    return (
+      <motion.div
+        layout
+        className="relative px-5 py-2 rounded-full text-sm bg-gradient-to-r from-yellow-300 to-yellow-400 text-black font-bold border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.4)]"
+      >
+        {interest}
+      </motion.div>
+    );
+  }
+
+  if (isTeleported) {
+    return (
+      <motion.div layout className="relative">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0.7 }}
+          animate={{ scale: 1.8, opacity: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="absolute inset-0 rounded-full bg-yellow-300/40 blur-sm pointer-events-none"
+        />
+        <motion.button
+          initial={{ scale: 1.12, boxShadow: '0 0 28px rgba(253,224,71,0.9)' }}
+          animate={{ scale: 1, boxShadow: '0 0 12px rgba(253,224,71,0.4)' }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          onClick={() => onUndoTeleport(interest)}
+          className="relative px-5 py-2 rounded-full text-sm bg-gradient-to-r from-yellow-300 to-yellow-400 text-black font-bold border border-yellow-200 cursor-pointer"
+        >
+          {interest}
+          <span className="ml-1.5 text-black/30">✕</span>
+        </motion.button>
+      </motion.div>
+    );
+  }
 
   return (
-    <button
-      onClick={() => onToggle(interest)}
-      className={`relative px-5 py-2 rounded-full text-sm transition-all duration-200 cursor-pointer ${classes}`}
+    <motion.button
+      layout
+      whileHover={{ scale: 1.05, borderColor: 'rgba(253,224,71,0.4)' }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => onTeleport(interest)}
+      className="relative px-5 py-2 rounded-full text-sm text-white bg-white/10 border border-white/20 font-semibold cursor-pointer transition-colors duration-200 hover:bg-white/15"
     >
-      {interest} {isAdded ? '✓' : '+'}
-    </button>
+      {interest}
+      <span className="ml-1.5 text-white/30">+</span>
+    </motion.button>
+  );
+}
+
+// --- SEARCH BAR ---
+function SearchBar({ query, onChange }: { query: string; onChange: (v: string) => void }) {
+  return (
+    <div className="relative w-full max-w-2xl mx-auto">
+      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 pointer-events-none" />
+      <input
+        type="text"
+        placeholder="Explore people into..."
+        value={query}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full pl-12 pr-10 py-3.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 text-sm transition-all"
+      />
+      {query && (
+        <button
+          onClick={() => onChange('')}
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+        >
+          <X className="w-4 h-4 text-white/60" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// --- VIBE GLOW CARD ---
+function VibeGlowCard({
+  profile,
+  index,
+  userInterests,
+  baselineInterests,
+  teleportedMap,
+  onTeleport,
+  onUndoTeleport,
+}: {
+  profile: any;
+  index: number;
+  userInterests: string[];
+  baselineInterests: Set<string>;
+  teleportedMap: Map<string, string>;
+  onTeleport: (interest: string, cardId: string) => void;
+  onUndoTeleport: (interest: string, cardId: string) => void;
+}) {
+  const sharedCount = profile.interests.filter((i: string) =>
+    userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())
+  ).length;
+
+  const { boxShadow, borderClass, pulse } = getVibeGlow(sharedCount);
+
+  const location = profile.location
+    || [profile.city, profile.state, profile.country].filter(Boolean).join(', ')
+    || 'Unknown Location';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0, boxShadow }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ delay: index * 0.05, duration: 0.4 }}
+      whileHover={{ scale: 1.02 }}
+      className={`bg-white/5 backdrop-blur-3xl rounded-3xl border ${borderClass} p-6 flex flex-col transition-shadow duration-[600ms]`}
+      style={{ boxShadow }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-xl font-black text-white shrink-0">
+          {profile.displayName?.charAt(0).toUpperCase() || '?'}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-xl font-bold text-white truncate">{profile.displayName || 'Anonymous'}</h3>
+          <span className="text-sm text-white/50 truncate block">{location}</span>
+        </div>
+        {sharedCount > 0 && (
+          <span className="text-yellow-300 font-bold text-sm whitespace-nowrap shrink-0">
+            {sharedCount} shared
+          </span>
+        )}
+      </div>
+
+      {/* Interests */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[200px] sm:max-h-[250px]">
+        <div className="flex flex-wrap gap-2">
+          {profile.interests.map((interest: string) => {
+            const lower = interest.toLowerCase();
+            const isTeleportedOnThisCard = teleportedMap.get(lower) === profile.id;
+            const isPreExisting = baselineInterests.has(lower)
+              || (userInterests.some(ui => ui.toLowerCase() === lower) && !isTeleportedOnThisCard);
+
+            return (
+              <InterestPill
+                key={interest}
+                interest={interest}
+                isPreExisting={isPreExisting}
+                isTeleported={isTeleportedOnThisCard}
+                onTeleport={(i) => onTeleport(i, profile.id)}
+                onUndoTeleport={(i) => onUndoTeleport(i, profile.id)}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Breathing pulse for 5+ shared */}
+      {pulse && (
+        <motion.div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          animate={{
+            boxShadow: [
+              '0 0 40px rgba(253,224,71,0.25)',
+              '0 0 60px rgba(253,224,71,0.45)',
+              '0 0 40px rgba(253,224,71,0.25)',
+            ],
+          }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+    </motion.div>
+  );
+}
+
+// --- INTEREST DRAWER ---
+function InterestDrawer({
+  open,
+  onClose,
+  userInterests,
+  newInterest,
+  onNewInterestChange,
+  onAdd,
+  onDelete,
+}: {
+  open: boolean;
+  onClose: () => void;
+  userInterests: string[];
+  newInterest: string;
+  onNewInterestChange: (v: string) => void;
+  onAdd: () => void;
+  onDelete: (i: string) => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xl p-4"
+        >
+          <div className="absolute inset-0" onClick={onClose} />
+
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="relative w-full max-w-2xl bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 sm:p-10 shadow-2xl overflow-hidden"
+          >
+            {/* Close */}
+            <button
+              onClick={onClose}
+              className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <X size={20} className="text-white/70" />
+            </button>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-white mb-6 text-center">
+              Your <span className={BAE_GRADIENT}>Interests</span>
+            </h3>
+
+            {/* Add input */}
+            <div className="flex gap-2 mb-8">
+              <input
+                type="text"
+                placeholder="Add new interest..."
+                className="flex-1 px-5 py-3 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-yellow-400/30 text-sm transition-all"
+                value={newInterest}
+                onChange={(e) => onNewInterestChange(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onAdd()}
+              />
+              <button
+                onClick={onAdd}
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-yellow-300 to-pink-400 text-black font-bold text-sm hover:brightness-110 transition-all"
+              >
+                Add
+              </button>
+            </div>
+
+            {/* Pills */}
+            <div className="flex flex-wrap gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+              {userInterests.length === 0 && (
+                <p className="text-white/30 text-sm italic py-6 text-center w-full">No interests yet.</p>
+              )}
+              <AnimatePresence>
+                {userInterests.map((i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    layout
+                    onClick={() => onDelete(i)}
+                    className="px-4 py-2 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 flex items-center gap-2 hover:brightness-125 transition-all active:scale-95"
+                  >
+                    {i}
+                    <span className="opacity-40">✕</span>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -67,23 +332,22 @@ function ExplorerPageContent() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [displayName, setDisplayName] = useState('');
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
-  const [unseenProfiles, setUnseenProfiles] = useState<any[]>([]);
-  const [currentProfile, setCurrentProfile] = useState<any>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newInterest, setNewInterest] = useState('');
+  const [baselineInterests, setBaselineInterests] = useState<Set<string>>(new Set());
+  const [teleportedMap, setTeleportedMap] = useState<Map<string, string>>(new Map());
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        // Not logged in - redirect to auth
         router.push('/auth');
         return;
       }
-      
+
       setUser(u);
 
-      // Only fetch user data and profiles when logged in
       const snap = await getDoc(doc(db, 'users', u.uid));
       if (snap.exists()) {
         const data = snap.data();
@@ -96,43 +360,50 @@ function ExplorerPageContent() {
         .map(d => ({ id: d.id, ...d.data() } as any))
         .filter((p: any) => p.id !== u.uid && Array.isArray(p.interests) && p.interests.length > 0);
       setAllProfiles(profiles);
-      setUnseenProfiles(profiles);
-      if (profiles.length) {
-        const idx = Math.floor(Math.random() * profiles.length);
-        setCurrentProfile(profiles[idx]);
-        setUnseenProfiles(profiles.filter((_, i) => i !== idx));
-      }
+
+      const currentInterests: string[] = snap.exists() ? (snap.data()?.interests || []) : [];
+      setBaselineInterests(new Set(currentInterests.map(s => s.toLowerCase())));
+      setTeleportedMap(new Map());
       setLoading(false);
     });
     return () => unsub();
   }, []);
 
-  const showNextProfile = () => {
-    let pool = unseenProfiles.length === 0 ? allProfiles.filter(p => p.id !== currentProfile?.id) : unseenProfiles;
-    if (!pool.length) return;
-    const idx = Math.floor(Math.random() * pool.length);
-    setCurrentProfile(pool[idx]);
-    setUnseenProfiles(pool.filter((_, i) => i !== idx));
-  };
-
-  const handleLoginSuccess = () => {
-    if (userInterests.length < 3) {
-      router.push('/profile');
-    }
-  };
+  const filteredProfiles = useMemo(() => {
+    if (!searchQuery.trim()) return allProfiles;
+    const q = searchQuery.toLowerCase().trim();
+    return allProfiles.filter((p: any) =>
+      p.interests.some((i: string) => i.toLowerCase().includes(q))
+    );
+  }, [allProfiles, searchQuery]);
 
   const handleBAEClick = () => {
-    if (userInterests.length < 3) {
-      return;
-    }
+    if (userInterests.length < 3) return;
     router.push('/match');
   };
 
-  const handleToggleInterest = async (interest: string) => {
-    const exists = userInterests.some(i => i.toLowerCase() === interest.toLowerCase());
-    const newInterests = exists ? userInterests.filter(i => i.toLowerCase() !== interest.toLowerCase()) : [...userInterests, interest];
-    exists ? playSound([330, 110]) : playSound([440, 880]);
+  const handleTeleport = async (interest: string, cardId: string) => {
+    if (userInterests.some(i => i.toLowerCase() === interest.toLowerCase())) return;
+    const newInterests = [...userInterests, interest];
+    playSound([440, 880]);
     setUserInterests(newInterests);
+    setTeleportedMap(prev => {
+      const next = new Map(prev);
+      next.set(interest.toLowerCase(), cardId);
+      return next;
+    });
+    if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
+  };
+
+  const handleUndoTeleport = async (interest: string, cardId: string) => {
+    const newInterests = userInterests.filter(i => i.toLowerCase() !== interest.toLowerCase());
+    playSound([330, 110]);
+    setUserInterests(newInterests);
+    setTeleportedMap(prev => {
+      const next = new Map(prev);
+      next.delete(interest.toLowerCase());
+      return next;
+    });
     if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
   };
 
@@ -146,21 +417,28 @@ function ExplorerPageContent() {
   const handleAddInterest = async () => {
     const trimmed = newInterest.trim();
     if (!trimmed || userInterests.some(i => i.toLowerCase() === trimmed.toLowerCase())) return;
-    const newInterests = [...userInterests, trimmed];
+    const normalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    const newInterests = [...userInterests, normalized];
     setUserInterests(newInterests);
     setNewInterest('');
     playSound([440, 880]);
     if (user) await setDoc(doc(db, 'users', user.uid), { interests: newInterests }, { merge: true });
   };
 
-  if (loading) return <div className="h-screen bg-[#1A0033] flex items-center justify-center text-white font-black text-2xl">IGNITING...</div>;
+  if (loading) return (
+    <div className="h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
+      <motion.div
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        className="text-3xl font-black bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent"
+      >
+        Exploring...
+      </motion.div>
+    </div>
+  );
 
-  // REDIRECT TO AUTH IF NOT LOGGED IN
-  if (!user) {
-    return null; // Will redirect via useEffect
-  }
+  if (!user) return null;
 
-  // FULL EXPLORER FOR LOGGED-IN USERS
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto flex flex-col font-sans">
 
@@ -170,191 +448,127 @@ function ExplorerPageContent() {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500/20 blur-[140px] animate-pulse-reverse"></div>
       </div>
 
-      {/* Main */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2">
+      {/* Content */}
+      <div className="relative z-10 flex-1 flex flex-col max-w-7xl mx-auto w-full px-4 sm:px-6 py-8">
 
-        {/* Headline + Orb */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
+        {/* Header row */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-6">
           <div className="text-center sm:text-left">
-            <h1 className="text-4xl sm:text-6xl font-black mb-3">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black mb-2">
               Interest <span className={BAE_GRADIENT}>Explorer</span>
             </h1>
-            <div className="text-xl sm:text-2xl font-bold leading-snug space-y-2">
-              <p className="text-white/95"><span className={BAE_GRADIENT}>Expand your interests</span> by seeing what others love</p>
-              <p className="text-white/90"><span className={BAE_GRADIENT}>Tap an interest</span> to add it to your profile</p>
-            </div>
+            <p className="text-base sm:text-lg text-white/70 font-medium">
+              <span className={BAE_GRADIENT}>Tap any interest</span> to add it to your profile
+            </p>
           </div>
 
           {/* Orb */}
-          <div className="flex flex-col items-center">
-            <button
+          <div className="flex flex-col items-center shrink-0">
+            <motion.button
+              key={userInterests.length}
+              initial={{ scale: 1.1, boxShadow: '0 0 40px rgba(253,224,71,0.6)' }}
+              animate={{ scale: 1, boxShadow: '0 0 25px rgba(255,160,255,0.7)' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
               onClick={() => setDrawerOpen(true)}
-              className="relative w-32 h-32 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 text-white shadow-[0_0_25px_rgba(255,160,255,0.7)] border-2 border-white/30 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform duration-300"
+              className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 text-white border-2 border-white/30 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform duration-300"
             >
-              <span className="text-5xl font-extrabold">{userInterests.length}</span>
-              <span className="text-sm font-semibold mt-1">Interests</span>
-            </button>
-            <span className="text-xs mt-2 text-white/70">tap to view/edit</span>
+              <span className="text-3xl sm:text-5xl font-extrabold">{userInterests.length}</span>
+              <span className="text-[10px] sm:text-sm font-semibold">Interests</span>
+            </motion.button>
+            <span className="text-xs mt-1.5 text-white/50">tap to edit</span>
           </div>
         </div>
 
-        {currentProfile && (
-          <motion.div 
-            key={currentProfile.id}
+        {/* Search */}
+        <div className="mb-6">
+          <SearchBar query={searchQuery} onChange={setSearchQuery} />
+        </div>
+
+        {/* Result count */}
+        <div className="mb-4 text-sm text-white/50 text-center sm:text-left">
+          {searchQuery.trim() ? (
+            <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''} into &apos;{searchQuery.trim()}&apos;</span>
+          ) : (
+            <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+
+        {/* Card Grid */}
+        <div className="flex-1">
+          {filteredProfiles.length === 0 && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="col-span-full text-center py-16"
+            >
+              {searchQuery.trim() ? (
+                <>
+                  <div className="text-5xl mb-4 opacity-60">~</div>
+                  <h2 className="text-xl font-bold text-white/80 mb-2">No explorers found into &apos;{searchQuery.trim()}&apos;</h2>
+                  <p className="text-white/40">Try a different interest</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-6xl mb-6 opacity-80">~</div>
+                  <h2 className="text-2xl font-bold text-white/90 mb-3">The universe is quiet</h2>
+                  <p className="text-white/50 text-lg">No other explorers yet. You&apos;re early — share BAE and watch this space come alive.</p>
+                </>
+              )}
+            </motion.div>
+          )}
+
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              layout
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {filteredProfiles.map((profile: any, index: number) => (
+                <VibeGlowCard
+                  key={profile.id}
+                  profile={profile}
+                  index={index}
+                  userInterests={userInterests}
+                  baselineInterests={baselineInterests}
+                  teleportedMap={teleportedMap}
+                  onTeleport={handleTeleport}
+                  onUndoTeleport={handleUndoTeleport}
+                />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* BAE BUTTON */}
+        <div className="flex justify-center w-full py-8">
+          <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-5xl bg-white/5 backdrop-blur-3xl rounded-[40px] border border-white/10 p-8 flex flex-col max-h-[55vh] shadow-2xl relative overflow-hidden"
+            transition={{ delay: 0.8, duration: 0.6 }}
+            whileHover={userInterests.length >= 3 ? { scale: 1.05 } : {}}
+            whileTap={userInterests.length >= 3 ? { scale: 0.95 } : {}}
+            onClick={handleBAEClick}
+            disabled={userInterests.length < 3}
+            className={`px-16 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
+              userInterests.length >= 3
+                ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] cursor-pointer hover:shadow-[0_15px_40px_rgba(255,65,108,0.6)]'
+                : 'bg-gray-500/50 cursor-not-allowed opacity-60'
+            }`}
           >
-            {/* Profile Info */}
-            <div className="flex flex-col gap-2 mb-6 border-b border-white/10 pb-6 shrink-0">
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 to-pink-500 flex items-center justify-center text-3xl font-black text-white shadow-[0_0_20px_rgba(255,160,255,0.6)]">
-                  {currentProfile.displayName?.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex flex-col">
-                  <h2 className="text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                    {currentProfile.displayName || 'Anonymous'}
-                  </h2>
-                  <span className="text-sm sm:text-base text-white/70">
-                    {currentProfile.location || 'Unknown Location'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Interests */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6">
-              <div className="flex flex-wrap gap-3">
-                {currentProfile.interests.map((i: string) => (
-                  <InterestPill 
-                    key={i} 
-                    interest={i} 
-                    isAdded={userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())}
-                    isShared={userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())}
-                    onToggle={handleToggleInterest} 
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Shared Count */}
-            {(() => {
-              const sharedCount = currentProfile.interests.filter((i: string) => 
-                userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())
-              ).length;
-              return sharedCount > 0 ? (
-                <div className="text-center mb-4 shrink-0">
-                  <span className="inline-flex items-center gap-2 text-yellow-300 font-bold text-lg">
-                    ⭐ {sharedCount} shared interest{sharedCount > 1 ? 's' : ''}!
-                  </span>
-                </div>
-              ) : null;
-            })()}
-
-            {/* Next Button */}
-            <div className="pt-2 flex justify-center shrink-0">
-              <motion.button 
-                onClick={showNextProfile}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="group relative flex items-center gap-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white px-14 py-4 text-xl font-black rounded-full shadow-[0_0_25px_rgba(236,72,153,0.5)] transition-all"
-              >
-                Next Profile
-                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
+            {userInterests.length >= 3 ? 'BAE SOMEONE NOW!' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
+          </motion.button>
+        </div>
       </div>
 
-      {/* BAE BUTTON - Bottom of page - centered capsule */}
-      <div className="flex justify-center w-full py-8">
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          whileHover={userInterests.length >= 3 ? { scale: 1.05 } : {}}
-          whileTap={userInterests.length >= 3 ? { scale: 0.95 } : {}}
-          onClick={handleBAEClick}
-          disabled={userInterests.length < 3}
-          className={`px-16 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
-            userInterests.length >= 3 
-              ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] cursor-pointer hover:shadow-[0_15px_40px_rgba(255,65,108,0.6)]' 
-              : 'bg-gray-500/50 cursor-not-allowed opacity-60'
-          }`}
-        >
-          {userInterests.length >= 3 ? 'BAE SOMEONE NOW!' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
-        </motion.button>
-      </div>
-
-      {/* Interest Collection Drawer */}
-      <AnimatePresence>
-        {drawerOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4"
-          >
-            <div className="absolute inset-0" onClick={() => setDrawerOpen(false)} />
-
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-2xl bg-[#1A0033]/95 border border-white/20 rounded-[32px] p-10 shadow-2xl overflow-hidden"
-            >
-              {/* CLOSE BUTTON */}
-              <button
-                onClick={() => setDrawerOpen(false)}
-                className="absolute top-6 right-6 p-2 flex items-center justify-center hover:scale-110 transition-all z-[110]"
-              >
-                <X 
-                  size={32} 
-                  strokeWidth={2.5} 
-                  className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" 
-                />
-              </button>
-
-              <h3 className="text-xl font-bold text-white mb-6 text-center tracking-tight uppercase tracking-widest">Your Interests</h3>
-
-              <div className="flex gap-2 mb-8">
-                <input
-                  type="text"
-                  placeholder="Add new interest…"
-                  className="flex-1 px-5 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm transition-all"
-                  value={newInterest}
-                  onChange={(e) => setNewInterest(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddInterest()}
-                />
-                <button
-                  onClick={handleAddInterest}
-                  className="px-6 py-3 rounded-full bg-yellow-400 text-black font-bold text-sm hover:bg-yellow-500 transition-colors"
-                >
-                  Add
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-3 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                {userInterests.length === 0 && (
-                  <p className="text-white/30 text-sm italic py-6 text-center w-full">No interests yet.</p>
-                )}
-                {userInterests.map((i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleDeleteInterest(i)}
-                    className="px-4 py-2 rounded-full text-sm font-semibold text-black bg-gradient-to-r from-yellow-300 to-yellow-400 border border-yellow-200 flex items-center gap-2 hover:brightness-125 transition-all active:scale-95"
-                  >
-                    {i}
-                    <span className="opacity-40">✕</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      {/* Interest Drawer */}
+      <InterestDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userInterests={userInterests}
+        newInterest={newInterest}
+        onNewInterestChange={setNewInterest}
+        onAdd={handleAddInterest}
+        onDelete={handleDeleteInterest}
+      />
     </main>
   );
 }

@@ -106,6 +106,14 @@
 }
 
 /* -----------------------------------------------------------
+   CUSTOM SCROLLBAR
+----------------------------------------------------------- */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+/* -----------------------------------------------------------
    DAILY.CO VIDEO - FULL SCREEN, NO CONTROLS (LIKE OMEGLE)
 ----------------------------------------------------------- */
 
