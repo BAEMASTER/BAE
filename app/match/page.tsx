@@ -28,42 +28,104 @@ const scrollbarStyle = `
 `;
 
 // --- VIBE METER ---
-function FluidVibeOMeter({ count }: { count: number }) {
-  const levels = ['COOL', 'REAL', 'DEEP', 'SUPER', 'MEGAVIBE'];
-  const currentLevel = count > 0 ? levels[Math.min(count - 1, 4)] : null;
+const VIBE_LEVELS = [
+  { label: 'COOL', accent: '#7dd3fc', glow: '125,211,252' },
+  { label: 'REAL', accent: '#6ee7b7', glow: '110,231,183' },
+  { label: 'DEEP', accent: '#fcd34d', glow: '252,211,77' },
+  { label: 'SUPER', accent: '#fb923c', glow: '251,146,60' },
+  { label: 'MEGAVIBE', accent: '#fda4af', glow: '253,164,175' },
+];
 
-  if (count === 0) return null;
+const MAX_VISIBLE_INTERESTS = 8;
+
+/** Sorted UID pair key for deduplication (e.g. megavibes collection) */
+function pairKey(a: string, b: string): string {
+  return [a, b].sort().join('_');
+}
+
+function FluidVibeOMeter({ count }: { count: number }) {
+  const current = count > 0 ? VIBE_LEVELS[Math.min(count - 1, 4)] : null;
+  const fillPercent = Math.min((count / 5) * 100, 100);
+
+  if (count === 0 || !current) return null;
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-      className="flex flex-col items-center gap-3 z-15 pointer-events-none"
+      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      className="flex flex-col items-center gap-3"
     >
-      <div className="relative w-10 h-32 rounded-full 
-        bg-white/10 backdrop-blur-xl 
-        shadow-[inset_0_0_20px_rgba(255,255,255,0.08)]
-        overflow-hidden border border-white/5">
-        <motion.div
-          animate={{ height: `${(count / 5) * 100}%` }}
-          transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-          className="absolute bottom-0 w-full bg-gradient-to-t from-yellow-300 via-pink-400 to-fuchsia-500"
-          style={{
-            filter: 'blur(0.5px)',
-            boxShadow: count > 0 ? `inset 0 0 ${10 + count * 3}px rgba(255,255,255,${0.2 + count * 0.05})` : 'none',
-          }}
-        />
-      </div>
-      <motion.p
-        key={currentLevel}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="text-xs font-black text-yellow-300/90 tracking-wider"
+      {/* Frosted glass capsule */}
+      <div
+        className="relative w-10 h-32 rounded-full overflow-hidden"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: `
+            inset 0 1px 0 rgba(255,255,255,0.05),
+            0 0 ${12 + count * 5}px rgba(${current.glow},${(0.08 + count * 0.04).toFixed(2)})
+          `,
+        }}
       >
-        {currentLevel}
-      </motion.p>
+        {/* Glass highlight */}
+        <div
+          className="absolute top-3 left-2 w-1 h-8 rounded-full"
+          style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(1px)' }}
+        />
+
+        {/* Thin track + fill */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-2.5 bottom-2.5 w-2 rounded-full bg-white/[0.06]">
+          <motion.div
+            animate={{ height: `${fillPercent}%` }}
+            transition={{ type: 'spring', stiffness: 50, damping: 18 }}
+            className="absolute bottom-0 w-full rounded-full"
+            style={{
+              background: 'linear-gradient(to top, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #fda4af)',
+              boxShadow: `0 0 6px rgba(${current.glow}, 0.3)`,
+            }}
+          />
+        </div>
+
+        {/* Breathing pulse at MEGAVIBE */}
+        {count >= 5 && (
+          <motion.div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            animate={{
+              boxShadow: [
+                `0 0 20px rgba(${current.glow},0.12)`,
+                `0 0 35px rgba(${current.glow},0.22)`,
+                `0 0 20px rgba(${current.glow},0.12)`,
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+      </div>
+
+      {/* Level label */}
+      <motion.div
+        key={current.label}
+        initial={{ opacity: 0, y: 4, filter: 'blur(4px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="px-3 py-1 rounded-full"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <span
+          className="text-[10px] font-medium tracking-[0.2em]"
+          style={{ color: current.accent }}
+        >
+          {current.label}
+        </span>
+      </motion.div>
     </motion.div>
   );
 }
@@ -101,6 +163,45 @@ function Confetti() {
   );
 }
 
+// --- MEGA VIBE SOUND ---
+function playMegaVibeSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = ctx.currentTime;
+
+    // Ascending major arpeggio: C5 → E5 → G5 → C6
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + i * 0.09);
+      const t = now + i * 0.09;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+      osc.start(t);
+      osc.stop(t + 0.35);
+    });
+
+    // High shimmer on the final note for sparkle
+    const shimmer = ctx.createOscillator();
+    const sGain = ctx.createGain();
+    shimmer.connect(sGain);
+    sGain.connect(ctx.destination);
+    shimmer.type = 'sine';
+    const sStart = now + notes.length * 0.09;
+    shimmer.frequency.setValueAtTime(2094, sStart); // C7
+    sGain.gain.setValueAtTime(0, sStart);
+    sGain.gain.linearRampToValueAtTime(0.06, sStart + 0.04);
+    sGain.gain.exponentialRampToValueAtTime(0.001, sStart + 0.5);
+    shimmer.start(sStart);
+    shimmer.stop(sStart + 0.5);
+  } catch {}
+}
+
 // --- MEGA VIBE CELEBRATION ---
 function MegaVibeCelebration() {
   return (
@@ -121,7 +222,7 @@ function MegaVibeCelebration() {
           className="text-center"
         >
           <motion.h1
-            animate={{ 
+            animate={{
               scale: [1, 1.05, 1],
               textShadow: [
                 '0 0 20px rgba(253,224,71,0.5)',
@@ -130,18 +231,10 @@ function MegaVibeCelebration() {
               ]
             }}
             transition={{ duration: 1, repeat: Infinity }}
-            className="text-9xl font-black text-yellow-300 drop-shadow-2xl tracking-tighter mb-4"
+            className="text-9xl font-black text-yellow-300 drop-shadow-2xl tracking-tighter"
           >
             MEGA VIBE
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-white font-bold text-xl tracking-widest"
-          >
-            5 SHARED INTERESTS
-          </motion.p>
         </motion.div>
       </motion.div>
     </>
@@ -195,6 +288,7 @@ export default function MatchPage() {
   const [currentPartnerId, setCurrentPartnerId] = useState<string | null>(null);
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
   const [savedUids, setSavedUids] = useState<Set<string>>(new Set());
+  const [megaVibePreviouslyTriggered, setMegaVibePreviouslyTriggered] = useState(false);
   const myProfileRef = useRef<any>(null);
 
   // --- SHARED INTERESTS ---
@@ -343,6 +437,14 @@ export default function MatchPage() {
       setIsMatched(true);
       setCurrentPartnerId(partnerId);
 
+      // Check if this pair already had a MEGAVIBE
+      try {
+        const mvSnap = await getDoc(doc(db, 'megavibes', pairKey(user!.uid, partnerId)));
+        setMegaVibePreviouslyTriggered(mvSnap.exists());
+      } catch {
+        setMegaVibePreviouslyTriggered(false);
+      }
+
       // Create Daily call
       const daily = DailyIframe.createCallObject();
       callObjectRef.current = daily;
@@ -441,14 +543,29 @@ export default function MatchPage() {
 
     if (sharedInterests.length >= 5 && !celebratedCounts.has(5)) {
       setCelebratedCounts(prev => new Set([...prev, 5]));
-      setShowTicket(true);
-      setTimeout(() => setShowTicket(false), 1500);
+
+      // MEGAVIBE is a first-time-only discovery moment per unique pair
+      if (!megaVibePreviouslyTriggered) {
+        setShowTicket(true);
+        playMegaVibeSound();
+        setTimeout(() => setShowTicket(false), 2500);
+
+        // Record this pair's MEGAVIBE in Firestore
+        if (user && currentPartnerId) {
+          const key = pairKey(user.uid, currentPartnerId);
+          setDoc(doc(db, 'megavibes', key), {
+            users: [user.uid, currentPartnerId].sort(),
+            triggeredAt: new Date().toISOString(),
+          }).catch(() => {});
+          setMegaVibePreviouslyTriggered(true);
+        }
+      }
     } else if (sharedInterests.length > 5 && !celebratedCounts.has(sharedInterests.length)) {
       setCelebratedCounts(prev => new Set([...prev, sharedInterests.length]));
       setCurrentCelebration(sharedInterests.length);
       setTimeout(() => setCurrentCelebration(null), 1500);
     }
-  }, [sharedInterests.length, isMatched, celebratedCounts]);
+  }, [sharedInterests.length, isMatched, celebratedCounts, megaVibePreviouslyTriggered, user, currentPartnerId]);
 
   // --- CLEANUP ON UNMOUNT ---
   useEffect(() => {
@@ -510,6 +627,7 @@ export default function MatchPage() {
     setTheirProfile(null);
     setPartnerDisconnected(false);
     setCurrentPartnerId(null);
+    setMegaVibePreviouslyTriggered(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
@@ -686,29 +804,51 @@ export default function MatchPage() {
           </div>
         </div>
 
-        {/* CENTER - SHARED INTERESTS + VIBE METER */}
-        <div className="absolute inset-0 flex flex-col items-center pointer-events-none z-20" style={{ paddingTop: '40px' }}>
-          <AnimatePresence>
-            {isMatched && sharedInterests.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3">
-                {sharedInterests.slice(0, 5).map((interest: string, idx: number) => (
+        {/* SHARED INTERESTS - Top of video area */}
+        <AnimatePresence>
+          {isMatched && sharedInterests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute top-[4.5rem] left-0 right-0 z-20 pointer-events-none px-4"
+            >
+              <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto">
+                {(sharedInterests.length > MAX_VISIBLE_INTERESTS
+                  ? sharedInterests.slice(0, MAX_VISIBLE_INTERESTS - 1)
+                  : sharedInterests
+                ).map((interest: string, idx: number) => (
                   <motion.div
-                    key={`shared-${idx}`}
-                    initial={{ opacity: 0, scale: 0, y: -30 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="px-5 py-2.5 text-black bg-yellow-300 border-2 border-yellow-200 rounded-full text-sm font-bold shadow-[0_0_25px_rgba(253,224,71,0.8)]"
+                    key={`shared-${interest}`}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="px-3.5 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-xs font-bold shadow-[0_0_16px_rgba(253,224,71,0.5)]"
                   >
                     {interest}
                   </motion.div>
                 ))}
+                {sharedInterests.length > MAX_VISIBLE_INTERESTS && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: (MAX_VISIBLE_INTERESTS - 1) * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/10 text-yellow-300/90 border border-yellow-300/20 backdrop-blur-sm"
+                  >
+                    +{sharedInterests.length - MAX_VISIBLE_INTERESTS + 1} more
+                  </motion.div>
+                )}
               </div>
-            )}
-          </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* VIBE METER - Centered below interests */}
-          {isMatched && <FluidVibeOMeter count={sharedInterests.length} />}
-        </div>
+        {/* VIBE METER - Centered between panels */}
+        {isMatched && sharedInterests.length > 0 && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+            <FluidVibeOMeter count={sharedInterests.length} />
+          </div>
+        )}
 
         {/* THEIR VIDEO (RIGHT) */}
         <div className="relative flex-1 bg-black">
