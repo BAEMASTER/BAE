@@ -179,6 +179,7 @@ export default function MatchPage() {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
   const isMatchedRef = useRef(false);
+  const userUidRef = useRef<string | null>(null);
 
   const [user, setUser] = useState<any>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -212,6 +213,7 @@ export default function MatchPage() {
         return;
       }
       setUser(u);
+      userUidRef.current = u.uid;
 
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
@@ -469,6 +471,24 @@ export default function MatchPage() {
     };
   }, [user]);
 
+  // --- BEFOREUNLOAD: server-side cleanup for tab close / refresh ---
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const uid = userUidRef.current;
+      if (!uid) return;
+      // fetch with keepalive survives page unload — resets status server-side
+      fetch('/api/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // --- NEXT MATCH ---
   const handleNext = async () => {
     if (callObjectRef.current) {
@@ -477,6 +497,12 @@ export default function MatchPage() {
         callObjectRef.current.destroy();
       } catch {}
       callObjectRef.current = null;
+    }
+
+    // Clean up old partner listener to prevent stale theirProfile updates
+    if (partnerUnsubscribeRef.current) {
+      partnerUnsubscribeRef.current();
+      partnerUnsubscribeRef.current = null;
     }
 
     isMatchedRef.current = false;
