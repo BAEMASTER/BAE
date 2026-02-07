@@ -149,9 +149,9 @@ export default function GuidePage() {
             </div>
 
             {/* Visual Example: Interest Adder */}
-            <div className="bg-black/30 rounded-2xl p-6 border border-white/10">
+            <div className="bg-black/30 rounded-2xl p-4 sm:p-6 border border-white/10">
               <p className="text-sm text-white/60 mb-4 text-center">How it looks on your profile:</p>
-              
+
               {/* Current Interests */}
               <div className="mb-6">
                 <p className="text-xs text-white/50 mb-3">Your interests:</p>
@@ -176,7 +176,7 @@ export default function GuidePage() {
                   className="flex-1 px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-yellow-400/50 text-sm"
                   disabled
                 />
-                <button className="px-6 py-3 rounded-full bg-pink-500 text-white font-bold text-sm hover:bg-pink-600 transition-colors">
+                <button className="px-4 sm:px-6 py-3 rounded-full bg-pink-500 text-white font-bold text-sm hover:bg-pink-600 transition-colors flex-shrink-0">
                   Add
                 </button>
               </div>
