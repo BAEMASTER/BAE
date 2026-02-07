@@ -7,7 +7,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search } from 'lucide-react';
+import { X, Search, Heart } from 'lucide-react';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
@@ -142,6 +142,8 @@ function VibeGlowCard({
   teleportedMap,
   onTeleport,
   onUndoTeleport,
+  isSaved,
+  onToggleSave,
 }: {
   profile: any;
   index: number;
@@ -150,6 +152,8 @@ function VibeGlowCard({
   teleportedMap: Map<string, string>;
   onTeleport: (interest: string, cardId: string) => void;
   onUndoTeleport: (interest: string, cardId: string) => void;
+  isSaved: boolean;
+  onToggleSave: () => void;
 }) {
   const sharedCount = profile.interests.filter((i: string) =>
     userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())
@@ -186,6 +190,21 @@ function VibeGlowCard({
             {sharedCount} shared
           </span>
         )}
+        <motion.button
+          whileTap={{ scale: 0.85 }}
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          className="shrink-0 cursor-pointer"
+        >
+          <motion.div
+            animate={isSaved ? { scale: [1.3, 1] } : { scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          >
+            <Heart
+              size={20}
+              className={isSaved ? 'text-pink-400 fill-pink-400' : 'text-white/20 hover:text-white/50 transition-colors'}
+            />
+          </motion.div>
+        </motion.button>
       </div>
 
       {/* Interests */}
@@ -338,6 +357,8 @@ function ExplorerPageContent() {
   const [baselineInterests, setBaselineInterests] = useState<Set<string>>(new Set());
   const [teleportedMap, setTeleportedMap] = useState<Map<string, string>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
+  const [savedProfileIds, setSavedProfileIds] = useState<Set<string>>(new Set());
+  const [showSaved, setShowSaved] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -353,6 +374,7 @@ function ExplorerPageContent() {
         const data = snap.data();
         setDisplayName(data?.displayName || 'Mystery BAE');
         setUserInterests(data?.interests || []);
+        setSavedProfileIds(new Set(data?.savedProfiles || []));
       }
 
       const snapshot = await getDocs(collection(db, 'users'));
@@ -370,12 +392,31 @@ function ExplorerPageContent() {
   }, []);
 
   const filteredProfiles = useMemo(() => {
-    if (!searchQuery.trim()) return allProfiles;
-    const q = searchQuery.toLowerCase().trim();
-    return allProfiles.filter((p: any) =>
-      p.interests.some((i: string) => i.toLowerCase().includes(q))
-    );
-  }, [allProfiles, searchQuery]);
+    let profiles = allProfiles;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      profiles = profiles.filter((p: any) =>
+        p.interests.some((i: string) => i.toLowerCase().includes(q))
+      );
+    }
+    if (showSaved) {
+      profiles = profiles.filter((p: any) => savedProfileIds.has(p.id));
+    }
+    return profiles;
+  }, [allProfiles, searchQuery, showSaved, savedProfileIds]);
+
+  const handleToggleSave = async (profileId: string) => {
+    const next = new Set(savedProfileIds);
+    if (next.has(profileId)) {
+      next.delete(profileId);
+    } else {
+      next.add(profileId);
+    }
+    setSavedProfileIds(next);
+    if (user) {
+      await setDoc(doc(db, 'users', user.uid), { savedProfiles: Array.from(next) }, { merge: true });
+    }
+  };
 
   const handleBAEClick = () => {
     if (userInterests.length < 3) return;
@@ -484,13 +525,38 @@ function ExplorerPageContent() {
           <SearchBar query={searchQuery} onChange={setSearchQuery} />
         </div>
 
-        {/* Result count */}
-        <div className="mb-4 text-sm text-white/50 text-center sm:text-left">
-          {searchQuery.trim() ? (
-            <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''} into &apos;{searchQuery.trim()}&apos;</span>
-          ) : (
-            <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''}</span>
-          )}
+        {/* Result count + toggle */}
+        <div className="mb-4 flex flex-col sm:flex-row items-center gap-3 sm:justify-between">
+          <div className="text-sm text-white/50">
+            {searchQuery.trim() ? (
+              <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''} into &apos;{searchQuery.trim()}&apos;</span>
+            ) : (
+              <span>{filteredProfiles.length} explorer{filteredProfiles.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+          <div className="flex rounded-full bg-white/5 border border-white/10 p-1">
+            <button
+              onClick={() => setShowSaved(false)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                !showSaved ? 'bg-white/10 text-white font-bold' : 'text-white/40 hover:text-white/60'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setShowSaved(true)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                showSaved ? 'bg-white/10 text-white font-bold' : 'text-white/40 hover:text-white/60'
+              }`}
+            >
+              Saved
+              {savedProfileIds.size > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${showSaved ? 'bg-pink-400/20 text-pink-300' : 'bg-white/10 text-white/50'}`}>
+                  {savedProfileIds.size}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Card Grid */}
@@ -501,7 +567,13 @@ function ExplorerPageContent() {
               animate={{ opacity: 1, y: 0 }}
               className="col-span-full text-center py-16"
             >
-              {searchQuery.trim() ? (
+              {showSaved ? (
+                <>
+                  <Heart size={48} className="mx-auto mb-4 text-white/20" />
+                  <h2 className="text-xl font-bold text-white/80 mb-2">No saved profiles yet</h2>
+                  <p className="text-white/40">Heart a profile to save it here</p>
+                </>
+              ) : searchQuery.trim() ? (
                 <>
                   <div className="text-5xl mb-4 opacity-60">~</div>
                   <h2 className="text-xl font-bold text-white/80 mb-2">No explorers found into &apos;{searchQuery.trim()}&apos;</h2>
@@ -532,6 +604,8 @@ function ExplorerPageContent() {
                   teleportedMap={teleportedMap}
                   onTeleport={handleTeleport}
                   onUndoTeleport={handleUndoTeleport}
+                  isSaved={savedProfileIds.has(profile.id)}
+                  onToggleSave={() => handleToggleSave(profile.id)}
                 />
               ))}
             </motion.div>
