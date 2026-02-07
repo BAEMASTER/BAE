@@ -8,6 +8,7 @@ import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Heart } from 'lucide-react';
+import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
@@ -144,6 +145,7 @@ function VibeGlowCard({
   onUndoTeleport,
   isSaved,
   onToggleSave,
+  saveSource,
 }: {
   profile: any;
   index: number;
@@ -154,6 +156,7 @@ function VibeGlowCard({
   onUndoTeleport: (interest: string, cardId: string) => void;
   isSaved: boolean;
   onToggleSave: () => void;
+  saveSource?: 'match' | 'explorer';
 }) {
   const sharedCount = profile.interests.filter((i: string) =>
     userInterests.some(ui => ui.toLowerCase() === i.toLowerCase())
@@ -183,7 +186,19 @@ function VibeGlowCard({
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-xl font-bold text-white truncate">{profile.displayName || 'Anonymous'}</h3>
-          <span className="text-sm text-white/50 truncate block">{location}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-white/50 truncate">{location}</span>
+            {saveSource === 'match' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-pink-400/20 text-pink-300 whitespace-nowrap">
+                Met on video
+              </span>
+            )}
+            {saveSource === 'explorer' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-400/15 text-yellow-300/90 whitespace-nowrap">
+                Found exploring
+              </span>
+            )}
+          </div>
         </div>
         {sharedCount > 0 && (
           <span className="text-yellow-300 font-bold text-sm whitespace-nowrap shrink-0">
@@ -358,6 +373,7 @@ function ExplorerPageContent() {
   const [baselineInterests, setBaselineInterests] = useState<Set<string>>(new Set());
   const [teleportedMap, setTeleportedMap] = useState<Map<string, string>>(new Map());
   const [searchQuery, setSearchQuery] = useState('');
+  const [savedProfilesList, setSavedProfilesList] = useState<SavedProfile[]>([]);
   const [savedProfileIds, setSavedProfileIds] = useState<Set<string>>(new Set());
   const [showSaved, setShowSaved] = useState(false);
 
@@ -375,7 +391,9 @@ function ExplorerPageContent() {
         const data = snap.data();
         setDisplayName(data?.displayName || 'Mystery BAE');
         setUserInterests(data?.interests || []);
-        setSavedProfileIds(new Set(data?.savedProfiles || []));
+        const parsed = parseSavedProfiles(data?.savedProfiles);
+        setSavedProfilesList(parsed);
+        setSavedProfileIds(savedProfileUids(parsed));
       }
 
       const snapshot = await getDocs(collection(db, 'users'));
@@ -407,15 +425,11 @@ function ExplorerPageContent() {
   }, [allProfiles, searchQuery, showSaved, savedProfileIds]);
 
   const handleToggleSave = async (profileId: string) => {
-    const next = new Set(savedProfileIds);
-    if (next.has(profileId)) {
-      next.delete(profileId);
-    } else {
-      next.add(profileId);
-    }
-    setSavedProfileIds(next);
+    const next = toggleSavedProfile(savedProfilesList, profileId, 'explorer');
+    setSavedProfilesList(next);
+    setSavedProfileIds(savedProfileUids(next));
     if (user) {
-      await setDoc(doc(db, 'users', user.uid), { savedProfiles: Array.from(next) }, { merge: true });
+      await setDoc(doc(db, 'users', user.uid), { savedProfiles: next }, { merge: true });
     }
   };
 
@@ -607,6 +621,7 @@ function ExplorerPageContent() {
                   onUndoTeleport={handleUndoTeleport}
                   isSaved={savedProfileIds.has(profile.id)}
                   onToggleSave={() => handleToggleSave(profile.id)}
+                  saveSource={showSaved ? savedProfilesList.find(sp => sp.uid === profile.id)?.source : undefined}
                 />
               ))}
             </motion.div>

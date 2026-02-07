@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
-import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, RefreshCw } from 'lucide-react';
+import { X, Loader2, RefreshCw, Heart } from 'lucide-react';
+import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -190,6 +191,9 @@ export default function MatchPage() {
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [partnerDisconnected, setPartnerDisconnected] = useState(false);
+  const [currentPartnerId, setCurrentPartnerId] = useState<string | null>(null);
+  const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
+  const [savedUids, setSavedUids] = useState<Set<string>>(new Set());
   const myProfileRef = useRef<any>(null);
 
   // --- SHARED INTERESTS ---
@@ -215,6 +219,9 @@ export default function MatchPage() {
           const profileData = snap.data();
           myProfileRef.current = profileData;
           setMyProfile(profileData);
+          const parsed = parseSavedProfiles(profileData.savedProfiles);
+          setSavedProfiles(parsed);
+          setSavedUids(savedProfileUids(parsed));
         }
       } catch (e) {
         console.error('Profile load failed:', e);
@@ -332,6 +339,7 @@ export default function MatchPage() {
 
       isMatchedRef.current = true;
       setIsMatched(true);
+      setCurrentPartnerId(partnerId);
 
       // Create Daily call
       const daily = DailyIframe.createCallObject();
@@ -475,6 +483,7 @@ export default function MatchPage() {
     setIsMatched(false);
     setTheirProfile(null);
     setPartnerDisconnected(false);
+    setCurrentPartnerId(null);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
@@ -554,6 +563,15 @@ export default function MatchPage() {
       // Revert on error
       setMyProfile(myProfile);
     }
+  };
+
+  // --- TOGGLE SAVE PARTNER ---
+  const handleToggleSave = async () => {
+    if (!user || !currentPartnerId) return;
+    const next = toggleSavedProfile(savedProfiles, currentPartnerId, 'match');
+    setSavedProfiles(next);
+    setSavedUids(savedProfileUids(next));
+    await setDoc(doc(db, 'users', user.uid), { savedProfiles: next }, { merge: true });
   };
 
   if (!authReady) {
@@ -750,14 +768,29 @@ export default function MatchPage() {
             </div>
           )}
 
-          {/* THEIR NAME */}
+          {/* THEIR NAME + HEART */}
           {isMatched && (
             <div className="absolute bottom-20 left-4 right-4 text-center">
-              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+              <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
                 <h3 className="text-sm font-bold text-white">
                   {theirProfile?.displayName || '...'}
                   {theirProfile?.location && <span className="text-xs font-semibold text-white/70"> • {theirProfile.location}</span>}
                 </h3>
+                {currentPartnerId && (
+                  <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    onClick={handleToggleSave}
+                    className="pointer-events-auto cursor-pointer p-0.5"
+                  >
+                    <Heart
+                      size={16}
+                      strokeWidth={1.5}
+                      className={savedUids.has(currentPartnerId)
+                        ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
+                        : 'text-white/60 hover:text-pink-300 transition-colors'}
+                    />
+                  </motion.button>
+                )}
               </div>
             </div>
           )}
