@@ -158,6 +158,7 @@ export default function ProfilePage() {
   const [ageError, setAgeError] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const [exampleIdx, setExampleIdx] = useState(0);
+  const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
 
   // Check if locked: NO birthdate OR birthdate < 18
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
@@ -382,8 +383,9 @@ export default function ProfilePage() {
   // FULL PROFILE FOR LOGGED-IN ADULTS
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 pb-16 px-4">
-      
-      <h1 className="text-4xl sm:text-5xl font-black mb-8 flex items-center justify-center gap-3 flex-wrap drop-shadow-[0_0_30px_rgba(255,160,255,0.6)]">
+
+      {/* HEADER */}
+      <h1 className="text-4xl sm:text-5xl font-black mb-6 flex items-center justify-center gap-3 flex-wrap drop-shadow-[0_0_30px_rgba(255,160,255,0.6)]">
         <span>All About</span>
         <motion.span
           animate={{
@@ -396,110 +398,254 @@ export default function ProfilePage() {
         </motion.span>
       </h1>
 
-      {/* SIDE-BY-SIDE CARDS — interests first (the star of BAE) */}
-      <div className="flex flex-col lg:flex-row gap-6 w-full max-w-6xl">
-
-        {/* YOUR INTERESTS — the hero section */}
-        <motion.div className="flex-[1.2] bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-xl font-bold">Your Interests</h3>
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${interests.length >= MIN_REQUIRED ? 'bg-green-400/15 text-green-300' : 'bg-yellow-400/15 text-yellow-300'}`}>
-              {interests.length >= MIN_REQUIRED
-                ? `${interests.length} interests`
-                : `${interests.length}/${MIN_REQUIRED} minimum`}
-            </span>
-          </div>
-          <p className="text-white/40 text-xs mb-4">Have fun adding your unique interests! The more interests, the better!</p>
-
-          <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
-            <AnimatePresence>
-              {interests.map(i => <InterestPill key={i} interest={i} onRemove={removeInterest} />)}
-            </AnimatePresence>
-            {interests.length === 0 && (
-              <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              value={newInterest}
-              onChange={e => setNewInterest(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addInterest()}
-              placeholder={`e.g. ${INTEREST_EXAMPLES[exampleIdx]}`}
-              className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
-            />
-            <button onClick={addInterest} className="px-6 py-2.5 bg-violet-500 hover:bg-violet-400 rounded-full font-bold transition-colors">Add</button>
-          </div>
-        </motion.div>
-
-        {/* PERSONAL INFO */}
-        <motion.div className="flex-1 bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
-          <h3 className="text-xl font-bold mb-4">Personal Info</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-            <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display Name" className="input" />
-            <input value={city} onChange={e => setCity(e.target.value)} placeholder="City *" className={`input ${locationError && !city.trim() ? 'border-red-400/70' : ''}`} />
-            <input value={state} onChange={e => setState(e.target.value)} placeholder="State/Province" className="input" />
-            <select value={country} onChange={e => setCountry(e.target.value)} className={`input ${locationError && !country.trim() ? 'border-red-400/70' : ''}`}>
-              <option value="">Country *</option>
-              {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-
-          <AnimatePresence>
-            {locationError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mb-3 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
-              >
-                City and country are required to save your profile
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <h4 className="font-semibold mt-4 mb-3">Birthdate</h4>
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="input">
-              <option value="">Month</option>
-              {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-            <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="input">
-              <option value="">Day</option>
-              {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-            <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} className="input">
-              <option value="">Year</option>
-              {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-
-          <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg hover:shadow-violet-500/25 transition-shadow">Save Changes</button>
-
-          <AnimatePresence>
-            {saveSuccess && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mt-3 text-center text-green-400 font-semibold text-sm"
-              >
-                Saved!
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
+      {/* TAB BAR */}
+      <div className="flex gap-2 mb-6">
+        {([
+          { id: 'interests' as const, label: 'Interests' },
+          { id: 'stats' as const, label: 'Your BAE' },
+          { id: 'info' as const, label: 'Personal Info' },
+        ]).map(tab => (
+          <motion.button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            whileTap={{ scale: 0.95 }}
+            className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
+              activeTab === tab.id
+                ? 'bg-yellow-300 text-black shadow-[0_0_12px_rgba(253,224,71,0.4)]'
+                : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/80'
+            }`}
+          >
+            {tab.label}
+          </motion.button>
+        ))}
       </div>
 
-      {/* BAE BUTTON */}
-      <div className="mt-12 flex flex-col items-center gap-3">
+      {/* TAB CONTENT */}
+      <div className="w-full max-w-2xl">
+        <AnimatePresence mode="wait">
+
+          {/* ===== INTERESTS TAB ===== */}
+          {activeTab === 'interests' && (
+            <motion.div
+              key="interests"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-xl font-bold">Your Interests</h3>
+                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${interests.length >= MIN_REQUIRED ? 'bg-green-400/15 text-green-300' : 'bg-yellow-400/15 text-yellow-300'}`}>
+                  {interests.length >= MIN_REQUIRED
+                    ? `${interests.length} interests`
+                    : `${interests.length}/${MIN_REQUIRED} minimum`}
+                </span>
+              </div>
+              <p className="text-white/40 text-xs mb-4">Have fun adding your unique interests! The more interests, the better!</p>
+
+              <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
+                <AnimatePresence>
+                  {interests.map(i => <InterestPill key={i} interest={i} onRemove={removeInterest} />)}
+                </AnimatePresence>
+                {interests.length === 0 && (
+                  <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  value={newInterest}
+                  onChange={e => setNewInterest(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addInterest()}
+                  placeholder={`e.g. ${INTEREST_EXAMPLES[exampleIdx]}`}
+                  className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
+                />
+                <button onClick={addInterest} className="px-6 py-2.5 bg-violet-500 hover:bg-violet-400 rounded-full font-bold transition-colors">Add</button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ===== YOUR BAE (STATS) TAB ===== */}
+          {activeTab === 'stats' && (
+            <motion.div
+              key="stats"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-4"
+            >
+              {/* Hero stat */}
+              <div className="bg-white/5 backdrop-blur-lg p-8 rounded-3xl border border-white/10 shadow-2xl text-center">
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="text-6xl font-black bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                >
+                  0
+                </motion.div>
+                <p className="text-white/50 text-sm font-medium mt-1">Conversations</p>
+              </div>
+
+              {/* Stat grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                  <div className="text-3xl font-black text-amber-300">{interests.length}</div>
+                  <p className="text-white/40 text-xs font-medium mt-1">Total Interests</p>
+                </div>
+                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                  <div className="text-3xl font-black text-emerald-300">0</div>
+                  <p className="text-white/40 text-xs font-medium mt-1">Collected from Others</p>
+                </div>
+                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                  <div className="text-3xl font-black text-sky-300">0</div>
+                  <p className="text-white/40 text-xs font-medium mt-1">Interests You Spread</p>
+                </div>
+                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                  <div className="text-3xl font-black text-violet-300">0</div>
+                  <p className="text-white/40 text-xs font-medium mt-1">MEGAVIBEs</p>
+                </div>
+              </div>
+
+              {/* Conversations */}
+              <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Conversations</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Longest conversation</span>
+                    <span className="text-lg font-bold text-yellow-300">—</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Average length</span>
+                    <span className="text-lg font-bold text-yellow-300">—</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Total shared interests discovered</span>
+                    <span className="text-lg font-bold text-yellow-300">0</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Connections */}
+              <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Connections</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Farthest match</span>
+                    <span className="text-lg font-bold text-yellow-300">—</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Countries connected</span>
+                    <span className="text-lg font-bold text-yellow-300">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Cities connected</span>
+                    <span className="text-lg font-bold text-yellow-300">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">People saved</span>
+                    <span className="text-lg font-bold text-yellow-300">0</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Impact */}
+              <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
+                <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Your Impact</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">Interests you spread to others</span>
+                    <span className="text-lg font-bold text-yellow-300">0</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/50 text-sm">People your interests traveled to</span>
+                    <span className="text-lg font-bold text-yellow-300">0</span>
+                  </div>
+                </div>
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* ===== PERSONAL INFO TAB ===== */}
+          {activeTab === 'info' && (
+            <motion.div
+              key="info"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl"
+            >
+              <h3 className="text-xl font-bold mb-4">Personal Info</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display Name" className="input" />
+                <input value={city} onChange={e => setCity(e.target.value)} placeholder="City *" className={`input ${locationError && !city.trim() ? 'border-red-400/70' : ''}`} />
+                <input value={state} onChange={e => setState(e.target.value)} placeholder="State/Province" className="input" />
+                <select value={country} onChange={e => setCountry(e.target.value)} className={`input ${locationError && !country.trim() ? 'border-red-400/70' : ''}`}>
+                  <option value="">Country *</option>
+                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <AnimatePresence>
+                {locationError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mb-3 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
+                  >
+                    City and country are required to save your profile
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <h4 className="font-semibold mt-4 mb-3">Birthdate</h4>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="input">
+                  <option value="">Month</option>
+                  {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="input">
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} className="input">
+                  <option value="">Year</option>
+                  {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg hover:shadow-violet-500/25 transition-shadow">Save Changes</button>
+
+              <AnimatePresence>
+                {saveSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-3 text-center text-green-400 font-semibold text-sm"
+                  >
+                    Saved!
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </div>
+
+      {/* BAE BUTTON — persistent across all tabs */}
+      <div className="mt-10 flex flex-col items-center gap-3">
         {interests.length >= MIN_REQUIRED ? (
           <>
             <p className="text-white/50 text-sm font-medium">Your profile is ready. Go meet someone.</p>

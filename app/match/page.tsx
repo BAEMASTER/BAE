@@ -27,13 +27,32 @@ const scrollbarStyle = `
   }
 `;
 
+// --- WAITING MESSAGES ---
+const WAITING_MESSAGES = [
+  'Finding someone new...',
+  'Connecting you with a fellow human...',
+  'Scanning the BAE universe...',
+  'Your next conversation is loading...',
+  'Someone interesting is on their way...',
+];
+
+// --- LOCATION HELPER ---
+function formatLocation(profile: any): string {
+  if (!profile?.city) return '';
+  if (profile.country === 'United States' && profile.state) {
+    return `${profile.city}, ${profile.state}`;
+  }
+  if (profile.country) return `${profile.city}, ${profile.country}`;
+  return profile.city;
+}
+
 // --- VIBE METER ---
 const VIBE_LEVELS = [
   { label: 'COOL', accent: '#7dd3fc', glow: '125,211,252' },
   { label: 'REAL', accent: '#6ee7b7', glow: '110,231,183' },
   { label: 'DEEP', accent: '#fcd34d', glow: '252,211,77' },
   { label: 'SUPER', accent: '#fb923c', glow: '251,146,60' },
-  { label: 'MEGAVIBE', accent: '#fda4af', glow: '253,164,175' },
+  { label: 'MEGAVIBE', accent: '#a78bfa', glow: '167,139,250' },
 ];
 
 const MAX_VISIBLE_INTERESTS = 8;
@@ -83,7 +102,7 @@ function FluidVibeOMeter({ count }: { count: number }) {
             transition={{ type: 'spring', stiffness: 50, damping: 18 }}
             className="absolute bottom-0 w-full rounded-full"
             style={{
-              background: 'linear-gradient(to top, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #fda4af)',
+              background: 'linear-gradient(to top, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #a78bfa)',
               boxShadow: `0 0 6px rgba(${current.glow}, 0.3)`,
             }}
           />
@@ -153,7 +172,7 @@ function Confetti() {
           transition={{ duration: 2, ease: 'easeIn' }}
           className="absolute w-2 h-2 rounded-full"
           style={{
-            backgroundColor: ['#FFD700', '#FF69B4', '#87CEEB', '#98FB98'][
+            backgroundColor: ['#FFD700', '#A78BFA', '#87CEEB', '#98FB98'][
               Math.floor(Math.random() * 4)
             ],
           }}
@@ -199,6 +218,25 @@ function playMegaVibeSound() {
     sGain.gain.exponentialRampToValueAtTime(0.001, sStart + 0.5);
     shimmer.start(sStart);
     shimmer.stop(sStart + 0.5);
+  } catch {}
+}
+
+// --- TAP-TO-ADD SOUND (satisfying "collected" chime) ---
+function playCollectSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(587, now);      // D5
+    osc.frequency.setValueAtTime(880, now + 0.06); // A5
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now);
+    osc.stop(now + 0.15);
   } catch {}
 }
 
@@ -289,6 +327,8 @@ export default function MatchPage() {
   const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
   const [savedUids, setSavedUids] = useState<Set<string>>(new Set());
   const [megaVibePreviouslyTriggered, setMegaVibePreviouslyTriggered] = useState(false);
+  const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
   const myProfileRef = useRef<any>(null);
 
   // --- SHARED INTERESTS ---
@@ -606,6 +646,13 @@ export default function MatchPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
+  // --- WAITING MESSAGE ROTATION ---
+  useEffect(() => {
+    if (isMatched) return;
+    const t = setInterval(() => setWaitingMsgIdx(i => (i + 1) % WAITING_MESSAGES.length), 3000);
+    return () => clearInterval(t);
+  }, [isMatched]);
+
   // --- NEXT MATCH ---
   const handleNext = async () => {
     if (callObjectRef.current) {
@@ -690,6 +737,12 @@ export default function MatchPage() {
     }
 
     console.log('Adding interest:', interest);
+    playCollectSound();
+
+    // Flash feedback
+    const key = interest.toLowerCase();
+    setJustAdded(prev => new Set([...prev, key]));
+    setTimeout(() => setJustAdded(prev => { const n = new Set(prev); n.delete(key); return n; }), 700);
 
     const updated = [...myProfile.interests, interest];
     const updatedProfile = { ...myProfile, interests: updated };
@@ -721,7 +774,7 @@ export default function MatchPage() {
   if (!authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
-        <Loader2 className="w-16 h-16 text-fuchsia-500 animate-spin" />
+        <Loader2 className="w-16 h-16 text-violet-500 animate-spin" />
       </div>
     );
   }
@@ -746,13 +799,13 @@ export default function MatchPage() {
       <style>{scrollbarStyle}</style>
 
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
-        <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px]"></div>
+        <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-violet-500/10 blur-[150px]"></div>
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px]"></div>
       </div>
 
       {/* HEADER */}
       <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
-        <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+        <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-violet-400 bg-clip-text text-transparent">
           BAE
         </div>
       </header>
@@ -785,7 +838,7 @@ export default function MatchPage() {
                     {myProfile.interests.map((interest: string) => (
                       <div
                         key={interest}
-                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/25 text-white border border-white/40 whitespace-nowrap"
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap"
                       >
                         {interest}
                       </div>
@@ -796,10 +849,13 @@ export default function MatchPage() {
             </div>
           )}
 
-          {/* YOUR NAME */}
+          {/* YOUR NAME + LOCATION */}
           <div className="absolute bottom-20 left-4 right-4 text-center">
             <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-              <h3 className="text-sm font-bold text-white">{myProfile?.displayName || 'You'}</h3>
+              <h3 className="text-sm font-bold text-white">
+                {myProfile?.displayName || 'You'}
+                {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
+              </h3>
             </div>
           </div>
         </div>
@@ -860,16 +916,29 @@ export default function MatchPage() {
             className="absolute inset-0 w-full h-full object-cover"
           />
           {!isMatched && (
-            <motion.div
-              animate={{ opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40"
-            >
-              <div className="text-center px-4">
-                <div className="text-5xl mb-3">✨</div>
-                <p className="text-lg font-bold text-white">Waiting for<br/>someone special...</p>
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
+              <div className="text-center px-6">
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="text-5xl mb-4"
+                >
+                  ✨
+                </motion.div>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={waitingMsgIdx}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-lg font-bold text-white"
+                  >
+                    {WAITING_MESSAGES[waitingMsgIdx]}
+                  </motion.p>
+                </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
           )}
           {/* Partner disconnect overlay */}
           <AnimatePresence>
@@ -886,7 +955,7 @@ export default function MatchPage() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleNext}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
                   >
                     Find Next Match
                     <RefreshCw size={16} />
@@ -906,6 +975,7 @@ export default function MatchPage() {
                       const isAdded = myProfile?.interests.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
                       );
+                      const isFlashing = justAdded.has(interest.toLowerCase());
                       return (
                         <motion.button
                           key={interest}
@@ -917,13 +987,18 @@ export default function MatchPage() {
                               addInterest(interest);
                             }
                           }}
-                          disabled={isAdded}
+                          disabled={isAdded && !isFlashing}
+                          animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
+                          transition={isFlashing ? { duration: 0.4 } : {}}
                           className={`relative px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all pointer-events-auto ${
-                            isAdded
-                              ? 'bg-white/15 text-white/40 border border-white/20 cursor-default'
-                              : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
+                            isFlashing
+                              ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
+                              : isAdded
+                                ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15 cursor-default'
+                                : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
                           }`}
                         >
+                          {!isAdded && !isFlashing && <span className="text-white/40 mr-1">+</span>}
                           {interest}
                         </motion.button>
                       );
@@ -940,7 +1015,7 @@ export default function MatchPage() {
               <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
                 <h3 className="text-sm font-bold text-white">
                   {theirProfile?.displayName || '...'}
-                  {theirProfile?.location && <span className="text-xs font-semibold text-white/70"> • {theirProfile.location}</span>}
+                  {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(theirProfile)}</span>}
                 </h3>
                 {currentPartnerId && (
                   <motion.button
@@ -972,7 +1047,7 @@ export default function MatchPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleNext}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold rounded-full shadow-lg text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm"
           >
             Next
             <RefreshCw size={14} />
