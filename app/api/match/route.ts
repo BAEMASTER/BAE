@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         return { matched: false };
       }
 
-      const partnerDoc = availableUsers[0];
+      const partnerDoc = availableUsers[Math.floor(Math.random() * availableUsers.length)];
       const partnerId = partnerDoc.id;
       const partnerRef = db.collection(usersCollection).doc(partnerId);
 
