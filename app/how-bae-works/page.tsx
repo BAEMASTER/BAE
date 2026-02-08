@@ -193,8 +193,7 @@ export default function GuidePage() {
           className="mb-20"
         >
           <div className="bg-gradient-to-br from-fuchsia-900/30 to-indigo-900/30 backdrop-blur-lg rounded-3xl border border-purple-400/30 p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">Interest Explorer</h2>
-            <p className="text-sm font-semibold text-yellow-300/80 tracking-wide mb-6">THE CORE OF BAE</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-6">Interest Explorer</h2>
             <div className="space-y-4 text-lg text-white/80 leading-relaxed mb-8">
               <p>This is where BAE gets deep.</p>
               <p>You&apos;re not scrolling photos. You&apos;re browsing people by <strong className="text-white">what they actually care about</strong> — interests, passions, curiosities, all out in the open. No filters. No performance. Just the real stuff.</p>
