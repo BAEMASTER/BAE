@@ -27,7 +27,9 @@ export function createInterest(
   source: 'profile' | 'match' | 'explorer',
   from?: string,
 ): StructuredInterest {
-  return { name, source, from, addedAt: new Date().toISOString() };
+  const interest: StructuredInterest = { name, source, addedAt: new Date().toISOString() };
+  if (from) interest.from = from;
+  return interest;
 }
 
 /** Add interests, deduplicating by name (case-insensitive) */

@@ -311,6 +311,7 @@ export default function MatchPage() {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
   const isMatchedRef = useRef(false);
+  const matchRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const userUidRef = useRef<string | null>(null);
 
   const [user, setUser] = useState<any>(null);
@@ -442,6 +443,30 @@ export default function MatchPage() {
             await joinRoom(d.currentRoomUrl, d.partnerId);
           }
         });
+
+        // Retry poll: handles the case where both users enter the queue simultaneously
+        // and neither finds the other on the first call
+        clearMatchRetry();
+        matchRetryRef.current = setInterval(async () => {
+          if (isMatchedRef.current) { clearMatchRetry(); return; }
+          try {
+            const retryRes = await fetch('/api/match', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.uid,
+                interests: myProfileRef.current?.interests,
+                selectedMode: 'video',
+              }),
+            });
+            if (!retryRes.ok) return;
+            const retryData = await retryRes.json();
+            if (retryData.matched && !isMatchedRef.current) {
+              clearMatchRetry();
+              await joinRoom(retryData.roomUrl, retryData.partnerId);
+            }
+          } catch {}
+        }, 4000);
       } catch (e) {
         setError(true);
         setErrorMessage('Match failed');
@@ -453,13 +478,23 @@ export default function MatchPage() {
     return () => {
       if (unsubscribeRef.current) unsubscribeRef.current();
       if (partnerUnsubscribeRef.current) partnerUnsubscribeRef.current();
+      clearMatchRetry();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady, user]);
 
+  // --- CLEAR MATCH RETRY ---
+  const clearMatchRetry = () => {
+    if (matchRetryRef.current) {
+      clearInterval(matchRetryRef.current);
+      matchRetryRef.current = null;
+    }
+  };
+
   // --- JOIN ROOM ---
   const joinRoom = async (url: string, partnerId: string) => {
     if (callObjectRef.current) return;
+    clearMatchRetry();
 
     try {
       // Get partner profile
@@ -613,6 +648,7 @@ export default function MatchPage() {
   // --- CLEANUP ON UNMOUNT ---
   useEffect(() => {
     return () => {
+      clearMatchRetry();
       if (callObjectRef.current) {
         try { callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
         callObjectRef.current = null;
@@ -658,6 +694,8 @@ export default function MatchPage() {
 
   // --- NEXT MATCH ---
   const handleNext = async () => {
+    clearMatchRetry();
+
     if (callObjectRef.current) {
       try {
         await callObjectRef.current.leave();
@@ -716,6 +754,29 @@ export default function MatchPage() {
             await joinRoom(d.currentRoomUrl, d.partnerId);
           }
         });
+
+        // Retry poll for simultaneous queue entry
+        clearMatchRetry();
+        matchRetryRef.current = setInterval(async () => {
+          if (isMatchedRef.current) { clearMatchRetry(); return; }
+          try {
+            const retryRes = await fetch('/api/match', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.uid,
+                interests: myProfileRef.current?.interests,
+                selectedMode: 'video',
+              }),
+            });
+            if (!retryRes.ok) return;
+            const retryData = await retryRes.json();
+            if (retryData.matched && !isMatchedRef.current) {
+              clearMatchRetry();
+              await joinRoom(retryData.roomUrl, retryData.partnerId);
+            }
+          } catch {}
+        }, 4000);
       } catch (e) {
         setError(true);
       }
@@ -1046,6 +1107,7 @@ export default function MatchPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={async () => {
+            clearMatchRetry();
             if (callObjectRef.current) {
               try { await callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
               callObjectRef.current = null;
