@@ -375,6 +375,20 @@ export default function MatchPage() {
     return () => unsub();
   }, [router]);
 
+  // --- HEARTBEAT: keeps lastHeartbeat fresh so match API skips stale queue ghosts ---
+  useEffect(() => {
+    if (!user) return;
+    const uid = user.uid;
+    const beat = () => {
+      updateDoc(doc(db, 'users', uid), {
+        lastHeartbeat: new Date().toISOString(),
+      }).catch(() => {});
+    };
+    beat(); // immediate first beat
+    const id = setInterval(beat, 30_000);
+    return () => clearInterval(id);
+  }, [user]);
+
   // --- GET CAMERA + INITIATE MATCH ---
   useEffect(() => {
     if (!authReady || !user || !myProfileRef.current) return;
@@ -1216,26 +1230,29 @@ export default function MatchPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="relative w-full max-h-[60vh] bg-[#1A0033]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-3xl overflow-hidden"
+              className="relative w-full max-h-[50vh] sm:max-h-[60vh] bg-[#1A0033]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-3xl overflow-hidden"
             >
-              {/* Drag handle */}
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
-              </div>
+              {/* Handle bar — tap to close */}
+              <button onClick={() => setShowPartnerDrawer(false)} className="w-full flex justify-center pt-3 pb-2 cursor-pointer">
+                <div className="w-10 h-1 rounded-full bg-white/30" />
+              </button>
 
               {/* Header */}
-              <div className="px-5 pb-3 flex items-center justify-between">
-                <h3 className="text-base font-bold text-white">
+              <div className="px-4 sm:px-5 pb-2 sm:pb-3 flex items-center justify-between">
+                <h3 className="text-sm sm:text-base font-bold text-white">
                   {`${theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : 'Partner'}'s Interests`}
                 </h3>
-                <button onClick={() => setShowPartnerDrawer(false)} className="text-white/60 hover:text-white transition-colors p-1">
+                <button onClick={() => setShowPartnerDrawer(false)} className="text-white/60 hover:text-white transition-colors p-2 -mr-1">
                   <X size={18} />
                 </button>
               </div>
 
               {/* Interest grid */}
-              <div className="px-5 pb-8 overflow-y-auto max-h-[calc(60vh-70px)]">
-                <div className="flex flex-wrap gap-2">
+              <div
+                className="px-4 sm:px-5 overflow-y-auto max-h-[calc(50vh-68px)] sm:max-h-[calc(60vh-72px)]"
+                style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}
+              >
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {theirInterestNames.map((interest: string) => {
                     const isShared = myInterestNames.some(
                       (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1250,7 +1267,7 @@ export default function MatchPage() {
                         disabled={isShared && !isFlashing}
                         animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                         transition={isFlashing ? { duration: 0.4 } : {}}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                           isFlashing
                             ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                             : isShared

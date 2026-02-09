@@ -33,15 +33,25 @@ export async function POST(req: NextRequest) {
           .where("selectedMode", "==", selectedMode)
       );
 
-      const availableUsers = queueQuery.docs.filter(doc => doc.id !== userId);
+      // Filter out self AND stale users (no heartbeat in 90s = ghost from closed tab/mobile kill)
+      const staleCutoff = Date.now() - 90_000;
+      const availableUsers = queueQuery.docs.filter(doc => {
+        if (doc.id === userId) return false;
+        const data = doc.data();
+        const lastActive = data.lastHeartbeat || data.queuedAt;
+        if (!lastActive) return false;
+        return new Date(lastActive).getTime() > staleCutoff;
+      });
 
       if (availableUsers.length === 0) {
         // No one waiting — enter queue
+        const now = new Date().toISOString();
         transaction.set(userRef, {
           status: "waiting",
           selectedMode,
           interests,
-          queuedAt: new Date().toISOString(),
+          queuedAt: now,
+          lastHeartbeat: now,
         }, { merge: true });
 
         return { matched: false };
@@ -55,11 +65,13 @@ export async function POST(req: NextRequest) {
       const partnerSnap = await transaction.get(partnerRef);
       if (!partnerSnap.exists || partnerSnap.data()?.status !== 'waiting') {
         // Partner was claimed by another request — enter queue instead
+        const nowFallback = new Date().toISOString();
         transaction.set(userRef, {
           status: "waiting",
           selectedMode,
           interests,
-          queuedAt: new Date().toISOString(),
+          queuedAt: nowFallback,
+          lastHeartbeat: nowFallback,
         }, { merge: true });
 
         return { matched: false };
