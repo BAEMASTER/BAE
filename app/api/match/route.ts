@@ -19,6 +19,14 @@ export async function POST(req: NextRequest) {
 
     // Issue 5 fix: Use a transaction to atomically find and claim a waiting partner
     const result = await db.runTransaction(async (transaction) => {
+      // Read own doc first so Firestore tracks it for conflicts.
+      // If partner's batch sets us to "matched" concurrently, transaction retries.
+      const userSnap = await transaction.get(userRef);
+      const currentStatus = userSnap.exists ? userSnap.data()?.status : null;
+      if (currentStatus === 'matched' || currentStatus === 'claiming') {
+        return { matched: false };
+      }
+
       const queueQuery = await transaction.get(
         db.collection(usersCollection)
           .where("status", "==", "waiting")

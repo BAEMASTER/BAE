@@ -17,6 +17,7 @@ import {
   addInterests as addStructuredInterests,
   removeInterest as removeStructuredInterest,
 } from '@/lib/structuredInterests';
+import { formatPublicName } from '@/lib/formatName';
 
 // --- BAE BRAND ---
 const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
@@ -194,7 +195,7 @@ function VibeGlowCard({
           {profile.displayName?.charAt(0).toUpperCase() || '?'}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-xl font-bold text-white truncate">{profile.displayName || 'Anonymous'}</h3>
+          <h3 className="text-xl font-bold text-white truncate">{formatPublicName(profile.displayName)}</h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-white/50 truncate">{location}</span>
             {saveSource === 'match' && (

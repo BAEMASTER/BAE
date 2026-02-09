@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw, Heart } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
 import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
+import { formatPublicName } from '@/lib/formatName';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -330,6 +331,7 @@ export default function MatchPage() {
   const [savedUids, setSavedUids] = useState<Set<string>>(new Set());
   const [megaVibePreviouslyTriggered, setMegaVibePreviouslyTriggered] = useState(false);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const [showPartnerDrawer, setShowPartnerDrawer] = useState(false);
   const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
   const myProfileRef = useRef<any>(null);
 
@@ -527,12 +529,22 @@ export default function MatchPage() {
       const daily = DailyIframe.createCallObject();
       callObjectRef.current = daily;
 
-      // Helper: attach a video track to a ref
+      // Helper: attach a video track to a ref (with iOS autoplay fallback)
       const attachTrack = (ref: React.RefObject<HTMLVideoElement | null>, track: MediaStreamTrack, label: string) => {
-        if (ref.current) {
-          ref.current.srcObject = new MediaStream([track]);
-          ref.current.play().catch((err: any) => {
-            console.error(`Play failed for ${label}:`, err);
+        if (!ref.current) return;
+        ref.current.srcObject = new MediaStream([track]);
+        const playPromise = ref.current.play();
+        if (playPromise) {
+          playPromise.catch(() => {
+            // iOS fallback: play muted first, then unmute after playback starts
+            if (ref.current) {
+              ref.current.muted = true;
+              ref.current.play().then(() => {
+                if (label !== 'LOCAL' && ref.current) ref.current.muted = false;
+              }).catch((e) => {
+                console.error(`iOS fallback play also failed for ${label}:`, e);
+              });
+            }
           });
         }
       };
@@ -592,11 +604,29 @@ export default function MatchPage() {
       }
 
       // Join with media stream
-      await daily.join({
-        url,
-        videoSource: mediaStreamRef.current?.getVideoTracks()[0] || true,
-        audioSource: mediaStreamRef.current?.getAudioTracks()[0] || true,
-      });
+      try {
+        await daily.join({
+          url,
+          videoSource: mediaStreamRef.current?.getVideoTracks()[0] || true,
+          audioSource: mediaStreamRef.current?.getAudioTracks()[0] || true,
+        });
+      } catch (joinErr) {
+        // Daily join failed — reset all state so user can retry
+        console.error('daily.join() failed:', joinErr);
+        try { daily.destroy(); } catch {}
+        callObjectRef.current = null;
+        isMatchedRef.current = false;
+        setIsMatched(false);
+        setCurrentPartnerId(null);
+        if (partnerUnsubscribeRef.current) {
+          partnerUnsubscribeRef.current();
+          partnerUnsubscribeRef.current = null;
+        }
+        setTheirProfile(null);
+        setError(true);
+        setErrorMessage('Failed to join video room. Please try again.');
+        return;
+      }
 
       // Force video/audio to be published to room
       console.log('Forcing video/audio publishing to room...');
@@ -609,7 +639,20 @@ export default function MatchPage() {
       daily.setLocalAudio(true);
       console.log('✅ Audio enabled and unmuted');
     } catch (err: any) {
+      // Outer catch: handles errors in profile loading, megavibe check, etc.
       console.error('Join room failed:', err);
+      if (callObjectRef.current) {
+        try { callObjectRef.current.destroy(); } catch {}
+        callObjectRef.current = null;
+      }
+      isMatchedRef.current = false;
+      setIsMatched(false);
+      setCurrentPartnerId(null);
+      if (partnerUnsubscribeRef.current) {
+        partnerUnsubscribeRef.current();
+        partnerUnsubscribeRef.current = null;
+      }
+      setTheirProfile(null);
       setError(true);
       setErrorMessage('Failed to join room');
     }
@@ -714,6 +757,7 @@ export default function MatchPage() {
     setIsMatched(false);
     setTheirProfile(null);
     setPartnerDisconnected(false);
+    setShowPartnerDrawer(false);
     setCurrentPartnerId(null);
     setMegaVibePreviouslyTriggered(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
@@ -903,7 +947,7 @@ export default function MatchPage() {
                 <div className="text-center mb-2">
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
                     <h3 className="text-sm font-bold text-white">
-                      {myProfile?.displayName || 'You'}
+                      {myProfile?.displayName ? formatPublicName(myProfile.displayName) : 'You'}
                       {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
                     </h3>
                   </div>
@@ -1037,7 +1081,7 @@ export default function MatchPage() {
                 <div className="text-center mb-2">
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white">
-                      {theirProfile?.displayName || '...'}
+                      {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
                       {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(theirProfile)}</span>}
                     </h3>
                     {currentPartnerId && (
@@ -1059,7 +1103,7 @@ export default function MatchPage() {
                 </div>
                 {/* Interest pills - horizontal scroll */}
                 {theirProfile && (
-                  <div className="flex gap-1.5 overflow-x-auto interests-scroll">
+                  <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
                     {theirInterestNames.map((interest: string) => {
                       const isAdded = myInterestNames.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1092,6 +1136,14 @@ export default function MatchPage() {
                         </motion.button>
                       );
                     })}
+                    {theirInterestNames.length > 0 && (
+                      <button
+                        onClick={() => setShowPartnerDrawer(true)}
+                        className="px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
+                      >
+                        See all ›
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1148,6 +1200,75 @@ export default function MatchPage() {
           </motion.button>
         )}
       </div>
+
+      {/* PARTNER INTEREST DRAWER */}
+      <AnimatePresence>
+        {showPartnerDrawer && theirProfile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-end"
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPartnerDrawer(false)} />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="relative w-full max-h-[60vh] bg-[#1A0033]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-3xl overflow-hidden"
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+
+              {/* Header */}
+              <div className="px-5 pb-3 flex items-center justify-between">
+                <h3 className="text-base font-bold text-white">
+                  {`${theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : 'Partner'}'s Interests`}
+                </h3>
+                <button onClick={() => setShowPartnerDrawer(false)} className="text-white/60 hover:text-white transition-colors p-1">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Interest grid */}
+              <div className="px-5 pb-8 overflow-y-auto max-h-[calc(60vh-70px)]">
+                <div className="flex flex-wrap gap-2">
+                  {theirInterestNames.map((interest: string) => {
+                    const isShared = myInterestNames.some(
+                      (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
+                    );
+                    const isFlashing = justAdded.has(interest.toLowerCase());
+                    return (
+                      <motion.button
+                        key={interest}
+                        whileHover={!isShared ? { scale: 1.05 } : {}}
+                        whileTap={!isShared ? { scale: 0.95 } : {}}
+                        onClick={() => { if (!isShared) addInterest(interest); }}
+                        disabled={isShared && !isFlashing}
+                        animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
+                        transition={isFlashing ? { duration: 0.4 } : {}}
+                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                          isFlashing
+                            ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
+                            : isShared
+                              ? 'bg-yellow-300/20 text-yellow-300 border border-yellow-300/30 shadow-[0_0_8px_rgba(253,224,71,0.3)]'
+                              : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 cursor-pointer'
+                        }`}
+                      >
+                        {!isShared && !isFlashing && <span className="text-white/40 mr-1.5">+</span>}
+                        {interest}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
