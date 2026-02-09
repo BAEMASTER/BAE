@@ -204,7 +204,7 @@ export default function HomePage() {
           initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6, duration: 0.6, type: "spring", stiffness: 100 }}
-          whileHover={{ scale: 1.05, boxShadow: "0 15px 40px rgba(255, 65, 108, 0.8)" }}
+          whileHover={{ scale: 1.05, boxShadow: "0 15px 40px rgba(245, 158, 11, 0.7)" }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             if (!user) {
@@ -218,8 +218,8 @@ export default function HomePage() {
           disabled={isChecking}
           className="relative px-12 sm:px-20 py-5 sm:py-7 rounded-full text-white font-black transition-all disabled:opacity-50 mb-12"
           style={{
-            background: "linear-gradient(90deg, #FF6F91, #FF9B85)",
-            boxShadow: "0 10px 30px rgba(255, 65, 108, 0.4)",
+            background: "linear-gradient(90deg, #F59E0B, #F97316)",
+            boxShadow: "0 10px 30px rgba(245, 158, 11, 0.4)",
           }}
         >
           <span className="relative z-10 text-xl sm:text-2xl font-black tracking-wider">

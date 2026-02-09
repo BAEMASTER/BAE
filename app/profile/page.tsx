@@ -685,15 +685,15 @@ export default function ProfilePage() {
               onClick={handleBAEClick}
               animate={{
                 boxShadow: [
-                  '0 0 20px rgba(139,92,246,0.4), 0 0 60px rgba(59,130,246,0.15)',
-                  '0 0 30px rgba(139,92,246,0.7), 0 0 80px rgba(59,130,246,0.3)',
-                  '0 0 20px rgba(139,92,246,0.4), 0 0 60px rgba(59,130,246,0.15)',
+                  '0 0 20px rgba(245,158,11,0.4), 0 0 60px rgba(249,115,22,0.15)',
+                  '0 0 30px rgba(245,158,11,0.7), 0 0 80px rgba(249,115,22,0.3)',
+                  '0 0 20px rgba(245,158,11,0.4), 0 0 60px rgba(249,115,22,0.15)',
                 ],
               }}
               transition={{ duration: 2, repeat: Infinity }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-16 py-6 rounded-full font-black text-white text-2xl bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 border-2 border-violet-300/30"
+              className="px-16 py-6 rounded-full font-black text-white text-2xl bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-amber-300/30"
             >
               BAE SOMEONE NOW
             </motion.button>

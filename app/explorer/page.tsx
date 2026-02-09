@@ -653,7 +653,7 @@ function ExplorerPageContent() {
             disabled={userInterests.length < 3}
             className={`px-16 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
               userInterests.length >= 3
-                ? 'bg-gradient-to-r from-[#FF6F91] to-[#FF9B85] cursor-pointer hover:shadow-[0_15px_40px_rgba(255,65,108,0.6)]'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 cursor-pointer hover:shadow-[0_15px_40px_rgba(245,158,11,0.6)]'
                 : 'bg-gray-500/50 cursor-not-allowed opacity-60'
             }`}
           >
