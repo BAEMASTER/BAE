@@ -447,12 +447,12 @@ export default function GuidePage() {
           className="text-center"
         >
           <motion.button
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.05, boxShadow: '0 15px 40px rgba(245,158,11,0.7)' }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBAEClick}
-            className="group inline-flex items-center gap-3 px-12 py-5 bg-gradient-to-r from-yellow-400 via-pink-500 to-fuchsia-600 text-white font-black text-xl rounded-full shadow-2xl hover:shadow-[0_0_40px_rgba(236,72,153,0.6)] transition-all"
+            className="group inline-flex items-center gap-3 px-12 sm:px-20 py-5 sm:py-7 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xl sm:text-2xl rounded-full shadow-[0_10px_30px_rgba(245,158,11,0.4)] transition-all"
           >
-            BAE Someone Now
+            BAE SOMEONE NOW!
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </motion.button>
           <p className="text-white/60 text-sm mt-6">

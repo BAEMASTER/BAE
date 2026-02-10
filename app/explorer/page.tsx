@@ -1,6 +1,5 @@
 'use client';
 
-import AgeGateWrapper from '@/components/AgeGateWrapper';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -642,18 +641,18 @@ function ExplorerPageContent() {
         </div>
 
         {/* BAE BUTTON */}
-        <div className="flex justify-center w-full py-8">
+        <div className="flex justify-center w-full pt-12 pb-8">
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.6 }}
-            whileHover={userInterests.length >= 3 ? { scale: 1.05 } : {}}
+            whileHover={userInterests.length >= 3 ? { scale: 1.05, boxShadow: '0 15px 40px rgba(245,158,11,0.7)' } : {}}
             whileTap={userInterests.length >= 3 ? { scale: 0.95 } : {}}
             onClick={handleBAEClick}
             disabled={userInterests.length < 3}
-            className={`px-16 py-5 rounded-full font-black text-white text-xl shadow-lg transition-all ${
+            className={`px-12 sm:px-20 py-5 sm:py-7 rounded-full font-black text-white text-xl sm:text-2xl shadow-lg transition-all ${
               userInterests.length >= 3
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 cursor-pointer hover:shadow-[0_15px_40px_rgba(245,158,11,0.6)]'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.4)]'
                 : 'bg-gray-500/50 cursor-not-allowed opacity-60'
             }`}
           >
@@ -676,11 +675,6 @@ function ExplorerPageContent() {
   );
 }
 
-// --- EXPORT WITH AGE GATE WRAPPER ---
 export default function ExplorerPage() {
-  return (
-    <AgeGateWrapper>
-      <ExplorerPageContent />
-    </AgeGateWrapper>
-  );
+  return <ExplorerPageContent />;
 }

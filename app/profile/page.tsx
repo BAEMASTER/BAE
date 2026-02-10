@@ -695,14 +695,14 @@ export default function ProfilePage() {
               whileTap={{ scale: 0.95 }}
               className="px-16 py-6 rounded-full font-black text-white text-2xl bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-amber-300/30"
             >
-              BAE SOMEONE NOW
+              BAE SOMEONE NOW!
             </motion.button>
           </>
         ) : (
           <>
             <p className="text-white/30 text-sm">Add {requiredRemaining} more interest{requiredRemaining !== 1 ? 's' : ''} to get started</p>
             <div className="px-16 py-6 rounded-full font-black text-white/30 text-2xl bg-white/5 border border-white/10 cursor-not-allowed">
-              BAE SOMEONE NOW
+              BAE SOMEONE NOW!
             </div>
           </>
         )}
