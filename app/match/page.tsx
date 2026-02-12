@@ -309,6 +309,7 @@ export default function MatchPage() {
   const theirVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const callObjectRef = useRef<any>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const partnerUnsubscribeRef = useRef<(() => void) | null>(null);
   const isMatchedRef = useRef(false);
@@ -388,6 +389,23 @@ export default function MatchPage() {
     const id = setInterval(beat, 30_000);
     return () => clearInterval(id);
   }, [user]);
+
+  // --- iOS / MOBILE AUDIO UNLOCK ---
+  // Mobile browsers block audio autoplay until a user gesture.
+  // Any tap/click on the page will resume paused remote audio.
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (remoteAudioRef.current && remoteAudioRef.current.paused) {
+        remoteAudioRef.current.play().catch(() => {});
+      }
+    };
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
 
   // --- GET CAMERA + INITIATE MATCH ---
   useEffect(() => {
@@ -543,38 +561,50 @@ export default function MatchPage() {
       const daily = DailyIframe.createCallObject();
       callObjectRef.current = daily;
 
-      // Helper: attach a video track to a ref (with iOS autoplay fallback)
-      const attachTrack = (ref: React.RefObject<HTMLVideoElement | null>, track: MediaStreamTrack, label: string) => {
+      // Helper: attach a video track to a <video> element
+      const attachVideoTrack = (ref: React.RefObject<HTMLVideoElement | null>, track: MediaStreamTrack, label: string) => {
         if (!ref.current) return;
         ref.current.srcObject = new MediaStream([track]);
-        const playPromise = ref.current.play();
-        if (playPromise) {
-          playPromise.catch(() => {
-            // iOS fallback: play muted first, then unmute after playback starts
-            if (ref.current) {
-              ref.current.muted = true;
-              ref.current.play().then(() => {
-                if (label !== 'LOCAL' && ref.current) ref.current.muted = false;
-              }).catch((e) => {
-                console.error(`iOS fallback play also failed for ${label}:`, e);
-              });
-            }
-          });
-        }
+        ref.current.play().catch(() => {
+          // iOS fallback: play muted first (safe for local which is always muted,
+          // and for remote video-only since audio goes through a separate element)
+          if (ref.current) {
+            ref.current.muted = true;
+            ref.current.play().catch((e) => {
+              console.error(`Video play failed for ${label}:`, e);
+            });
+          }
+        });
       };
 
-      // Attach video tracks
-      daily.on('track-started', ({ track, participant }: any) => {
-        if (!participant || track.kind !== 'video') return;
+      // Helper: play remote audio through a dedicated <audio> element
+      const attachRemoteAudio = (track: MediaStreamTrack) => {
+        if (!remoteAudioRef.current) {
+          remoteAudioRef.current = new Audio();
+          remoteAudioRef.current.autoplay = true;
+        }
+        remoteAudioRef.current.srcObject = new MediaStream([track]);
+        console.log('🔊 Playing remote audio track');
+        remoteAudioRef.current.play().catch(() => {
+          console.warn('🔇 Audio autoplay blocked — will resume on next user tap');
+        });
+      };
 
-        if (participant.local) {
-          // Local track — update to Daily's managed version for consistency
-          console.log('📹 Local video track from Daily');
-          attachTrack(yourVideoRef, track, 'LOCAL');
-        } else {
-          // Remote track — attach to partner panel
-          console.log('📹 Remote video track received');
-          attachTrack(theirVideoRef, track, 'REMOTE');
+      // Attach video AND audio tracks
+      daily.on('track-started', ({ track, participant }: any) => {
+        if (!participant) return;
+
+        if (track.kind === 'video') {
+          if (participant.local) {
+            console.log('📹 Local video track from Daily');
+            attachVideoTrack(yourVideoRef, track, 'LOCAL');
+          } else {
+            console.log('📹 Remote video track received');
+            attachVideoTrack(theirVideoRef, track, 'REMOTE');
+          }
+        } else if (track.kind === 'audio' && !participant.local) {
+          console.log('🔊 Remote audio track received');
+          attachRemoteAudio(track);
         }
       });
 
@@ -582,13 +612,24 @@ export default function MatchPage() {
       // Catches cases where track-started was missed or track was replaced
       daily.on('participant-updated', ({ participant }: any) => {
         if (!participant || participant.local) return;
+
+        // Video fallback
         const videoTrack = participant.tracks?.video?.persistentTrack || participant.tracks?.video?.track;
         if (videoTrack && videoTrack.readyState === 'live' && theirVideoRef.current) {
-          // Only set if partner panel has no active video
           if (!theirVideoRef.current.srcObject ||
               !(theirVideoRef.current.srcObject as MediaStream).getVideoTracks().some(t => t.readyState === 'live')) {
             console.log('📹 Attaching remote video via participant-updated fallback');
-            attachTrack(theirVideoRef, videoTrack, 'REMOTE-FALLBACK');
+            attachVideoTrack(theirVideoRef, videoTrack, 'REMOTE-FALLBACK');
+          }
+        }
+
+        // Audio fallback
+        const audioTrack = participant.tracks?.audio?.persistentTrack || participant.tracks?.audio?.track;
+        if (audioTrack && audioTrack.readyState === 'live') {
+          const currentAudioStream = remoteAudioRef.current?.srcObject as MediaStream | null;
+          if (!currentAudioStream || !currentAudioStream.getAudioTracks().some(t => t.readyState === 'live')) {
+            console.log('🔊 Attaching remote audio via participant-updated fallback');
+            attachRemoteAudio(audioTrack);
           }
         }
       });
@@ -710,6 +751,11 @@ export default function MatchPage() {
         try { callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
         callObjectRef.current = null;
       }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.pause();
+        remoteAudioRef.current.srcObject = null;
+        remoteAudioRef.current = null;
+      }
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop());
         mediaStreamRef.current = null;
@@ -765,6 +811,13 @@ export default function MatchPage() {
     if (partnerUnsubscribeRef.current) {
       partnerUnsubscribeRef.current();
       partnerUnsubscribeRef.current = null;
+    }
+
+    // Clean up remote audio
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.pause();
+      remoteAudioRef.current.srcObject = null;
+      remoteAudioRef.current = null;
     }
 
     isMatchedRef.current = false;
@@ -1177,6 +1230,11 @@ export default function MatchPage() {
             if (callObjectRef.current) {
               try { await callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
               callObjectRef.current = null;
+            }
+            if (remoteAudioRef.current) {
+              remoteAudioRef.current.pause();
+              remoteAudioRef.current.srcObject = null;
+              remoteAudioRef.current = null;
             }
             if (mediaStreamRef.current) {
               mediaStreamRef.current.getTracks().forEach(t => t.stop());
