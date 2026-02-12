@@ -75,37 +75,37 @@ function FluidVibeOMeter({ count }: { count: number }) {
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      className="flex flex-col items-center gap-3"
+      className="flex flex-col items-center gap-4"
     >
-      {/* Frosted glass capsule */}
+      {/* Frosted glass capsule — 2x size */}
       <div
-        className="relative w-10 h-32 rounded-full overflow-hidden"
+        className="relative w-20 h-64 rounded-full overflow-hidden"
         style={{
           background: 'rgba(255,255,255,0.04)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           border: '1px solid rgba(255,255,255,0.08)',
           boxShadow: `
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 0 ${12 + count * 5}px rgba(${current.glow},${(0.08 + count * 0.04).toFixed(2)})
+            inset 0 2px 0 rgba(255,255,255,0.05),
+            0 0 ${24 + count * 10}px rgba(${current.glow},${(0.1 + count * 0.06).toFixed(2)})
           `,
         }}
       >
         {/* Glass highlight */}
         <div
-          className="absolute top-3 left-2 w-1 h-8 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(1px)' }}
+          className="absolute top-6 left-4 w-2 h-16 rounded-full"
+          style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(2px)' }}
         />
 
-        {/* Thin track + fill */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-2.5 bottom-2.5 w-2 rounded-full bg-white/[0.06]">
+        {/* Track + fill */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-5 bottom-5 w-4 rounded-full bg-white/[0.06]">
           <motion.div
             animate={{ height: `${fillPercent}%` }}
             transition={{ type: 'spring', stiffness: 50, damping: 18 }}
             className="absolute bottom-0 w-full rounded-full"
             style={{
               background: 'linear-gradient(to top, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #a78bfa)',
-              boxShadow: `0 0 6px rgba(${current.glow}, 0.3)`,
+              boxShadow: `0 0 12px rgba(${current.glow}, 0.4)`,
             }}
           />
         </div>
@@ -116,9 +116,9 @@ function FluidVibeOMeter({ count }: { count: number }) {
             className="absolute inset-0 rounded-full pointer-events-none"
             animate={{
               boxShadow: [
-                `0 0 20px rgba(${current.glow},0.12)`,
-                `0 0 35px rgba(${current.glow},0.22)`,
-                `0 0 20px rgba(${current.glow},0.12)`,
+                `0 0 40px rgba(${current.glow},0.15)`,
+                `0 0 70px rgba(${current.glow},0.3)`,
+                `0 0 40px rgba(${current.glow},0.15)`,
               ],
             }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -126,22 +126,22 @@ function FluidVibeOMeter({ count }: { count: number }) {
         )}
       </div>
 
-      {/* Level label */}
+      {/* Level label — 1.5x bigger and bolder */}
       <motion.div
         key={current.label}
         initial={{ opacity: 0, y: 4, filter: 'blur(4px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="px-3 py-1 rounded-full"
+        className="px-5 py-1.5 rounded-full"
         style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: 'rgba(255,255,255,0.06)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
         }}
       >
         <span
-          className="text-[10px] font-medium tracking-[0.2em]"
+          className="text-[15px] font-extrabold tracking-[0.2em]"
           style={{ color: current.accent }}
         >
           {current.label}
@@ -1019,12 +1019,12 @@ export default function MatchPage() {
                     </h3>
                   </div>
                 </div>
-                {/* Interest pills - horizontal scroll */}
-                <div className="flex gap-1.5 overflow-x-auto interests-scroll">
+                {/* Interest pills - two-row wrap */}
+                <div className="flex flex-wrap gap-1.5 max-h-[3.75rem] overflow-hidden">
                   {myInterestNames.map((interest: string) => (
                     <div
                       key={interest}
-                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
+                      className="px-3 py-1.5 rounded-full text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap"
                     >
                       {interest}
                     </div>
@@ -1042,9 +1042,14 @@ export default function MatchPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-[4.5rem] left-0 right-0 z-20 pointer-events-none px-4"
+              className="absolute top-[6rem] left-0 right-0 z-20 pointer-events-none px-4"
             >
-              <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto">
+              {/* Dark gradient backdrop for readability over any video */}
+              <div
+                className="absolute inset-0 -top-4 -bottom-4 rounded-2xl"
+                style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0) 100%)' }}
+              />
+              <div className="relative flex flex-wrap justify-center gap-2.5 max-w-xl mx-auto">
                 {(sharedInterests.length > MAX_VISIBLE_INTERESTS
                   ? sharedInterests.slice(0, MAX_VISIBLE_INTERESTS - 1)
                   : sharedInterests
@@ -1054,7 +1059,7 @@ export default function MatchPage() {
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-3.5 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-xs font-bold shadow-[0_0_16px_rgba(253,224,71,0.5)]"
+                    className="px-4.5 py-2 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-sm font-bold shadow-[0_0_20px_rgba(253,224,71,0.5)]"
                   >
                     {interest}
                   </motion.div>
@@ -1064,7 +1069,7 @@ export default function MatchPage() {
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: (MAX_VISIBLE_INTERESTS - 1) * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/10 text-yellow-300/90 border border-yellow-300/20 backdrop-blur-sm"
+                    className="px-4.5 py-2 rounded-full text-sm font-bold bg-white/10 text-yellow-300/90 border border-yellow-300/20 backdrop-blur-sm"
                   >
                     +{sharedInterests.length - MAX_VISIBLE_INTERESTS + 1} more
                   </motion.div>
@@ -1168,9 +1173,9 @@ export default function MatchPage() {
                     )}
                   </div>
                 </div>
-                {/* Interest pills - horizontal scroll */}
+                {/* Interest pills - two-row wrap */}
                 {theirProfile && (
-                  <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
+                  <div className="flex flex-wrap gap-1.5 max-h-[3.75rem] overflow-hidden items-start">
                     {theirInterestNames.map((interest: string) => {
                       const isAdded = myInterestNames.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1190,7 +1195,7 @@ export default function MatchPage() {
                           disabled={isAdded && !isFlashing}
                           animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                           transition={isFlashing ? { duration: 0.4 } : {}}
-                          className={`relative px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap flex-shrink-0 transition-all pointer-events-auto ${
+                          className={`relative px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all pointer-events-auto ${
                             isFlashing
                               ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                               : isAdded
@@ -1206,9 +1211,9 @@ export default function MatchPage() {
                     {theirInterestNames.length > 0 && (
                       <button
                         onClick={() => setShowPartnerDrawer(true)}
-                        className="px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
+                        className="px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
                       >
-                        See all ›
+                        See all
                       </button>
                     )}
                   </div>
@@ -1282,25 +1287,32 @@ export default function MatchPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] flex items-end"
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPartnerDrawer(false)} />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setShowPartnerDrawer(false)} />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="relative w-full max-h-[50vh] sm:max-h-[60vh] bg-[#1A0033]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-3xl overflow-hidden"
+              className="relative w-full max-h-[50vh] sm:max-h-[60vh] rounded-t-3xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(165deg, rgba(45,10,70,0.97) 0%, rgba(26,0,51,0.98) 50%, rgba(20,5,60,0.97) 100%)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
+                borderTop: '1px solid rgba(167,139,250,0.2)',
+                boxShadow: '0 -8px 40px rgba(88,28,135,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+              }}
             >
               {/* Handle bar — tap to close */}
               <button onClick={() => setShowPartnerDrawer(false)} className="w-full flex justify-center pt-3 pb-2 cursor-pointer">
-                <div className="w-10 h-1 rounded-full bg-white/30" />
+                <div className="w-12 h-1 rounded-full bg-violet-400/40" />
               </button>
 
               {/* Header */}
               <div className="px-4 sm:px-5 pb-2 sm:pb-3 flex items-center justify-between">
-                <h3 className="text-sm sm:text-base font-bold text-white">
+                <h3 className="text-sm sm:text-base font-bold bg-gradient-to-r from-white to-violet-200 bg-clip-text text-transparent">
                   {`${theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : 'Partner'}'s Interests`}
                 </h3>
-                <button onClick={() => setShowPartnerDrawer(false)} className="text-white/60 hover:text-white transition-colors p-2 -mr-1">
+                <button onClick={() => setShowPartnerDrawer(false)} className="text-violet-300/60 hover:text-white transition-colors p-2 -mr-1">
                   <X size={18} />
                 </button>
               </div>
@@ -1310,7 +1322,7 @@ export default function MatchPage() {
                 className="px-4 sm:px-5 overflow-y-auto max-h-[calc(50vh-68px)] sm:max-h-[calc(60vh-72px)]"
                 style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}
               >
-                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <div className="flex flex-wrap gap-2 sm:gap-2.5">
                   {theirInterestNames.map((interest: string) => {
                     const isShared = myInterestNames.some(
                       (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1325,15 +1337,15 @@ export default function MatchPage() {
                         disabled={isShared && !isFlashing}
                         animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                         transition={isFlashing ? { duration: 0.4 } : {}}
-                        className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                        className={`px-3.5 py-1.5 sm:px-4.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                           isFlashing
                             ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                             : isShared
-                              ? 'bg-yellow-300/20 text-yellow-300 border border-yellow-300/30 shadow-[0_0_8px_rgba(253,224,71,0.3)]'
-                              : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 cursor-pointer'
+                              ? 'bg-yellow-300/15 text-yellow-300 border border-yellow-300/25 shadow-[0_0_8px_rgba(253,224,71,0.25)]'
+                              : 'bg-violet-500/10 text-white/90 border border-violet-400/20 hover:bg-violet-500/20 hover:border-violet-400/30 cursor-pointer'
                         }`}
                       >
-                        {!isShared && !isFlashing && <span className="text-white/40 mr-1.5">+</span>}
+                        {!isShared && !isFlashing && <span className="text-violet-300/50 mr-1.5">+</span>}
                         {interest}
                       </motion.button>
                     );
