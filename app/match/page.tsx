@@ -531,8 +531,15 @@ export default function MatchPage() {
     clearMatchRetry();
 
     try {
-      // Get partner profile
-      const pSnap = await getDoc(doc(db, 'users', partnerId));
+      // Fetch partner profile AND megavibe status in parallel so all state
+      // is set in the same synchronous block (React batches into one render).
+      // This prevents the celebration effect from firing before we know
+      // whether this pair already had a MEGAVIBE.
+      const [pSnap, mvSnap] = await Promise.all([
+        getDoc(doc(db, 'users', partnerId)),
+        getDoc(doc(db, 'megavibes', pairKey(user!.uid, partnerId))).catch(() => null),
+      ]);
+
       if (pSnap.exists()) {
         setTheirProfile(pSnap.data());
 
@@ -548,14 +555,7 @@ export default function MatchPage() {
       isMatchedRef.current = true;
       setIsMatched(true);
       setCurrentPartnerId(partnerId);
-
-      // Check if this pair already had a MEGAVIBE
-      try {
-        const mvSnap = await getDoc(doc(db, 'megavibes', pairKey(user!.uid, partnerId)));
-        setMegaVibePreviouslyTriggered(mvSnap.exists());
-      } catch {
-        setMegaVibePreviouslyTriggered(false);
-      }
+      setMegaVibePreviouslyTriggered(mvSnap?.exists() ?? false);
 
       // Create Daily call
       const daily = DailyIframe.createCallObject();
