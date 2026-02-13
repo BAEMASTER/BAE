@@ -272,27 +272,6 @@ function MegaVibeCelebration() {
   );
 }
 
-// --- INTEREST MILESTONE POP-OUT ---
-function InterestMilestonePop({ count }: { count: number }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0, y: 50 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.5, y: -50 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99] pointer-events-none"
-    >
-      <motion.div
-        animate={{ scale: [1, 1.15, 1] }}
-        transition={{ duration: 1 }}
-        className="text-7xl font-black text-white drop-shadow-[0_0_30px_rgba(253,224,71,0.8)]"
-      >
-        {count} SHARED!
-      </motion.div>
-    </motion.div>
-  );
-}
-
 // --- MAIN PAGE ---
 export default function MatchPage() {
   const router = useRouter();
@@ -313,8 +292,8 @@ export default function MatchPage() {
   const [theirProfile, setTheirProfile] = useState<any>(null);
   const [isMatched, setIsMatched] = useState(false);
   const [showTicket, setShowTicket] = useState(false);
-  const [currentCelebration, setCurrentCelebration] = useState<number | null>(null);
   const [celebratedCounts, setCelebratedCounts] = useState<Set<number>>(new Set());
+  const [floatingAdd, setFloatingAdd] = useState<{ interest: string; key: number } | null>(null);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [partnerDisconnected, setPartnerDisconnected] = useState(false);
@@ -730,10 +709,6 @@ export default function MatchPage() {
           setMegaVibePreviouslyTriggered(true);
         }
       }
-    } else if (sharedInterests.length > 5 && !celebratedCounts.has(sharedInterests.length)) {
-      setCelebratedCounts(prev => new Set([...prev, sharedInterests.length]));
-      setCurrentCelebration(sharedInterests.length);
-      setTimeout(() => setCurrentCelebration(null), 1500);
     }
   }, [sharedInterests.length, isMatched, celebratedCounts, megaVibePreviouslyTriggered, user, currentPartnerId]);
 
@@ -813,6 +788,13 @@ export default function MatchPage() {
 
     return () => clearTimeout(timer);
   }, [isMatched, onboardingNeeded, onboardingStep, user]);
+
+  // --- FLOATING ADD CLEAR ---
+  useEffect(() => {
+    if (!floatingAdd) return;
+    const t = setTimeout(() => setFloatingAdd(null), 2200);
+    return () => clearTimeout(t);
+  }, [floatingAdd]);
 
   // --- NEXT MATCH ---
   const handleNext = async () => {
@@ -939,6 +921,9 @@ export default function MatchPage() {
     setJustAdded(prev => new Set([...prev, key]));
     setTimeout(() => setJustAdded(prev => { const n = new Set(prev); n.delete(key); return n; }), 700);
 
+    // Floating "added" notification
+    setFloatingAdd({ interest, key: Date.now() });
+
     const newEntry = createInterest(interest, 'match', currentPartnerId || undefined);
     const updated = addStructuredInterests(currentStructured, [newEntry]);
     const updatedProfile = { ...myProfile, interests: updated };
@@ -1008,9 +993,6 @@ export default function MatchPage() {
 
       {/* TICKET OVERLAY */}
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
-
-      {/* INTEREST MILESTONE POP-OUT */}
-      <AnimatePresence>{currentCelebration && <InterestMilestonePop count={currentCelebration} />}</AnimatePresence>
 
       {/* VIDEO GRID */}
       <div className="relative flex-1 flex overflow-hidden z-5 pt-14">
@@ -1240,6 +1222,33 @@ export default function MatchPage() {
             </div>
           )}
         </div>
+
+        {/* FLOATING "ADDED" NOTIFICATION */}
+        <AnimatePresence>
+          {floatingAdd && (
+            <motion.div
+              key={floatingAdd.key}
+              initial={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 0, y: -50 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 2, ease: 'easeOut' }}
+              className="absolute bottom-[7.5rem] right-[50%] translate-x-[50%] z-25 pointer-events-none"
+            >
+              <div
+                className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold text-white whitespace-nowrap"
+                style={{
+                  background: 'rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(253,224,71,0.2)',
+                  boxShadow: '0 0 10px rgba(253,224,71,0.08)',
+                }}
+              >
+                {myProfile?.displayName?.split(' ')[0] || 'You'} added <span className="text-yellow-300 font-bold">{floatingAdd.interest}</span>!
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ONBOARDING HINTS */}
         <AnimatePresence mode="wait">
