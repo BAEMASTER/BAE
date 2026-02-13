@@ -57,7 +57,7 @@ const VIBE_LEVELS = [
   { label: 'MEGAVIBE', accent: '#a78bfa', glow: '167,139,250' },
 ];
 
-const MAX_VISIBLE_INTERESTS = 8;
+const MAX_VISIBLE_SHARED = 5;
 
 /** Sorted UID pair key for deduplication (e.g. megavibes collection) */
 function pairKey(a: string, b: string): string {
@@ -72,43 +72,31 @@ function FluidVibeOMeter({ count }: { count: number }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      className="flex flex-col items-center gap-4"
+      className="flex items-center gap-2.5"
     >
-      {/* Frosted glass capsule — 2x size */}
+      {/* Horizontal frosted glass bar */}
       <div
-        className="relative w-20 h-64 rounded-full overflow-hidden"
+        className="relative w-28 h-3 rounded-full overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: `
-            inset 0 2px 0 rgba(255,255,255,0.05),
-            0 0 ${24 + count * 10}px rgba(${current.glow},${(0.1 + count * 0.06).toFixed(2)})
-          `,
+          boxShadow: `0 0 ${8 + count * 4}px rgba(${current.glow},${(0.06 + count * 0.03).toFixed(2)})`,
         }}
       >
-        {/* Glass highlight */}
-        <div
-          className="absolute top-6 left-4 w-2 h-16 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.06)', filter: 'blur(2px)' }}
+        <motion.div
+          animate={{ width: `${fillPercent}%` }}
+          transition={{ type: 'spring', stiffness: 50, damping: 18 }}
+          className="absolute left-0 top-0 bottom-0 rounded-full"
+          style={{
+            background: 'linear-gradient(to right, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #a78bfa)',
+            boxShadow: `0 0 8px rgba(${current.glow}, 0.35)`,
+          }}
         />
-
-        {/* Track + fill */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-5 bottom-5 w-4 rounded-full bg-white/[0.06]">
-          <motion.div
-            animate={{ height: `${fillPercent}%` }}
-            transition={{ type: 'spring', stiffness: 50, damping: 18 }}
-            className="absolute bottom-0 w-full rounded-full"
-            style={{
-              background: 'linear-gradient(to top, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #a78bfa)',
-              boxShadow: `0 0 12px rgba(${current.glow}, 0.4)`,
-            }}
-          />
-        </div>
 
         {/* Breathing pulse at MEGAVIBE */}
         {count >= 5 && (
@@ -116,9 +104,9 @@ function FluidVibeOMeter({ count }: { count: number }) {
             className="absolute inset-0 rounded-full pointer-events-none"
             animate={{
               boxShadow: [
-                `0 0 40px rgba(${current.glow},0.15)`,
-                `0 0 70px rgba(${current.glow},0.3)`,
-                `0 0 40px rgba(${current.glow},0.15)`,
+                `0 0 12px rgba(${current.glow},0.15)`,
+                `0 0 24px rgba(${current.glow},0.3)`,
+                `0 0 12px rgba(${current.glow},0.15)`,
               ],
             }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -126,22 +114,15 @@ function FluidVibeOMeter({ count }: { count: number }) {
         )}
       </div>
 
-      {/* Level label — 1.5x bigger and bolder */}
+      {/* Level label */}
       <motion.div
         key={current.label}
-        initial={{ opacity: 0, y: 4, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        initial={{ opacity: 0, filter: 'blur(4px)' }}
+        animate={{ opacity: 1, filter: 'blur(0px)' }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="px-5 py-1.5 rounded-full"
-        style={{
-          background: 'rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
       >
         <span
-          className="text-[15px] font-extrabold tracking-[0.2em]"
+          className="text-[11px] font-bold tracking-[0.15em]"
           style={{ color: current.accent }}
         >
           {current.label}
@@ -1019,12 +1000,12 @@ export default function MatchPage() {
                     </h3>
                   </div>
                 </div>
-                {/* Interest pills - two-row wrap */}
-                <div className="flex flex-wrap gap-1.5 max-h-[3.75rem] overflow-hidden">
+                {/* Interest pills - scrollable row */}
+                <div className="flex gap-1.5 overflow-x-auto interests-scroll">
                   {myInterestNames.map((interest: string) => (
                     <div
                       key={interest}
-                      className="px-3 py-1.5 rounded-full text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap"
+                      className="px-3 py-1.5 rounded-full text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
                     >
                       {interest}
                     </div>
@@ -1035,56 +1016,55 @@ export default function MatchPage() {
           )}
         </div>
 
-        {/* SHARED INTERESTS - Top of video area */}
+        {/* VIBE METER - Horizontal, top of video area (ambient) */}
+        {isMatched && sharedInterests.length > 0 && (
+          <div className="absolute top-[0.5rem] left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            <FluidVibeOMeter count={sharedInterests.length} />
+          </div>
+        )}
+
+        {/* SHARED INTERESTS - Center column between videos (centerpiece) */}
         <AnimatePresence>
           {isMatched && sharedInterests.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-[6rem] left-0 right-0 z-20 pointer-events-none px-4"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
             >
-              {/* Dark gradient backdrop for readability over any video */}
               <div
-                className="absolute inset-0 -top-4 -bottom-4 rounded-2xl"
-                style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0) 100%)' }}
-              />
-              <div className="relative flex flex-wrap justify-center gap-2.5 max-w-xl mx-auto">
-                {(sharedInterests.length > MAX_VISIBLE_INTERESTS
-                  ? sharedInterests.slice(0, MAX_VISIBLE_INTERESTS - 1)
-                  : sharedInterests
-                ).map((interest: string, idx: number) => (
+                className="flex flex-col items-center gap-2 px-3 py-3 rounded-2xl"
+                style={{
+                  background: 'rgba(0,0,0,0.4)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                }}
+              >
+                {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
                   <motion.div
                     key={`shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-4.5 py-2 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-sm font-bold shadow-[0_0_20px_rgba(253,224,71,0.5)]"
+                    className="px-4 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[13px] font-bold shadow-[0_0_16px_rgba(253,224,71,0.45)] whitespace-nowrap"
                   >
                     {interest}
                   </motion.div>
                 ))}
-                {sharedInterests.length > MAX_VISIBLE_INTERESTS && (
+                {sharedInterests.length > MAX_VISIBLE_SHARED && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: (MAX_VISIBLE_INTERESTS - 1) * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-4.5 py-2 rounded-full text-sm font-bold bg-white/10 text-yellow-300/90 border border-yellow-300/20 backdrop-blur-sm"
+                    transition={{ delay: MAX_VISIBLE_SHARED * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="text-[11px] font-semibold text-yellow-300/70 tracking-wide"
                   >
-                    +{sharedInterests.length - MAX_VISIBLE_INTERESTS + 1} more
+                    +{sharedInterests.length - MAX_VISIBLE_SHARED} more
                   </motion.div>
                 )}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* VIBE METER - Centered between panels */}
-        {isMatched && sharedInterests.length > 0 && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-            <FluidVibeOMeter count={sharedInterests.length} />
-          </div>
-        )}
 
         {/* THEIR VIDEO (RIGHT) */}
         <div className="relative flex-1 bg-black">
@@ -1173,9 +1153,9 @@ export default function MatchPage() {
                     )}
                   </div>
                 </div>
-                {/* Interest pills - two-row wrap */}
+                {/* Interest pills - scrollable row with See all always visible */}
                 {theirProfile && (
-                  <div className="flex flex-wrap gap-1.5 max-h-[3.75rem] overflow-hidden items-start">
+                  <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
                     {theirInterestNames.map((interest: string) => {
                       const isAdded = myInterestNames.some(
                         (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1195,7 +1175,7 @@ export default function MatchPage() {
                           disabled={isAdded && !isFlashing}
                           animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                           transition={isFlashing ? { duration: 0.4 } : {}}
-                          className={`relative px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all pointer-events-auto ${
+                          className={`relative px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap flex-shrink-0 transition-all pointer-events-auto ${
                             isFlashing
                               ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                               : isAdded
@@ -1211,7 +1191,7 @@ export default function MatchPage() {
                     {theirInterestNames.length > 0 && (
                       <button
                         onClick={() => setShowPartnerDrawer(true)}
-                        className="px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
+                        className="px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
                       >
                         See all
                       </button>
