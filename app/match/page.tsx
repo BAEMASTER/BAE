@@ -914,7 +914,6 @@ export default function MatchPage() {
     }
 
     console.log('Adding interest:', interest);
-    playCollectSound();
 
     // Flash feedback
     const key = interest.toLowerCase();
@@ -1229,13 +1228,13 @@ export default function MatchPage() {
             <motion.div
               key={floatingAdd.key}
               initial={{ opacity: 1, y: 0 }}
-              animate={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 0, y: -90 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 2, ease: 'easeOut' }}
-              className="absolute bottom-[7.5rem] right-[50%] translate-x-[50%] z-25 pointer-events-none"
+              transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute bottom-[6.5rem] right-[50%] translate-x-[50%] z-25 pointer-events-none"
             >
               <div
-                className="px-3.5 py-1.5 rounded-full text-[12px] font-semibold text-white whitespace-nowrap"
+                className="px-2.5 py-1 rounded-full text-[10px] font-semibold text-white whitespace-nowrap"
                 style={{
                   background: 'rgba(0,0,0,0.55)',
                   backdropFilter: 'blur(12px)',
