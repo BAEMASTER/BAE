@@ -59,6 +59,16 @@ const VIBE_LEVELS = [
 
 const MAX_VISIBLE_SHARED = 5;
 
+// --- ONBOARDING HINTS (first match only) ---
+const ONBOARDING_HINTS = [
+  { text: 'More shared interests = more vibes', style: { top: '1.75rem', left: '50%', transform: 'translateX(-50%)' } },
+  { text: 'Gold = you both love this', style: { top: '62%', left: '50%', transform: 'translateX(-50%)' } },
+  { text: 'Tap + to add any interest to your profile', style: { bottom: '7rem', right: '0.75rem' } },
+  { text: 'Tap \u2764\uFE0F to save this person', style: { bottom: '9.5rem', right: '0.75rem' } },
+  { text: 'Tap to see all their interests', style: { bottom: '5.5rem', right: '0.75rem' } },
+  { text: 'Meet someone new', style: { bottom: '0.5rem', right: '6rem' } },
+];
+
 /** Sorted UID pair key for deduplication (e.g. megavibes collection) */
 function pairKey(a: string, b: string): string {
   return [a, b].sort().join('_');
@@ -316,6 +326,8 @@ export default function MatchPage() {
   const [showPartnerDrawer, setShowPartnerDrawer] = useState(false);
   const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
   const myProfileRef = useRef<any>(null);
+  const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null); // null = unknown
+  const [onboardingStep, setOnboardingStep] = useState(-1); // -1 = not started, 0-5 = showing, 6 = done
 
   // --- SHARED INTERESTS ---
   const myInterestNames = useMemo(() => interestNames(parseInterests(myProfile?.interests)), [myProfile?.interests]);
@@ -346,6 +358,7 @@ export default function MatchPage() {
           const parsed = parseSavedProfiles(profileData.savedProfiles);
           setSavedProfiles(parsed);
           setSavedUids(savedProfileUids(parsed));
+          setOnboardingNeeded(!profileData.matchOnboardingDone);
         }
       } catch (e) {
         console.error('Profile load failed:', e);
@@ -776,6 +789,31 @@ export default function MatchPage() {
     return () => clearInterval(t);
   }, [isMatched]);
 
+  // --- ONBOARDING HINT SEQUENCE (first match only) ---
+  useEffect(() => {
+    if (!isMatched || !onboardingNeeded || onboardingStep >= ONBOARDING_HINTS.length) return;
+
+    if (onboardingStep === -1) {
+      // Delay 2s after match before starting hints
+      const delay = setTimeout(() => setOnboardingStep(0), 2000);
+      return () => clearTimeout(delay);
+    }
+
+    // Advance to next hint after 3.5s (includes fade in/out time)
+    const timer = setTimeout(() => {
+      const next = onboardingStep + 1;
+      setOnboardingStep(next);
+
+      // All hints done — persist flag to Firestore
+      if (next >= ONBOARDING_HINTS.length && user) {
+        updateDoc(doc(db, 'users', user.uid), { matchOnboardingDone: true }).catch(() => {});
+        setOnboardingNeeded(false);
+      }
+    }, 3500);
+
+    return () => clearTimeout(timer);
+  }, [isMatched, onboardingNeeded, onboardingStep, user]);
+
   // --- NEXT MATCH ---
   const handleNext = async () => {
     clearMatchRetry();
@@ -1202,6 +1240,33 @@ export default function MatchPage() {
             </div>
           )}
         </div>
+
+        {/* ONBOARDING HINTS */}
+        <AnimatePresence mode="wait">
+          {onboardingStep >= 0 && onboardingStep < ONBOARDING_HINTS.length && (
+            <motion.div
+              key={onboardingStep}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute z-30 pointer-events-none"
+              style={ONBOARDING_HINTS[onboardingStep].style}
+            >
+              <div
+                className="px-3 py-1.5 rounded-full text-[12px] font-medium text-white/90 whitespace-nowrap"
+                style={{
+                  background: 'rgba(0,0,0,0.6)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {ONBOARDING_HINTS[onboardingStep].text}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* BOTTOM CONTROLS BAR */}
