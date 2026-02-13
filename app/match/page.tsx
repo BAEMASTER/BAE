@@ -60,13 +60,13 @@ const VIBE_LEVELS = [
 const MAX_VISIBLE_SHARED = 5;
 
 // --- ONBOARDING HINTS (first match only) ---
-const ONBOARDING_HINTS = [
-  { text: 'More shared interests = more vibes', style: { top: '1.75rem', left: '50%', transform: 'translateX(-50%)' } },
-  { text: 'Gold = you both love this', style: { top: '62%', left: '50%', transform: 'translateX(-50%)' } },
-  { text: 'Tap + to add any interest to your profile', style: { bottom: '7rem', right: '0.75rem' } },
-  { text: 'Tap \u2764\uFE0F to save this person', style: { bottom: '9.5rem', right: '0.75rem' } },
-  { text: 'Tap to see all their interests', style: { bottom: '5.5rem', right: '0.75rem' } },
-  { text: 'Meet someone new', style: { bottom: '0.5rem', right: '6rem' } },
+const ONBOARDING_HINTS: { text: string; arrow: 'up' | 'down'; style: React.CSSProperties }[] = [
+  { text: 'More shared interests = more vibes', arrow: 'up', style: { top: '2.25rem', left: '50%', transform: 'translateX(-50%)' } },
+  { text: 'Gold = you both love this', arrow: 'up', style: { top: '65%', left: '50%', transform: 'translateX(-50%)' } },
+  { text: 'Tap + to add any interest to your profile', arrow: 'down', style: { bottom: '7.5rem', right: '0.75rem' } },
+  { text: 'Tap \u2764\uFE0F to save this person', arrow: 'down', style: { bottom: '10rem', right: '0.75rem' } },
+  { text: 'Tap to see all their interests', arrow: 'down', style: { bottom: '6rem', right: '0.75rem' } },
+  { text: 'Meet someone new', arrow: 'down', style: { bottom: '3.75rem', right: '1rem' } },
 ];
 
 /** Sorted UID pair key for deduplication (e.g. megavibes collection) */
@@ -1243,29 +1243,57 @@ export default function MatchPage() {
 
         {/* ONBOARDING HINTS */}
         <AnimatePresence mode="wait">
-          {onboardingStep >= 0 && onboardingStep < ONBOARDING_HINTS.length && (
-            <motion.div
-              key={onboardingStep}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute z-30 pointer-events-none"
-              style={ONBOARDING_HINTS[onboardingStep].style}
-            >
-              <div
-                className="px-3 py-1.5 rounded-full text-[12px] font-medium text-white/90 whitespace-nowrap"
-                style={{
-                  background: 'rgba(0,0,0,0.6)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
+          {onboardingStep >= 0 && onboardingStep < ONBOARDING_HINTS.length && (() => {
+            const hint = ONBOARDING_HINTS[onboardingStep];
+            return (
+              <motion.div
+                key={onboardingStep}
+                initial={{ opacity: 0, y: hint.arrow === 'up' ? 6 : -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: hint.arrow === 'up' ? 6 : -6 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="absolute z-30 pointer-events-none flex flex-col items-center gap-1"
+                style={hint.style}
               >
-                {ONBOARDING_HINTS[onboardingStep].text}
-              </div>
-            </motion.div>
-          )}
+                {/* Arrow pointing UP toward target above */}
+                {hint.arrow === 'up' && (
+                  <motion.div
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="text-amber-400/70 text-[10px] leading-none"
+                  >
+                    ▲
+                  </motion.div>
+                )}
+
+                {/* Hint pill */}
+                <div
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-medium text-white/90 whitespace-nowrap"
+                  style={{
+                    background: 'rgba(0,0,0,0.65)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(253,224,71,0.25)',
+                    boxShadow: '0 0 12px rgba(253,224,71,0.1), 0 2px 8px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  <span className="text-[13px]" aria-hidden>💡</span>
+                  {hint.text}
+                </div>
+
+                {/* Arrow pointing DOWN toward target below */}
+                {hint.arrow === 'down' && (
+                  <motion.div
+                    animate={{ y: [0, 5, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="text-amber-400/70 text-[10px] leading-none"
+                  >
+                    ▼
+                  </motion.div>
+                )}
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
       </div>
 
