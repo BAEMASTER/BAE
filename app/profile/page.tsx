@@ -444,9 +444,9 @@ export default function ProfilePage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
-              className="bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl"
+              className="bg-white/5 backdrop-blur-lg px-7 pt-7 pb-6 sm:px-8 sm:pt-8 sm:pb-7 rounded-3xl border border-white/10 shadow-2xl"
             >
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-3 mb-1.5">
                 <h3 className="text-xl font-bold">Your Interests</h3>
                 <span className={`text-xs font-semibold px-3 py-1 rounded-full ${interests.length >= MIN_REQUIRED ? 'bg-green-400/15 text-green-300' : 'bg-yellow-400/15 text-yellow-300'}`}>
                   {interests.length >= MIN_REQUIRED
@@ -454,7 +454,7 @@ export default function ProfilePage() {
                     : `${interests.length}/${MIN_REQUIRED} minimum`}
                 </span>
               </div>
-              <p className="text-white/90 text-sm mb-4">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
+              <p className="text-white/90 text-sm mb-6">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
 
               <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
                 <AnimatePresence>
