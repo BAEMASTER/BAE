@@ -201,9 +201,6 @@ export default function HomePage() {
 
         {/* CTA BUTTON - Changes based on auth/profile state */}
         <motion.button
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6, duration: 0.6, type: "spring", stiffness: 100 }}
           whileHover={{ scale: 1.05, boxShadow: "0 15px 40px rgba(245, 158, 11, 0.7)" }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
