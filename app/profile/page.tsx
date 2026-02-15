@@ -473,7 +473,7 @@ export default function ProfilePage() {
                   placeholder={`e.g. ${INTEREST_EXAMPLES[exampleIdx]}`}
                   className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
                 />
-                <button onClick={addInterest} className="px-6 py-2.5 border border-amber-400/60 hover:border-amber-300 text-amber-300 hover:text-amber-200 rounded-full font-bold transition-colors">Add</button>
+                <button onClick={addInterest} className="px-6 py-2.5 bg-amber-400/10 border border-amber-400/50 hover:bg-amber-400/20 hover:border-amber-300 text-amber-200 hover:text-amber-100 rounded-full font-bold transition-colors">Add</button>
               </div>
             </motion.div>
           )}
