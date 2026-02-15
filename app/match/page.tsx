@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
-import { doc, getDoc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw, Heart } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
@@ -504,14 +504,12 @@ export default function MatchPage() {
     clearMatchRetry();
 
     try {
-      // Fetch partner profile AND megavibe status in parallel so all state
-      // is set in the same synchronous block (React batches into one render).
-      // This prevents the celebration effect from firing before we know
-      // whether this pair already had a MEGAVIBE.
-      const [pSnap, mvSnap] = await Promise.all([
-        getDoc(doc(db, 'users', partnerId)),
-        getDoc(doc(db, 'megavibes', pairKey(user!.uid, partnerId))).catch(() => null),
-      ]);
+      // Fetch partner profile
+      const pSnap = await getDoc(doc(db, 'users', partnerId));
+
+      // Check megavibe status from user's own document (guaranteed readable,
+      // unlike the megavibes collection which may be blocked by Firestore rules)
+      const alreadyMegavibed = (myProfileRef.current?.megavibePairs || []).includes(partnerId);
 
       if (pSnap.exists()) {
         setTheirProfile(pSnap.data());
@@ -528,7 +526,7 @@ export default function MatchPage() {
       isMatchedRef.current = true;
       setIsMatched(true);
       setCurrentPartnerId(partnerId);
-      setMegaVibePreviouslyTriggered(mvSnap?.exists() ?? false);
+      setMegaVibePreviouslyTriggered(alreadyMegavibed);
 
       // Create Daily call
       const daily = DailyIframe.createCallObject();
@@ -699,13 +697,16 @@ export default function MatchPage() {
         playMegaVibeSound();
         setTimeout(() => setShowTicket(false), 2500);
 
-        // Record this pair's MEGAVIBE in Firestore
+        // Record this pair's MEGAVIBE on user's own document (guaranteed writable)
         if (user && currentPartnerId) {
-          const key = pairKey(user.uid, currentPartnerId);
-          setDoc(doc(db, 'megavibes', key), {
-            users: [user.uid, currentPartnerId].sort(),
-            triggeredAt: new Date().toISOString(),
+          updateDoc(doc(db, 'users', user.uid), {
+            megavibePairs: arrayUnion(currentPartnerId),
           }).catch(() => {});
+          // Update local ref so subsequent matches in same session see it
+          myProfileRef.current = {
+            ...myProfileRef.current,
+            megavibePairs: [...(myProfileRef.current?.megavibePairs || []), currentPartnerId],
+          };
           setMegaVibePreviouslyTriggered(true);
         }
       }
@@ -994,162 +995,74 @@ export default function MatchPage() {
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
 
       {/* VIDEO GRID */}
-      <div className="relative flex-1 flex overflow-hidden z-5 pt-14">
-        {/* YOUR VIDEO (LEFT) */}
-        <div className="relative flex-1 bg-black">
-          <video
-            ref={yourVideoRef}
-            autoPlay
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ transform: 'scaleX(-1)' }}
-          />
-
-          {/* YOUR NAME + INTERESTS - Unified bottom overlay */}
-          {myProfile && (
-            <div className="absolute bottom-0 left-0 right-0 z-15 pb-[52px]">
-              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3">
-                {/* Name badge */}
-                <div className="text-center mb-2">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-                    <h3 className="text-sm font-bold text-white">
-                      {myProfile?.displayName ? formatPublicName(myProfile.displayName) : 'You'}
-                      {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
-                    </h3>
-                  </div>
-                </div>
-                {/* Interest pills - scrollable row */}
-                <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                  {myInterestNames.map((interest: string) => (
-                    <div
-                      key={interest}
-                      className="px-3 py-1.5 rounded-full text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
+      <div className="relative flex-1 flex flex-col sm:flex-row overflow-hidden z-5 pt-14">
+        {/* PARTNER VIDEO SECTION (top on mobile, right on desktop) */}
+        <div className="relative order-1 sm:order-2 flex-1 bg-black flex flex-col sm:block min-h-0">
+          {/* Video wrapper: flex-1 on mobile (fills available space), absolute on desktop */}
+          <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
+            <video
+              ref={theirVideoRef}
+              autoPlay
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {!isMatched && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
+                <div className="text-center px-6">
+                  <motion.div
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    className="text-5xl mb-4"
+                  >
+                    ✨
+                  </motion.div>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={waitingMsgIdx}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-lg font-bold text-white"
                     >
-                      {interest}
-                    </div>
-                  ))}
+                      {WAITING_MESSAGES[waitingMsgIdx]}
+                    </motion.p>
+                  </AnimatePresence>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* VIBE METER - Horizontal, top of video area (ambient) */}
-        {isMatched && sharedInterests.length > 0 && (
-          <div className="absolute top-[0.5rem] left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-            <FluidVibeOMeter count={sharedInterests.length} />
-          </div>
-        )}
-
-        {/* SHARED INTERESTS - Center column between videos (centerpiece) */}
-        <AnimatePresence>
-          {isMatched && sharedInterests.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
-            >
-              <div
-                className="flex flex-col items-center gap-2 px-3 py-3 rounded-2xl"
-                style={{
-                  background: 'rgba(0,0,0,0.4)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                }}
-              >
-                {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
-                  <motion.div
-                    key={`shared-${interest}`}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-4 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[13px] font-bold shadow-[0_0_16px_rgba(253,224,71,0.45)] whitespace-nowrap"
-                  >
-                    {interest}
-                  </motion.div>
-                ))}
-                {sharedInterests.length > MAX_VISIBLE_SHARED && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: MAX_VISIBLE_SHARED * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="text-[11px] font-semibold text-yellow-300/70 tracking-wide"
-                  >
-                    +{sharedInterests.length - MAX_VISIBLE_SHARED} more
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* THEIR VIDEO (RIGHT) */}
-        <div className="relative flex-1 bg-black">
-          {/* Always render video element so ref is available when track-started fires */}
-          <video
-            ref={theirVideoRef}
-            autoPlay
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          {!isMatched && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
-              <div className="text-center px-6">
-                <motion.div
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                  className="text-5xl mb-4"
-                >
-                  ✨
-                </motion.div>
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={waitingMsgIdx}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-lg font-bold text-white"
-                  >
-                    {WAITING_MESSAGES[waitingMsgIdx]}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-          {/* Partner disconnect overlay */}
-          <AnimatePresence>
-            {isMatched && partnerDisconnected && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-              >
-                <div className="text-center px-4">
-                  <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleNext}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
-                  >
-                    Find Next Match
-                    <RefreshCw size={16} />
-                  </motion.button>
-                </div>
-              </motion.div>
             )}
-          </AnimatePresence>
+            {/* Partner disconnect overlay */}
+            <AnimatePresence>
+              {isMatched && partnerDisconnected && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                >
+                  <div className="text-center px-4">
+                    <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleNext}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                    >
+                      Find Next Match
+                      <RefreshCw size={16} />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-          {/* THEIR NAME + INTERESTS - Unified bottom overlay */}
+          {/* THEIR NAME + INTERESTS — flows below video on mobile, absolute overlay on desktop */}
           {isMatched && (
-            <div className="absolute bottom-0 left-0 right-0 z-15 pb-[52px]">
-              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-3">
+            <div className="relative sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
+              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-2 sm:p-3">
                 {/* Name + heart badge */}
-                <div className="text-center mb-2">
+                <div className="text-center mb-1.5 sm:mb-2">
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white">
                       {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
@@ -1162,7 +1075,7 @@ export default function MatchPage() {
                         className="pointer-events-auto cursor-pointer p-0.5"
                       >
                         <Heart
-                          size={16}
+                          size={20}
                           strokeWidth={1.5}
                           className={savedUids.has(currentPartnerId)
                             ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
@@ -1172,7 +1085,7 @@ export default function MatchPage() {
                     )}
                   </div>
                 </div>
-                {/* Interest pills - scrollable row with See all always visible */}
+                {/* Interest pills - scrollable row with See all */}
                 {theirProfile && (
                   <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
                     {theirInterestNames.map((interest: string) => {
@@ -1221,6 +1134,130 @@ export default function MatchPage() {
             </div>
           )}
         </div>
+
+        {/* MOBILE ONLY: Shared strip with vibe meter between partner and your sections */}
+        {isMatched && sharedInterests.length > 0 && (
+          <div
+            className="order-2 sm:hidden z-15 flex items-center gap-2.5 px-3 py-1.5"
+            style={{
+              background: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderTop: '1px solid rgba(255,255,255,0.1)',
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <FluidVibeOMeter count={sharedInterests.length} />
+            <div className="flex gap-1.5 overflow-x-auto interests-scroll flex-1 min-w-0">
+              {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string) => (
+                <div
+                  key={`m-shared-${interest}`}
+                  className="px-2.5 py-1 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[11px] font-bold shadow-[0_0_10px_rgba(253,224,71,0.35)] whitespace-nowrap flex-shrink-0"
+                >
+                  {interest}
+                </div>
+              ))}
+              {sharedInterests.length > MAX_VISIBLE_SHARED && (
+                <div className="text-[10px] font-semibold text-yellow-300/70 whitespace-nowrap flex-shrink-0 self-center">
+                  +{sharedInterests.length - MAX_VISIBLE_SHARED} more
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* YOUR VIDEO SECTION (bottom on mobile, left on desktop) */}
+        <div className="relative order-3 sm:order-1 flex-1 bg-black flex flex-col sm:block min-h-0">
+          {/* Video wrapper */}
+          <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
+            <video
+              ref={yourVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+          </div>
+
+          {/* YOUR NAME + INTERESTS — flows below video on mobile, absolute overlay on desktop */}
+          {myProfile && (
+            <div className="relative pb-[52px] sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
+              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-2 sm:p-3">
+                {/* Name badge */}
+                <div className="text-center mb-1.5 sm:mb-2">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
+                    <h3 className="text-sm font-bold text-white">
+                      {myProfile?.displayName ? formatPublicName(myProfile.displayName) : 'You'}
+                      {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
+                    </h3>
+                  </div>
+                </div>
+                {/* Interest pills - scrollable row */}
+                <div className="flex gap-1.5 overflow-x-auto interests-scroll">
+                  {myInterestNames.map((interest: string) => (
+                    <div
+                      key={interest}
+                      className="px-3 py-1.5 rounded-full text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
+                    >
+                      {interest}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* DESKTOP ONLY: Vibe meter (absolute top center) */}
+        {isMatched && sharedInterests.length > 0 && (
+          <div className="hidden sm:block absolute top-[0.5rem] left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            <FluidVibeOMeter count={sharedInterests.length} />
+          </div>
+        )}
+
+        {/* DESKTOP ONLY: Shared interests center column */}
+        <AnimatePresence>
+          {isMatched && sharedInterests.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="hidden sm:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+            >
+              <div
+                className="flex flex-col items-center gap-2 px-3 py-3 rounded-2xl"
+                style={{
+                  background: 'rgba(0,0,0,0.4)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                }}
+              >
+                {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
+                  <motion.div
+                    key={`shared-${interest}`}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="px-4 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[13px] font-bold shadow-[0_0_16px_rgba(253,224,71,0.45)] whitespace-nowrap"
+                  >
+                    {interest}
+                  </motion.div>
+                ))}
+                {sharedInterests.length > MAX_VISIBLE_SHARED && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: MAX_VISIBLE_SHARED * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="text-[11px] font-semibold text-yellow-300/70 tracking-wide"
+                  >
+                    +{sharedInterests.length - MAX_VISIBLE_SHARED} more
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* FLOATING "ADDED" NOTIFICATION */}
         <AnimatePresence>
