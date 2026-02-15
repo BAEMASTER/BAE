@@ -454,7 +454,7 @@ export default function ProfilePage() {
                     : `${interests.length}/${MIN_REQUIRED} minimum`}
                 </span>
               </div>
-              <p className="text-white/40 text-xs mb-4">Have fun adding your unique interests! The more interests, the better!</p>
+              <p className="text-white/90 text-sm mb-4">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
 
               <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
                 <AnimatePresence>
