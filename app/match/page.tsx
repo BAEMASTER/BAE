@@ -77,6 +77,17 @@ function pairKey(a: string, b: string): string {
 function FluidVibeOMeter({ count }: { count: number }) {
   const current = count > 0 ? VIBE_LEVELS[Math.min(count - 1, 4)] : null;
   const fillPercent = Math.min((count / 5) * 100, 100);
+  const prevCountRef = useRef(0);
+  const [sparking, setSparking] = useState(false);
+
+  useEffect(() => {
+    if (count > prevCountRef.current && prevCountRef.current > 0) {
+      setSparking(true);
+      const t = setTimeout(() => setSparking(false), 500);
+      return () => clearTimeout(t);
+    }
+    prevCountRef.current = count;
+  }, [count]);
 
   if (count === 0 || !current) return null;
 
@@ -108,6 +119,23 @@ function FluidVibeOMeter({ count }: { count: number }) {
           }}
         />
 
+        {/* Electric spark on level-up */}
+        <AnimatePresence>
+          {sparking && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{
+                background: `linear-gradient(90deg, transparent 30%, rgba(${current.glow},0.9) 50%, transparent 70%)`,
+                boxShadow: `0 0 16px rgba(${current.glow},0.8), 0 0 4px rgba(255,255,255,0.6)`,
+              }}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Breathing pulse at MEGAVIBE */}
         {count >= 5 && (
           <motion.div
@@ -124,16 +152,20 @@ function FluidVibeOMeter({ count }: { count: number }) {
         )}
       </div>
 
-      {/* Level label */}
+      {/* Level label — sparks scale briefly on level-up */}
       <motion.div
         key={current.label}
-        initial={{ opacity: 0, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, filter: 'blur(0px)' }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        initial={{ opacity: 0, scale: 1.3, filter: 'blur(4px)' }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
       >
         <span
           className="text-[11px] font-bold tracking-[0.15em]"
-          style={{ color: current.accent }}
+          style={{
+            color: current.accent,
+            textShadow: sparking ? `0 0 8px ${current.accent}` : 'none',
+            transition: 'text-shadow 0.3s ease-out',
+          }}
         >
           {current.label}
         </span>
@@ -1259,29 +1291,57 @@ export default function MatchPage() {
           )}
         </AnimatePresence>
 
-        {/* FLOATING "ADDED" NOTIFICATION */}
+        {/* FLOATING "ADDED" NOTIFICATION — golden campfire spark */}
         <AnimatePresence>
           {floatingAdd && (
             <motion.div
               key={floatingAdd.key}
-              initial={{ opacity: 1, y: 0 }}
-              animate={{ opacity: 0, y: -90 }}
+              initial={{ opacity: 1, y: 0, scale: 0.85 }}
+              animate={{ opacity: 0, y: -95, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
               className="absolute bottom-[6.5rem] right-[50%] translate-x-[50%] z-25 pointer-events-none"
             >
-              <div
+              {/* Sparkle trail particles */}
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0.8, y: 0, x: 0, scale: 1 }}
+                  animate={{
+                    opacity: 0,
+                    y: 10 + i * 8,
+                    x: (i % 2 === 0 ? 1 : -1) * (4 + i * 3),
+                    scale: 0,
+                  }}
+                  transition={{ duration: 0.8 + i * 0.15, delay: i * 0.08, ease: 'easeOut' }}
+                  className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full pointer-events-none"
+                  style={{ background: '#fcd34d', boxShadow: '0 0 4px #fcd34d' }}
+                />
+              ))}
+
+              {/* Pill */}
+              <motion.div
+                initial={{ boxShadow: '0 0 20px rgba(253,224,71,0.5), 0 0 6px rgba(253,224,71,0.3)' }}
+                animate={{ boxShadow: '0 0 8px rgba(253,224,71,0.1), 0 0 2px rgba(253,224,71,0.05)' }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
                 className="px-2.5 py-1 rounded-full text-[10px] font-semibold text-white whitespace-nowrap"
                 style={{
-                  background: 'rgba(0,0,0,0.55)',
+                  background: 'linear-gradient(135deg, rgba(120,80,0,0.7) 0%, rgba(60,40,0,0.65) 100%)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(253,224,71,0.2)',
-                  boxShadow: '0 0 10px rgba(253,224,71,0.08)',
+                  border: '1px solid rgba(253,224,71,0.4)',
                 }}
               >
-                {myProfile?.displayName?.split(' ')[0] || 'You'} added <span className="text-yellow-300 font-bold">{floatingAdd.interest}</span>!
-              </div>
+                {myProfile?.displayName?.split(' ')[0] || 'You'} added{' '}
+                <motion.span
+                  initial={{ color: '#fff', textShadow: '0 0 8px rgba(253,224,71,0.8)' }}
+                  animate={{ color: '#fcd34d', textShadow: '0 0 0px rgba(253,224,71,0)' }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  className="font-bold"
+                >
+                  {floatingAdd.interest}
+                </motion.span>!
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
