@@ -1185,13 +1185,16 @@ export default function MatchPage() {
           >
             <FluidVibeOMeter count={sharedInterests.length} />
             <div className="flex gap-1.5 overflow-x-auto interests-scroll flex-1 min-w-0">
-              {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string) => (
-                <div
+              {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
+                <motion.div
                   key={`m-shared-${interest}`}
-                  className="px-2.5 py-1 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[11px] font-bold shadow-[0_0_10px_rgba(253,224,71,0.35)] whitespace-nowrap flex-shrink-0"
+                  initial={{ opacity: 0, scale: 0, boxShadow: '0 0 24px rgba(253,224,71,0.8)' }}
+                  animate={{ opacity: 1, scale: 1, boxShadow: '0 0 10px rgba(253,224,71,0.35)' }}
+                  transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
+                  className="px-2.5 py-1 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[11px] font-bold whitespace-nowrap flex-shrink-0"
                 >
                   {interest}
-                </div>
+                </motion.div>
               ))}
               {sharedInterests.length > MAX_VISIBLE_SHARED && (
                 <div className="text-[10px] font-semibold text-yellow-300/70 whitespace-nowrap flex-shrink-0 self-center">
@@ -1272,10 +1275,10 @@ export default function MatchPage() {
                 {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
                   <motion.div
                     key={`shared-${interest}`}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, scale: 0, boxShadow: '0 0 32px rgba(253,224,71,0.8)' }}
+                    animate={{ opacity: 1, scale: 1, boxShadow: '0 0 16px rgba(253,224,71,0.45)' }}
                     transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-4 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[13px] font-bold shadow-[0_0_16px_rgba(253,224,71,0.45)] whitespace-nowrap"
+                    className="px-4 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[13px] font-bold whitespace-nowrap"
                   >
                     {interest}
                   </motion.div>
@@ -1295,56 +1298,47 @@ export default function MatchPage() {
           )}
         </AnimatePresence>
 
-        {/* FLOATING "ADDED" NOTIFICATION — golden campfire spark */}
+        {/* GHOST PILL — golden spark rising toward shared strip */}
         <AnimatePresence>
           {floatingAdd && (
             <motion.div
               key={floatingAdd.key}
-              initial={{ opacity: 1, y: 0, scale: 0.85 }}
-              animate={{ opacity: 0, y: -95, scale: 1 }}
+              initial={{ opacity: 1, y: 0, scale: 0.8 }}
+              animate={{ opacity: 0, y: -110, scale: 1.05 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1.8, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute bottom-[6.5rem] right-[50%] translate-x-[50%] z-25 pointer-events-none"
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute bottom-[5.5rem] sm:bottom-[6rem] left-1/2 -translate-x-1/2 z-25 pointer-events-none"
             >
-              {/* Sparkle trail particles */}
-              {[...Array(5)].map((_, i) => (
+              {/* Sparkle trail — campfire sparks drifting behind */}
+              {[...Array(7)].map((_, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0.8, y: 0, x: 0, scale: 1 }}
+                  initial={{ opacity: 0.9, y: 0, x: 0, scale: 1 }}
                   animate={{
                     opacity: 0,
-                    y: 10 + i * 8,
-                    x: (i % 2 === 0 ? 1 : -1) * (4 + i * 3),
+                    y: 14 + i * 9,
+                    x: (i % 2 === 0 ? 1 : -1) * (3 + i * 4),
                     scale: 0,
                   }}
-                  transition={{ duration: 0.8 + i * 0.15, delay: i * 0.08, ease: 'easeOut' }}
-                  className="absolute left-1/2 top-1/2 w-1 h-1 rounded-full pointer-events-none"
-                  style={{ background: '#fcd34d', boxShadow: '0 0 4px #fcd34d' }}
+                  transition={{ duration: 0.4 + i * 0.08, delay: i * 0.04, ease: 'easeOut' }}
+                  className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
+                  style={{
+                    width: `${3 - i * 0.3}px`,
+                    height: `${3 - i * 0.3}px`,
+                    background: i < 3 ? '#fde047' : '#fbbf24',
+                    boxShadow: `0 0 ${5 - i * 0.5}px ${i < 3 ? '#fde047' : '#fbbf24'}`,
+                  }}
                 />
               ))}
 
-              {/* Pill */}
+              {/* Ghost pill — looks like a shared interest pill */}
               <motion.div
-                initial={{ boxShadow: '0 0 20px rgba(253,224,71,0.5), 0 0 6px rgba(253,224,71,0.3)' }}
-                animate={{ boxShadow: '0 0 8px rgba(253,224,71,0.1), 0 0 2px rgba(253,224,71,0.05)' }}
-                transition={{ duration: 1.2, ease: 'easeOut' }}
-                className="px-2.5 py-1 rounded-full text-[10px] font-semibold text-white whitespace-nowrap"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(120,80,0,0.7) 0%, rgba(60,40,0,0.65) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(253,224,71,0.4)',
-                }}
+                initial={{ boxShadow: '0 0 28px rgba(253,224,71,0.7), 0 0 8px rgba(253,224,71,0.4)' }}
+                animate={{ boxShadow: '0 0 6px rgba(253,224,71,0.1)' }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-bold text-black bg-yellow-300 border border-yellow-200/80 whitespace-nowrap"
               >
-                {myProfile?.displayName?.split(' ')[0] || 'You'} added{' '}
-                <motion.span
-                  initial={{ color: '#fff', textShadow: '0 0 8px rgba(253,224,71,0.8)' }}
-                  animate={{ color: '#fcd34d', textShadow: '0 0 0px rgba(253,224,71,0)' }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                  className="font-bold"
-                >
-                  {floatingAdd.interest}
-                </motion.span>!
+                {floatingAdd.interest}
               </motion.div>
             </motion.div>
           )}
