@@ -434,7 +434,11 @@ export default function MatchPage() {
       if (!mediaStreamRef.current) {
         try {
           mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' },
+            video: {
+              facingMode: 'user',
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
             audio: true,
           });
           if (yourVideoRef.current) {
@@ -1008,7 +1012,7 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
+    <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col" style={{ height: '100dvh' }}>
       <style>{scrollbarStyle}</style>
 
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
@@ -1017,7 +1021,7 @@ export default function MatchPage() {
       </div>
 
       {/* HEADER */}
-      <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
+      <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-12 sm:h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
         <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-violet-400 bg-clip-text text-transparent">
           BAE
         </div>
@@ -1027,16 +1031,16 @@ export default function MatchPage() {
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
 
       {/* VIDEO GRID */}
-      <div className="relative flex-1 flex flex-col sm:flex-row overflow-hidden z-5 pt-14">
+      <div className="relative flex-1 flex flex-col sm:flex-row overflow-hidden z-5 pt-12 sm:pt-14">
         {/* PARTNER VIDEO SECTION (top on mobile, right on desktop) */}
-        <div className="relative order-1 sm:order-2 flex-1 bg-black flex flex-col sm:block min-h-0">
+        <div className="relative order-1 sm:order-2 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden">
           {/* Video wrapper: flex-1 on mobile (fills available space), absolute on desktop */}
           <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
             <video
               ref={theirVideoRef}
               autoPlay
               playsInline
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain sm:object-cover"
             />
             {!isMatched && (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
@@ -1092,9 +1096,9 @@ export default function MatchPage() {
           {/* THEIR NAME + INTERESTS — flows below video on mobile, absolute overlay on desktop */}
           {isMatched && (
             <div className="relative sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
-              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-2 sm:p-3">
+              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 px-2 py-1 sm:p-3">
                 {/* Name + heart badge */}
-                <div className="text-center mb-1.5 sm:mb-2">
+                <div className="text-center mb-0.5 sm:mb-2">
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
                     <h3 className="text-sm font-bold text-white">
                       {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
@@ -1139,7 +1143,7 @@ export default function MatchPage() {
                           disabled={isAdded && !isFlashing}
                           animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                           transition={isFlashing ? { duration: 0.4 } : {}}
-                          className={`relative px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap flex-shrink-0 transition-all pointer-events-auto ${
+                          className={`relative px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-semibold whitespace-nowrap flex-shrink-0 transition-all pointer-events-auto ${
                             isFlashing
                               ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                               : isAdded
@@ -1155,7 +1159,7 @@ export default function MatchPage() {
                     {theirInterestNames.length > 0 && (
                       <button
                         onClick={() => setShowPartnerDrawer(true)}
-                        className="px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
+                        className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
                       >
                         See all
                       </button>
@@ -1170,7 +1174,7 @@ export default function MatchPage() {
         {/* MOBILE ONLY: Shared strip with vibe meter between partner and your sections */}
         {isMatched && sharedInterests.length > 0 && (
           <div
-            className="order-2 sm:hidden z-15 flex items-center gap-2.5 px-3 py-1.5"
+            className="order-2 sm:hidden z-15 flex items-center gap-2 px-2 py-1"
             style={{
               background: 'rgba(0,0,0,0.5)',
               backdropFilter: 'blur(12px)',
@@ -1199,7 +1203,7 @@ export default function MatchPage() {
         )}
 
         {/* YOUR VIDEO SECTION (bottom on mobile, left on desktop) */}
-        <div className="relative order-3 sm:order-1 flex-1 bg-black flex flex-col sm:block min-h-0">
+        <div className="relative order-3 sm:order-1 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden">
           {/* Video wrapper */}
           <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
             <video
@@ -1207,17 +1211,17 @@ export default function MatchPage() {
               autoPlay
               muted
               playsInline
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain sm:object-cover"
               style={{ transform: 'scaleX(-1)' }}
             />
           </div>
 
           {/* YOUR NAME + INTERESTS — flows below video on mobile, absolute overlay on desktop */}
           {myProfile && (
-            <div className="relative pb-[52px] sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
-              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 p-2 sm:p-3">
+            <div className="relative pb-11 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
+              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 px-2 py-1 sm:p-3">
                 {/* Name badge */}
-                <div className="text-center mb-1.5 sm:mb-2">
+                <div className="text-center mb-0.5 sm:mb-2">
                   <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
                     <h3 className="text-sm font-bold text-white">
                       {myProfile?.displayName ? formatPublicName(myProfile.displayName) : 'You'}
@@ -1230,7 +1234,7 @@ export default function MatchPage() {
                   {myInterestNames.map((interest: string) => (
                     <div
                       key={interest}
-                      className="px-3 py-1.5 rounded-full text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
+                      className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
                     >
                       {interest}
                     </div>
@@ -1403,7 +1407,7 @@ export default function MatchPage() {
       </div>
 
       {/* BOTTOM CONTROLS BAR */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-3 bg-black/60 backdrop-blur-sm">
+      <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-2 sm:py-3 bg-black/60 backdrop-blur-sm">
         {/* End button - left */}
         <motion.button
           whileHover={{ scale: 1.05 }}
