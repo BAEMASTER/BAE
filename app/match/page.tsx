@@ -174,6 +174,63 @@ function FluidVibeOMeter({ count }: { count: number }) {
   );
 }
 
+// --- DESKTOP VIBE BAR (no text labels, just gradient bar) ---
+function DesktopVibeBar({ count }: { count: number }) {
+  const fillPercent = Math.min((count / 5) * 100, 100);
+  const prevCountRef = useRef(0);
+  const [sparking, setSparking] = useState(false);
+
+  useEffect(() => {
+    if (count > prevCountRef.current && prevCountRef.current > 0) {
+      setSparking(true);
+      const t = setTimeout(() => setSparking(false), 600);
+      return () => clearTimeout(t);
+    }
+    prevCountRef.current = count;
+  }, [count]);
+
+  if (count === 0) return null;
+
+  return (
+    <div className="w-full max-w-xs mt-5">
+      <div
+        className="relative w-full h-2.5 rounded-full overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <motion.div
+          animate={{ width: `${fillPercent}%` }}
+          transition={{ type: 'spring', stiffness: 50, damping: 18 }}
+          className="absolute left-0 top-0 bottom-0 rounded-full"
+          style={{ background: 'linear-gradient(to right, #fcd34d, #f59e0b, #ec4899)' }}
+        />
+        {/* Breathing pulse */}
+        <motion.div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          animate={{ opacity: [0.2, 0.5, 0.2] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ background: 'linear-gradient(to right, transparent, rgba(253,224,71,0.12), transparent)' }}
+        />
+        {/* Spark on level-up */}
+        <AnimatePresence>
+          {sparking && (
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'linear-gradient(90deg, transparent 20%, rgba(253,224,71,0.9) 50%, transparent 80%)',
+                boxShadow: '0 0 16px rgba(253,224,71,0.8)',
+              }}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 // --- CONFETTI ---
 function Confetti() {
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
@@ -1013,6 +1070,32 @@ export default function MatchPage() {
     await setDoc(doc(db, 'users', user.uid), { savedProfiles: next }, { merge: true });
   };
 
+  // --- END CALL ---
+  const handleEnd = async () => {
+    clearMatchRetry();
+    if (callObjectRef.current) {
+      try { await callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
+      callObjectRef.current = null;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.pause();
+      remoteAudioRef.current.srcObject = null;
+      remoteAudioRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => t.stop());
+      mediaStreamRef.current = null;
+    }
+    if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
+    if (partnerUnsubscribeRef.current) { partnerUnsubscribeRef.current(); partnerUnsubscribeRef.current = null; }
+    if (user) {
+      await updateDoc(doc(db, 'users', user.uid), {
+        status: 'idle', currentRoomUrl: null, partnerId: null, matchedAt: null,
+      }).catch(() => {});
+    }
+    router.push('/');
+  };
+
   // --- REPORT USER ---
   const handleReport = async () => {
     if (!user || !currentPartnerId || !reportReason) return;
@@ -1095,8 +1178,8 @@ export default function MatchPage() {
       </div>
 
       {/* HEADER */}
-      <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-12 sm:h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20">
-        <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-violet-400 bg-clip-text text-transparent">
+      <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-12 sm:h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 lg:justify-center lg:h-16 lg:bg-transparent lg:backdrop-blur-none lg:border-none">
+        <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-violet-400 bg-clip-text text-transparent lg:text-3xl lg:from-pink-400 lg:to-violet-400 lg:drop-shadow-[0_0_20px_rgba(236,72,153,0.4)]">
           BAE
         </div>
       </header>
@@ -1105,9 +1188,9 @@ export default function MatchPage() {
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
 
       {/* VIDEO GRID */}
-      <div className="relative flex-1 flex flex-col sm:flex-row overflow-hidden z-5 pt-12 sm:pt-14">
+      <div className="relative flex-1 flex flex-col sm:flex-row overflow-hidden z-5 pt-12 sm:pt-14 lg:flex-none lg:h-[62vh] lg:flex-row lg:px-8 lg:pt-20 lg:pb-2 lg:gap-6">
         {/* PARTNER VIDEO SECTION (top on mobile, right on desktop) */}
-        <div className="relative order-1 sm:order-2 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden">
+        <div className="relative order-1 sm:order-2 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden lg:rounded-2xl lg:border lg:border-purple-300/12 lg:shadow-[0_4px_40px_rgba(139,92,246,0.12),0_0_0_1px_rgba(253,224,71,0.04)]">
           {/* Video wrapper: flex-1 on mobile (fills available space), absolute on desktop */}
           <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
             <video
@@ -1208,9 +1291,9 @@ export default function MatchPage() {
             </AnimatePresence>
           </div>
 
-          {/* THEIR NAME + INTERESTS — flows below video on mobile, absolute overlay on desktop */}
+          {/* THEIR NAME + INTERESTS — flows below video on mobile, absolute overlay on tablet, hidden on desktop */}
           {isMatched && (
-            <div className="relative sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
+            <div className="relative sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px] lg:hidden">
               <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 px-2 py-1 sm:p-3">
                 {/* Name + heart badge */}
                 <div className="text-center mb-0.5 sm:mb-2">
@@ -1321,7 +1404,7 @@ export default function MatchPage() {
         )}
 
         {/* YOUR VIDEO SECTION (bottom on mobile, left on desktop) */}
-        <div className="relative order-3 sm:order-1 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden">
+        <div className="relative order-3 sm:order-1 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden lg:rounded-2xl lg:border lg:border-purple-300/12 lg:shadow-[0_4px_40px_rgba(139,92,246,0.12),0_0_0_1px_rgba(253,224,71,0.04)]">
           {/* Video wrapper */}
           <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
             <video
@@ -1334,9 +1417,9 @@ export default function MatchPage() {
             />
           </div>
 
-          {/* YOUR NAME + INTERESTS — flows below video on mobile, absolute overlay on desktop */}
+          {/* YOUR NAME + INTERESTS — flows below video on mobile, absolute overlay on tablet, hidden on desktop */}
           {myProfile && (
-            <div className="relative pb-11 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px]">
+            <div className="relative pb-11 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px] lg:hidden">
               <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 px-2 py-1 sm:p-3">
                 {/* Name badge */}
                 <div className="text-center mb-0.5 sm:mb-2">
@@ -1365,7 +1448,7 @@ export default function MatchPage() {
 
         {/* DESKTOP ONLY: Vibe meter (absolute top center) */}
         {isMatched && sharedInterests.length > 0 && (
-          <div className="hidden sm:block absolute top-[0.5rem] left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          <div className="hidden sm:block lg:hidden absolute top-[0.5rem] left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <FluidVibeOMeter count={sharedInterests.length} />
           </div>
         )}
@@ -1377,7 +1460,7 @@ export default function MatchPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="hidden sm:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+              className="hidden sm:block lg:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
             >
               <div
                 className="flex flex-col items-center gap-2 px-3 py-3 rounded-2xl"
@@ -1422,7 +1505,7 @@ export default function MatchPage() {
               animate={{ opacity: 0, y: -110, scale: 1.05 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute bottom-[5.5rem] sm:bottom-[6rem] left-1/2 -translate-x-1/2 z-25 pointer-events-none"
+              className="absolute bottom-[5.5rem] sm:bottom-[6rem] left-1/2 -translate-x-1/2 z-25 pointer-events-none lg:hidden"
             >
               {/* Sparkle trail — campfire sparks drifting behind */}
               {[...Array(7)].map((_, i) => (
@@ -1515,47 +1598,167 @@ export default function MatchPage() {
         </AnimatePresence>
       </div>
 
+      {/* ========== DESKTOP BOTTOM SECTION (lg+ only) ========== */}
+      <div className="hidden lg:flex flex-1 px-8 pt-3 pb-20 gap-8 z-10 min-h-0 overflow-hidden">
+        {/* LEFT COLUMN — Your info */}
+        <div className="flex-1 flex flex-col items-start min-w-0 overflow-y-auto">
+          {myProfile && (
+            <>
+              <div className="rounded-xl px-4 py-2 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span className="text-sm font-bold text-amber-200">
+                  {myProfile.displayName ? formatPublicName(myProfile.displayName) : 'You'}
+                  {formatLocation(myProfile) && (
+                    <span className="text-white/45 font-semibold"> — {formatLocation(myProfile)}</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {myInterestNames.map((interest: string) => (
+                  <div
+                    key={`desk-my-${interest}`}
+                    className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-400/85 text-black border border-amber-300/40"
+                  >
+                    {interest}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* CENTER COLUMN — Shared interests + vibe bar */}
+        <div className="flex-1 flex flex-col items-center justify-center min-w-0">
+          {isMatched && sharedInterests.length > 0 && (
+            <>
+              <div className="flex flex-wrap justify-center gap-3 mb-2">
+                {sharedInterests.map((interest: string, idx: number) => (
+                  <motion.div
+                    key={`desk-shared-${interest}`}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="px-5 py-2.5 rounded-full text-[15px] font-bold text-black bg-yellow-300 border border-yellow-200/80"
+                    style={{ boxShadow: '0 0 24px rgba(253,224,71,0.45), 0 0 8px rgba(253,224,71,0.25)' }}
+                  >
+                    {interest}
+                  </motion.div>
+                ))}
+              </div>
+              <DesktopVibeBar count={sharedInterests.length} />
+            </>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN — Partner info */}
+        <div className="flex-1 flex flex-col items-end min-w-0 overflow-y-auto">
+          {isMatched && theirProfile && (
+            <>
+              <div className="flex items-center gap-2 rounded-xl px-4 py-2 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span className="text-sm font-bold text-amber-200">
+                  {theirProfile.displayName ? formatPublicName(theirProfile.displayName) : '...'}
+                  {formatLocation(theirProfile) && (
+                    <span className="text-white/45 font-semibold"> — {formatLocation(theirProfile)}</span>
+                  )}
+                </span>
+                {currentPartnerId && (
+                  <motion.button whileTap={{ scale: 0.85 }} onClick={handleToggleSave} className="p-0.5">
+                    <Heart
+                      size={20}
+                      strokeWidth={1.5}
+                      className={savedUids.has(currentPartnerId)
+                        ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
+                        : 'text-white/50 hover:text-pink-300 transition-colors'}
+                    />
+                  </motion.button>
+                )}
+                {/* Desktop three-dot menu */}
+                <div className="relative">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="p-1 text-white/35 hover:text-white transition-colors"
+                  >
+                    <MoreVertical size={16} />
+                  </motion.button>
+                  <AnimatePresence>
+                    {showMoreMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full right-0 mt-1 w-44 rounded-xl overflow-hidden shadow-xl z-50"
+                        style={{ background: 'rgba(20, 5, 40, 0.95)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+                      >
+                        <button
+                          onClick={() => { setShowMoreMenu(false); setShowReportModal(true); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <Flag size={14} /> Report
+                        </button>
+                        <button
+                          onClick={() => { setShowMoreMenu(false); setBlockConfirm(true); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-400 hover:bg-white/5 transition-colors border-t border-white/5"
+                        >
+                          <Ban size={14} /> Block
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                {theirInterestNames.map((interest: string) => {
+                  const isAdded = myInterestNames.some(
+                    (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
+                  );
+                  const isFlashing = justAdded.has(interest.toLowerCase());
+                  return (
+                    <motion.button
+                      key={`desk-their-${interest}`}
+                      whileHover={!isAdded ? { scale: 1.05 } : {}}
+                      whileTap={!isAdded ? { scale: 0.95 } : {}}
+                      onClick={() => { if (!isAdded) addInterest(interest); }}
+                      disabled={isAdded && !isFlashing}
+                      animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
+                      transition={isFlashing ? { duration: 0.4 } : {}}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                        isFlashing
+                          ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
+                          : isAdded
+                            ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15 cursor-default'
+                            : 'bg-amber-400/85 text-black border border-amber-300/40 hover:bg-amber-300 cursor-pointer'
+                      }`}
+                    >
+                      {!isAdded && !isFlashing && <span className="text-black/30 mr-1">+</span>}
+                      {interest}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* BOTTOM CONTROLS BAR */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-2 sm:py-3 bg-black/60 backdrop-blur-sm">
+      <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-2 sm:py-3 bg-black/60 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:px-8 lg:py-4">
         {/* End button - left */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={async () => {
-            clearMatchRetry();
-            if (callObjectRef.current) {
-              try { await callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
-              callObjectRef.current = null;
-            }
-            if (remoteAudioRef.current) {
-              remoteAudioRef.current.pause();
-              remoteAudioRef.current.srcObject = null;
-              remoteAudioRef.current = null;
-            }
-            if (mediaStreamRef.current) {
-              mediaStreamRef.current.getTracks().forEach(t => t.stop());
-              mediaStreamRef.current = null;
-            }
-            if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
-            if (partnerUnsubscribeRef.current) { partnerUnsubscribeRef.current(); partnerUnsubscribeRef.current = null; }
-            if (user) {
-              await updateDoc(doc(db, 'users', user.uid), {
-                status: 'idle', currentRoomUrl: null, partnerId: null, matchedAt: null,
-              }).catch(() => {});
-            }
-            router.push('/');
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm"
+          onClick={handleEnd}
+          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl"
         >
-          <X size={14} />
+          <X size={14} className="lg:hidden" />
           End
         </motion.button>
 
         <div className="flex-1" />
 
-        {/* Three-dot menu — report/block */}
+        {/* Three-dot menu — report/block (mobile/tablet only, desktop has it in right column) */}
         {isMatched && currentPartnerId && (
-          <div className="relative mr-2">
+          <div className="relative mr-2 lg:hidden">
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -1606,10 +1809,10 @@ export default function MatchPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleNext}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl lg:from-amber-500 lg:to-orange-500"
           >
             Next
-            <RefreshCw size={14} />
+            <RefreshCw size={14} className="lg:hidden" />
           </motion.button>
         )}
       </div>
