@@ -27,6 +27,34 @@ const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(253,224,71,0.5);
   }
+  /* Desktop interest columns scrollbar */
+  @media (min-width: 1024px) {
+    .desk-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .desk-scroll::-webkit-scrollbar-track {
+      background: rgba(139,92,246,0.06);
+      border-radius: 10px;
+    }
+    .desk-scroll::-webkit-scrollbar-thumb {
+      background: rgba(253,224,71,0.25);
+      border-radius: 10px;
+    }
+    .desk-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(253,224,71,0.45);
+    }
+  }
+  /* Hide Daily.co video overlay controls (PiP, enhance, etc.) */
+  video::-webkit-media-controls-panel,
+  video::-webkit-media-controls-overlay-play-button,
+  video::-webkit-media-controls-enclosure,
+  video::-webkit-media-controls {
+    display: none !important;
+    -webkit-appearance: none !important;
+  }
+  video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+  }
 `;
 
 // --- WAITING MESSAGES ---
@@ -1197,6 +1225,8 @@ export default function MatchPage() {
               ref={theirVideoRef}
               autoPlay
               playsInline
+              disablePictureInPicture
+              controlsList="nodownload noplaybackrate"
               className="absolute inset-0 w-full h-full object-contain sm:object-cover"
             />
             {!isMatched && (
@@ -1412,6 +1442,8 @@ export default function MatchPage() {
               autoPlay
               muted
               playsInline
+              disablePictureInPicture
+              controlsList="nodownload noplaybackrate"
               className="absolute inset-0 w-full h-full object-contain sm:object-cover"
               style={{ transform: 'scaleX(-1)' }}
             />
@@ -1601,7 +1633,7 @@ export default function MatchPage() {
       {/* ========== DESKTOP BOTTOM SECTION (lg+ only) ========== */}
       <div className="hidden lg:flex flex-1 px-8 pt-3 pb-20 gap-8 z-10 min-h-0 overflow-hidden">
         {/* LEFT COLUMN — Your info */}
-        <div className="flex-1 flex flex-col items-start min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col items-start min-w-0 overflow-y-auto desk-scroll">
           {myProfile && (
             <>
               <div className="rounded-xl px-4 py-2 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -1616,7 +1648,7 @@ export default function MatchPage() {
                 {myInterestNames.map((interest: string) => (
                   <div
                     key={`desk-my-${interest}`}
-                    className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-400/85 text-black border border-amber-300/40"
+                    className="px-5 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
                   >
                     {interest}
                   </div>
@@ -1637,8 +1669,8 @@ export default function MatchPage() {
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-5 py-2.5 rounded-full text-[15px] font-bold text-black bg-yellow-300 border border-yellow-200/80"
-                    style={{ boxShadow: '0 0 24px rgba(253,224,71,0.45), 0 0 8px rgba(253,224,71,0.25)' }}
+                    className="px-5 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
+                    style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
                   >
                     {interest}
                   </motion.div>
@@ -1650,7 +1682,7 @@ export default function MatchPage() {
         </div>
 
         {/* RIGHT COLUMN — Partner info */}
-        <div className="flex-1 flex flex-col items-end min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col items-end min-w-0 overflow-y-auto desk-scroll">
           {isMatched && theirProfile && (
             <>
               <div className="flex items-center gap-2 rounded-xl px-4 py-2 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -1707,7 +1739,7 @@ export default function MatchPage() {
                   </AnimatePresence>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2.5">
                 {theirInterestNames.map((interest: string) => {
                   const isAdded = myInterestNames.some(
                     (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1722,16 +1754,18 @@ export default function MatchPage() {
                       disabled={isAdded && !isFlashing}
                       animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                       transition={isFlashing ? { duration: 0.4 } : {}}
-                      className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                      className={`relative px-5 py-2 rounded-full text-sm font-bold transition-all ${
                         isFlashing
                           ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                           : isAdded
-                            ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15 cursor-default'
-                            : 'bg-amber-400/85 text-black border border-amber-300/40 hover:bg-amber-300 cursor-pointer'
+                            ? 'bg-yellow-300/20 text-amber-200/40 border border-amber-300/15 cursor-default'
+                            : 'bg-yellow-300 text-black border border-yellow-200 hover:bg-yellow-200 cursor-pointer'
                       }`}
                     >
-                      {!isAdded && !isFlashing && <span className="text-black/30 mr-1">+</span>}
                       {interest}
+                      {!isAdded && !isFlashing && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-violet-500 text-white flex items-center justify-center text-[9px] font-black leading-none shadow-md">+</span>
+                      )}
                     </motion.button>
                   );
                 })}
