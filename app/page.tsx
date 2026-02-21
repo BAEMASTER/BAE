@@ -226,8 +226,17 @@ export default function HomePage() {
 
       </section>
 
-      <footer className="absolute bottom-6 inset-x-0 text-center text-white/20 text-sm font-medium z-10">
-        Your interests make you interesting
+      <footer className="absolute bottom-0 inset-x-0 z-10">
+        <p className="text-center text-white/20 text-sm font-medium mb-2">Your interests make you interesting</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-white/25 font-medium pb-5">
+          <a href="/terms" className="hover:text-white/50 transition-colors">Terms</a>
+          <span className="text-white/15">|</span>
+          <a href="/privacy" className="hover:text-white/50 transition-colors">Privacy</a>
+          <span className="text-white/15">|</span>
+          <a href="/guidelines" className="hover:text-white/50 transition-colors">Community Guidelines</a>
+          <span className="text-white/15">|</span>
+          <a href="mailto:support@baewithme.com" className="hover:text-white/50 transition-colors">support@baewithme.com</a>
+        </div>
       </footer>
     </main>
   );

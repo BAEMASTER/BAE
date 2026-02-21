@@ -197,7 +197,7 @@ export default function Header() {
 
           {/* User info + sign out at bottom */}
           {user && (
-            <div className="flex flex-col items-center gap-4 pb-16 flex-shrink-0">
+            <div className="flex flex-col items-center gap-4 pb-6 flex-shrink-0">
               <span className="text-sm font-bold text-white/90">
                 {user.displayName || user.email}
               </span>
@@ -217,7 +217,7 @@ export default function Header() {
 
           {/* Sign in for logged-out users */}
           {!user && (
-            <div className="flex flex-col items-center gap-4 pb-16 flex-shrink-0">
+            <div className="flex flex-col items-center gap-4 pb-6 flex-shrink-0">
               <button
                 onClick={() => { setMenuOpen(false); doSignIn(); }}
                 className="
@@ -229,6 +229,15 @@ export default function Header() {
               </button>
             </div>
           )}
+
+          {/* Legal links */}
+          <div className="flex items-center justify-center gap-4 pb-8 flex-shrink-0 text-[11px] text-white/25 font-medium">
+            <Link href="/terms" onClick={() => setMenuOpen(false)} className="hover:text-white/50 transition-colors">Terms</Link>
+            <span className="text-white/15">|</span>
+            <Link href="/privacy" onClick={() => setMenuOpen(false)} className="hover:text-white/50 transition-colors">Privacy</Link>
+            <span className="text-white/15">|</span>
+            <Link href="/guidelines" onClick={() => setMenuOpen(false)} className="hover:text-white/50 transition-colors">Guidelines</Link>
+          </div>
         </div>
       )}
     </>

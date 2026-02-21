@@ -7,7 +7,7 @@ import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc, onSnapshot, updateDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, RefreshCw, Heart } from 'lucide-react';
+import { X, Loader2, RefreshCw, Heart, MoreVertical, Flag, Ban } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
 import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
 import { formatPublicName } from '@/lib/formatName';
@@ -336,9 +336,17 @@ export default function MatchPage() {
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [showPartnerDrawer, setShowPartnerDrawer] = useState(false);
   const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
+  const [waitingTimedOut, setWaitingTimedOut] = useState(false);
   const myProfileRef = useRef<any>(null);
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null); // null = unknown
   const [onboardingStep, setOnboardingStep] = useState(-1); // -1 = not started, 0-5 = showing, 6 = done
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
+  const [blockConfirm, setBlockConfirm] = useState(false);
 
   // --- SHARED INTERESTS ---
   const myInterestNames = useMemo(() => interestNames(parseInterests(myProfile?.interests)), [myProfile?.interests]);
@@ -801,6 +809,16 @@ export default function MatchPage() {
     return () => clearInterval(t);
   }, [isMatched]);
 
+  // --- WAITING TIMEOUT (cold-start: no match after 30s) ---
+  useEffect(() => {
+    if (isMatched) { setWaitingTimedOut(false); return; }
+    const t = setTimeout(() => {
+      setWaitingTimedOut(true);
+      clearMatchRetry(); // stop polling the match API
+    }, 30_000);
+    return () => clearTimeout(t);
+  }, [isMatched]);
+
   // --- ONBOARDING HINT SEQUENCE (first match only) ---
   useEffect(() => {
     if (!isMatched || !onboardingNeeded || onboardingStep >= ONBOARDING_HINTS.length) return;
@@ -860,12 +878,19 @@ export default function MatchPage() {
 
     isMatchedRef.current = false;
     setIsMatched(false);
+    setWaitingTimedOut(false);
     setTheirProfile(null);
     setPartnerDisconnected(false);
     setShowPartnerDrawer(false);
     setCurrentPartnerId(null);
     setMegaVibePreviouslyTriggered(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
+    setShowMoreMenu(false);
+    setShowReportModal(false);
+    setBlockConfirm(false);
+    setReportReason('');
+    setReportDetails('');
+    setReportDone(false);
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
@@ -988,6 +1013,55 @@ export default function MatchPage() {
     await setDoc(doc(db, 'users', user.uid), { savedProfiles: next }, { merge: true });
   };
 
+  // --- REPORT USER ---
+  const handleReport = async () => {
+    if (!user || !currentPartnerId || !reportReason) return;
+    setReportSubmitting(true);
+    try {
+      await fetch('/api/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reporterId: user.uid,
+          reportedId: currentPartnerId,
+          reason: reportReason,
+          details: reportDetails,
+        }),
+      });
+      setReportDone(true);
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportDone(false);
+        setReportReason('');
+        setReportDetails('');
+      }, 1500);
+    } catch (e) {
+      console.error('Report failed:', e);
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
+  // --- BLOCK USER ---
+  const handleBlock = async () => {
+    if (!user || !currentPartnerId) return;
+    try {
+      await fetch('/api/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          blockedUserId: currentPartnerId,
+        }),
+      });
+      setBlockConfirm(false);
+      setShowMoreMenu(false);
+      handleNext(); // immediately move to next match
+    } catch (e) {
+      console.error('Block failed:', e);
+    }
+  };
+
   if (!authReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex items-center justify-center">
@@ -1044,27 +1118,68 @@ export default function MatchPage() {
             />
             {!isMatched && (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
-                <div className="text-center px-6">
-                  <motion.div
-                    animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                    className="text-5xl mb-4"
-                  >
-                    ✨
-                  </motion.div>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={waitingMsgIdx}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-lg font-bold text-white"
+                <AnimatePresence mode="wait">
+                  {!waitingTimedOut ? (
+                    <motion.div
+                      key="searching"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4 }}
+                      className="text-center px-6"
                     >
-                      {WAITING_MESSAGES[waitingMsgIdx]}
-                    </motion.p>
-                  </AnimatePresence>
-                </div>
+                      <motion.div
+                        animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                        className="text-5xl mb-4"
+                      >
+                        ✨
+                      </motion.div>
+                      <AnimatePresence mode="wait">
+                        <motion.p
+                          key={waitingMsgIdx}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.3 }}
+                          className="text-lg font-bold text-white"
+                        >
+                          {WAITING_MESSAGES[waitingMsgIdx]}
+                        </motion.p>
+                      </AnimatePresence>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="timed-out"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      className="text-center px-8 max-w-sm"
+                    >
+                      <motion.div
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        className="text-5xl mb-5"
+                      >
+                        🌱
+                      </motion.div>
+                      <h2 className="text-xl font-bold text-white mb-2">
+                        BAE is growing
+                      </h2>
+                      <p className="text-sm text-white/60 leading-relaxed mb-6">
+                        No one's online right now — but the universe is expanding. Come back soon and you'll find your people.
+                      </p>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => router.push('/explorer')}
+                        className="px-6 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full text-sm shadow-lg shadow-violet-500/25"
+                      >
+                        Explore People
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
             {/* Partner disconnect overlay */}
@@ -1438,6 +1553,51 @@ export default function MatchPage() {
 
         <div className="flex-1" />
 
+        {/* Three-dot menu — report/block */}
+        {isMatched && currentPartnerId && (
+          <div className="relative mr-2">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="p-2 text-white/50 hover:text-white transition-colors"
+            >
+              <MoreVertical size={18} />
+            </motion.button>
+
+            <AnimatePresence>
+              {showMoreMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute bottom-full right-0 mb-2 w-44 rounded-xl overflow-hidden shadow-xl"
+                  style={{
+                    background: 'rgba(20, 5, 40, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <button
+                    onClick={() => { setShowMoreMenu(false); setShowReportModal(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <Flag size={14} />
+                    Report
+                  </button>
+                  <button
+                    onClick={() => { setShowMoreMenu(false); setBlockConfirm(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-400 hover:bg-white/5 transition-colors border-t border-white/5"
+                  >
+                    <Ban size={14} />
+                    Block
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
         {/* Next button - right */}
         {isMatched && (
           <motion.button
@@ -1527,6 +1687,123 @@ export default function MatchPage() {
                     );
                   })}
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* REPORT MODAL */}
+      <AnimatePresence>
+        {showReportModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!reportSubmitting) { setShowReportModal(false); setReportReason(''); setReportDetails(''); } }} />
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm rounded-2xl p-6"
+              style={{
+                background: 'linear-gradient(165deg, rgba(45,10,70,0.97) 0%, rgba(26,0,51,0.98) 100%)',
+                border: '1px solid rgba(167,139,250,0.2)',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+              }}
+            >
+              {reportDone ? (
+                <div className="text-center py-4">
+                  <div className="text-3xl mb-3">&#10003;</div>
+                  <p className="text-white font-semibold">Report submitted</p>
+                  <p className="text-white/50 text-sm mt-1">We&apos;ll review it shortly.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="text-base font-bold text-white">Report User</h3>
+                    <button onClick={() => { setShowReportModal(false); setReportReason(''); setReportDetails(''); }} className="text-white/40 hover:text-white transition-colors p-1">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <label className="block text-sm text-white/60 font-medium mb-2">Reason</label>
+                  <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-violet-400/50 mb-4"
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="">Select a reason...</option>
+                    <option value="Harassment">Harassment</option>
+                    <option value="Inappropriate content">Inappropriate content</option>
+                    <option value="Underage user">Underage user</option>
+                    <option value="Spam">Spam</option>
+                    <option value="Other">Other</option>
+                  </select>
+
+                  <label className="block text-sm text-white/60 font-medium mb-2">Details (optional)</label>
+                  <textarea
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                    placeholder="Tell us more..."
+                    rows={3}
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-violet-400/50 resize-none placeholder:text-white/20 mb-5"
+                  />
+
+                  <button
+                    onClick={handleReport}
+                    disabled={!reportReason || reportSubmitting}
+                    className="w-full py-2.5 rounded-full bg-red-500/90 hover:bg-red-500 text-white font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {reportSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* BLOCK CONFIRMATION */}
+      <AnimatePresence>
+        {blockConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBlockConfirm(false)} />
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-xs rounded-2xl p-6 text-center"
+              style={{
+                background: 'linear-gradient(165deg, rgba(45,10,70,0.97) 0%, rgba(26,0,51,0.98) 100%)',
+                border: '1px solid rgba(167,139,250,0.2)',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+              }}
+            >
+              <Ban size={28} className="text-red-400 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-white mb-2">Block this user?</h3>
+              <p className="text-sm text-white/50 mb-5">You won&apos;t be matched with them again.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setBlockConfirm(false)}
+                  className="flex-1 py-2.5 rounded-full border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBlock}
+                  className="flex-1 py-2.5 rounded-full bg-red-500/90 hover:bg-red-500 text-white text-sm font-bold transition-colors"
+                >
+                  Block
+                </button>
               </div>
             </motion.div>
           </motion.div>

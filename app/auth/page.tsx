@@ -129,7 +129,7 @@ export default function AuthPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="flex items-center justify-center gap-3 mb-6 cursor-pointer"
+              className="flex items-center justify-center gap-3 mb-3 cursor-pointer"
             >
               <input
                 type="checkbox"
@@ -141,6 +141,19 @@ export default function AuthPage() {
                 I confirm I'm 18 or older
               </span>
             </motion.label>
+
+            {/* Legal agreement text */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-xs text-white/40 text-center mb-6"
+            >
+              By signing up, you agree to our{' '}
+              <a href="/terms" className="text-yellow-300/80 hover:text-yellow-300 underline underline-offset-2">Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" className="text-yellow-300/80 hover:text-yellow-300 underline underline-offset-2">Privacy Policy</a>
+            </motion.p>
 
             <button
               onClick={doSignIn}

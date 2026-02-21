@@ -708,6 +708,15 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Legal links */}
+      <div className="mt-8 mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-white/25 font-medium">
+        <a href="/terms" className="hover:text-white/50 transition-colors">Terms of Service</a>
+        <span className="text-white/15">|</span>
+        <a href="/privacy" className="hover:text-white/50 transition-colors">Privacy Policy</a>
+        <span className="text-white/15">|</span>
+        <a href="/guidelines" className="hover:text-white/50 transition-colors">Community Guidelines</a>
+      </div>
+
       <style jsx>{`
         .input {
           width: 100%;

@@ -33,11 +33,15 @@ export async function POST(req: NextRequest) {
           .where("selectedMode", "==", selectedMode)
       );
 
-      // Filter out self AND stale users (no heartbeat in 90s = ghost from closed tab/mobile kill)
+      // Filter out self, stale users, and blocked users
       const staleCutoff = Date.now() - 90_000;
+      const myBlockedUsers: string[] = userSnap.exists ? (userSnap.data()?.blockedUsers || []) : [];
       const availableUsers = queueQuery.docs.filter(doc => {
         if (doc.id === userId) return false;
+        if (myBlockedUsers.includes(doc.id)) return false;
         const data = doc.data();
+        // Also skip if they blocked us
+        if ((data.blockedUsers || []).includes(userId)) return false;
         const lastActive = data.lastHeartbeat || data.queuedAt;
         if (!lastActive) return false;
         return new Date(lastActive).getTime() > staleCutoff;
