@@ -11,6 +11,8 @@ import { X, Loader2, RefreshCw, Heart, MoreVertical, Flag, Ban } from 'lucide-re
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
 import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
 import { formatPublicName } from '@/lib/formatName';
+import { isBlockedInterest } from '@/lib/interestBlocklist';
+import { Plus } from 'lucide-react';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -108,15 +110,6 @@ function formatLocation(profile: any): string {
   return profile.city;
 }
 
-// --- VIBE METER ---
-const VIBE_LEVELS = [
-  { label: 'COOL', accent: '#7dd3fc', glow: '125,211,252' },
-  { label: 'REAL', accent: '#6ee7b7', glow: '110,231,183' },
-  { label: 'DEEP', accent: '#fcd34d', glow: '252,211,77' },
-  { label: 'SUPER', accent: '#fb923c', glow: '251,146,60' },
-  { label: 'MEGAVIBE', accent: '#a78bfa', glow: '167,139,250' },
-];
-
 const MAX_VISIBLE_SHARED = 5;
 
 // --- ONBOARDING HINTS (first match only) ---
@@ -136,166 +129,9 @@ function pairKey(a: string, b: string): string {
 
 // --- REACTION CONSTANTS ---
 const REACTION_EMOJIS = ['💛', '🔥', '😂', '🤯', '👏', '🧠'];
-const REACTION_NORMAL_COUNT = 18;
+const REACTION_NORMAL_COUNT = 25;
 const REACTION_INTENSE_COUNT = 45;
 const REACTION_INTENSE_THRESHOLD = 3; // taps within 1s window
-
-function FluidVibeOMeter({ count }: { count: number }) {
-  const current = count > 0 ? VIBE_LEVELS[Math.min(count - 1, 4)] : null;
-  const fillPercent = Math.min((count / 5) * 100, 100);
-  const prevCountRef = useRef(0);
-  const [sparking, setSparking] = useState(false);
-
-  useEffect(() => {
-    if (count > prevCountRef.current && prevCountRef.current > 0) {
-      setSparking(true);
-      const t = setTimeout(() => setSparking(false), 500);
-      return () => clearTimeout(t);
-    }
-    prevCountRef.current = count;
-  }, [count]);
-
-  if (count === 0 || !current) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      className="flex items-center gap-2.5"
-    >
-      {/* Horizontal frosted glass bar */}
-      <div
-        className="relative w-28 h-3 rounded-full overflow-hidden"
-        style={{
-          background: 'rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: `0 0 ${8 + count * 4}px rgba(${current.glow},${(0.06 + count * 0.03).toFixed(2)})`,
-        }}
-      >
-        <motion.div
-          animate={{ width: `${fillPercent}%` }}
-          transition={{ type: 'spring', stiffness: 50, damping: 18 }}
-          className="absolute left-0 top-0 bottom-0 rounded-full"
-          style={{
-            background: 'linear-gradient(to right, #7dd3fc, #6ee7b7, #fcd34d, #fb923c, #a78bfa)',
-            boxShadow: `0 0 8px rgba(${current.glow}, 0.35)`,
-          }}
-        />
-
-        {/* Electric spark on level-up */}
-        <AnimatePresence>
-          {sparking && (
-            <motion.div
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="absolute inset-0 rounded-full pointer-events-none"
-              style={{
-                background: `linear-gradient(90deg, transparent 30%, rgba(${current.glow},0.9) 50%, transparent 70%)`,
-                boxShadow: `0 0 16px rgba(${current.glow},0.8), 0 0 4px rgba(255,255,255,0.6)`,
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Breathing pulse at MEGAVIBE */}
-        {count >= 5 && (
-          <motion.div
-            className="absolute inset-0 rounded-full pointer-events-none"
-            animate={{
-              boxShadow: [
-                `0 0 12px rgba(${current.glow},0.15)`,
-                `0 0 24px rgba(${current.glow},0.3)`,
-                `0 0 12px rgba(${current.glow},0.15)`,
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          />
-        )}
-      </div>
-
-      {/* Level label — sparks scale briefly on level-up */}
-      <motion.div
-        key={current.label}
-        initial={{ opacity: 0, scale: 1.3, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
-      >
-        <span
-          className="text-[11px] font-bold tracking-[0.15em]"
-          style={{
-            color: current.accent,
-            textShadow: sparking ? `0 0 8px ${current.accent}` : 'none',
-            transition: 'text-shadow 0.3s ease-out',
-          }}
-        >
-          {current.label}
-        </span>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// --- DESKTOP VIBE BAR (no text labels, just gradient bar) ---
-function DesktopVibeBar({ count }: { count: number }) {
-  const fillPercent = Math.min((count / 5) * 100, 100);
-  const prevCountRef = useRef(0);
-  const [sparking, setSparking] = useState(false);
-
-  useEffect(() => {
-    if (count > prevCountRef.current && prevCountRef.current > 0) {
-      setSparking(true);
-      const t = setTimeout(() => setSparking(false), 600);
-      return () => clearTimeout(t);
-    }
-    prevCountRef.current = count;
-  }, [count]);
-
-  if (count === 0) return null;
-
-  return (
-    <div className="w-full max-w-xs mt-5">
-      <div
-        className="relative w-full h-2.5 rounded-full overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <motion.div
-          animate={{ width: `${fillPercent}%` }}
-          transition={{ type: 'spring', stiffness: 50, damping: 18 }}
-          className="absolute left-0 top-0 bottom-0 rounded-full"
-          style={{ background: 'linear-gradient(to right, #fcd34d, #f59e0b, #ec4899)' }}
-        />
-        {/* Breathing pulse */}
-        <motion.div
-          className="absolute inset-0 rounded-full pointer-events-none"
-          animate={{ opacity: [0.2, 0.5, 0.2] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ background: 'linear-gradient(to right, transparent, rgba(253,224,71,0.12), transparent)' }}
-        />
-        {/* Spark on level-up */}
-        <AnimatePresence>
-          {sparking && (
-            <motion.div
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: 'linear-gradient(90deg, transparent 20%, rgba(253,224,71,0.9) 50%, transparent 80%)',
-                boxShadow: '0 0 16px rgba(253,224,71,0.8)',
-              }}
-            />
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-}
 
 // --- CONFETTI ---
 function Confetti() {
@@ -419,8 +255,16 @@ function MegaVibeCelebration() {
             transition={{ duration: 1, repeat: Infinity }}
             className="text-9xl font-black text-yellow-300 drop-shadow-2xl tracking-tighter"
           >
-            MEGA VIBE
+            MEGAVIBE
           </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="text-2xl sm:text-3xl font-bold text-yellow-200/90 mt-3 tracking-wide"
+          >
+            5 Shared Interests!
+          </motion.p>
         </motion.div>
       </motion.div>
     </>
@@ -435,7 +279,7 @@ function ReactionCascade({ emoji, count, originX, onComplete }: {
   onComplete: () => void;
 }) {
   useEffect(() => {
-    const t = setTimeout(onComplete, 2000); // 1.8s max duration + 200ms buffer
+    const t = setTimeout(onComplete, 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -446,15 +290,15 @@ function ReactionCascade({ emoji, count, originX, onComplete }: {
         const drift = (Math.random() - 0.5) * 160; // ±80px
         const riseVh = 30 + Math.random() * 50; // 30-80vh
         const delay = Math.random() * 0.3;
-        const size = 20 + Math.random() * 12; // 20-32px
-        const duration = 1.4 + Math.random() * 0.6; // 1.4-2.0s
+        const size = 32 + Math.random() * 16; // 32-48px
+        const duration = 0.8 + Math.random() * 0.4; // 0.8-1.2s
 
         return (
           <motion.div
             key={i}
             initial={{ opacity: 1, x: 0, y: 0, scale: 0.5 }}
             animate={{
-              opacity: 0,
+              opacity: 0.3,
               x: drift,
               y: `-${riseVh}vh`,
               scale: 1,
@@ -469,7 +313,7 @@ function ReactionCascade({ emoji, count, originX, onComplete }: {
               left: `${originX}%`,
               bottom: '15vh',
               fontSize: `${size}px`,
-              filter: 'drop-shadow(0 0 6px rgba(253,224,71,0.4))',
+              filter: 'drop-shadow(0 0 10px rgba(253,224,71,0.6))',
             }}
           >
             {emoji}
@@ -501,7 +345,6 @@ export default function MatchPage() {
   const [isMatched, setIsMatched] = useState(false);
   const [showTicket, setShowTicket] = useState(false);
   const [celebratedCounts, setCelebratedCounts] = useState<Set<number>>(new Set());
-  const [floatingAdd, setFloatingAdd] = useState<{ interest: string; key: number } | null>(null);
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [partnerDisconnected, setPartnerDisconnected] = useState(false);
@@ -510,8 +353,6 @@ export default function MatchPage() {
   const [savedUids, setSavedUids] = useState<Set<string>>(new Set());
   const [megaVibePreviouslyTriggered, setMegaVibePreviouslyTriggered] = useState(false);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
-  const [revealedShared, setRevealedShared] = useState<Set<string>>(new Set());
-  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showPartnerDrawer, setShowPartnerDrawer] = useState(false);
   const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
   const [waitingTimedOut, setWaitingTimedOut] = useState(false);
@@ -525,6 +366,14 @@ export default function MatchPage() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
   const [blockConfirm, setBlockConfirm] = useState(false);
+
+  // --- QUICK ADD ---
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddValue, setQuickAddValue] = useState('');
+
+  // --- BLOCKLIST / NOTIFICATIONS ---
+  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
+  const [addNotification, setAddNotification] = useState<{ name: string; interest: string } | null>(null);
 
   // --- REACTIONS ---
   const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; count: number; originX: number }>>([]);
@@ -541,9 +390,9 @@ export default function MatchPage() {
     );
   }, [myProfile, theirProfile, myInterestNames, theirInterestNames]);
 
-  const visibleSharedInterests = useMemo(
-    () => sharedInterests.filter((i: string) => revealedShared.has(i.trim().toLowerCase())),
-    [sharedInterests, revealedShared]
+  const displayedSharedInterests = useMemo(
+    () => sharedInterests.slice(-5),
+    [sharedInterests]
   );
 
   // --- AUTH ---
@@ -860,6 +709,10 @@ export default function MatchPage() {
             originX: data.originX,
           }]);
         }
+        if (data?.type === 'interest-added' && !event?.fromId?.startsWith?.('local')) {
+          setAddNotification({ name: data.name, interest: data.interest });
+          setTimeout(() => setAddNotification(null), 2000);
+        }
       });
 
       // Ensure fresh tracks before joining
@@ -934,7 +787,7 @@ export default function MatchPage() {
   useEffect(() => {
     if (!isMatched) return;
 
-    if (visibleSharedInterests.length >= 5 && !celebratedCounts.has(5)) {
+    if (sharedInterests.length >= 5 && !celebratedCounts.has(5)) {
       setCelebratedCounts(prev => new Set([...prev, 5]));
 
       // MEGAVIBE is a first-time-only discovery moment per unique pair
@@ -957,32 +810,11 @@ export default function MatchPage() {
         }
       }
     }
-  }, [visibleSharedInterests.length, isMatched, celebratedCounts, megaVibePreviouslyTriggered, user, currentPartnerId]);
-
-  // --- STAGGERED SHARED INTEREST REVEAL ---
-  useEffect(() => {
-    if (!isMatched) return;
-    const unrevealed = sharedInterests.filter(
-      (i: string) => !revealedShared.has(i.trim().toLowerCase())
-    );
-    if (unrevealed.length === 0) return;
-
-    const delay = revealedShared.size === 0 ? 1000 : 2000;
-    revealTimerRef.current = setTimeout(() => {
-      const next = unrevealed[0].trim().toLowerCase();
-      setRevealedShared(prev => new Set([...prev, next]));
-      playCollectSound();
-    }, delay);
-
-    return () => {
-      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
-    };
-  }, [isMatched, sharedInterests, revealedShared]);
+  }, [sharedInterests.length, isMatched, celebratedCounts, megaVibePreviouslyTriggered, user, currentPartnerId]);
 
   // --- CLEANUP ON UNMOUNT ---
   useEffect(() => {
     return () => {
-      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
       clearMatchRetry();
       if (callObjectRef.current) {
         try { callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
@@ -1067,13 +899,6 @@ export default function MatchPage() {
     return () => clearTimeout(timer);
   }, [isMatched, onboardingNeeded, onboardingStep, user]);
 
-  // --- FLOATING ADD CLEAR ---
-  useEffect(() => {
-    if (!floatingAdd) return;
-    const t = setTimeout(() => setFloatingAdd(null), 2200);
-    return () => clearTimeout(t);
-  }, [floatingAdd]);
-
   // --- NEXT MATCH ---
   const handleNext = async () => {
     clearMatchRetry();
@@ -1108,8 +933,6 @@ export default function MatchPage() {
     setCurrentPartnerId(null);
     setMegaVibePreviouslyTriggered(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
-    setRevealedShared(new Set());
-    if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
     setShowMoreMenu(false);
     setShowReportModal(false);
     setBlockConfirm(false);
@@ -1117,6 +940,10 @@ export default function MatchPage() {
     setReportDetails('');
     setReportDone(false);
     setReactionCascades([]);
+    setQuickAddOpen(false);
+    setQuickAddValue('');
+    setAddNotification(null);
+    setBlockedNotice(null);
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
@@ -1201,6 +1028,13 @@ export default function MatchPage() {
       return;
     }
 
+    // Blocklist check
+    if (isBlockedInterest(interest)) {
+      setBlockedNotice("That interest isn't allowed on BAE");
+      setTimeout(() => setBlockedNotice(null), 2000);
+      return;
+    }
+
     console.log('Adding interest:', interest);
 
     // Flash feedback
@@ -1208,12 +1042,15 @@ export default function MatchPage() {
     setJustAdded(prev => new Set([...prev, key]));
     setTimeout(() => setJustAdded(prev => { const n = new Set(prev); n.delete(key); return n; }), 700);
 
-    // Floating "added" notification
-    setFloatingAdd({ interest, key: Date.now() });
     playCollectSound();
 
-    // Immediately reveal as shared (bypasses staggered timer)
-    setRevealedShared(prev => new Set([...prev, interest.trim().toLowerCase()]));
+    // Notification for both users
+    const myName = formatPublicName(myProfile.displayName || 'Someone');
+    setAddNotification({ name: myName, interest });
+    setTimeout(() => setAddNotification(null), 2000);
+    if (callObjectRef.current) {
+      callObjectRef.current.sendAppMessage({ type: 'interest-added', name: myName, interest }, '*');
+    }
 
     const newEntry = createInterest(interest, 'match', currentPartnerId || undefined);
     const updated = addStructuredInterests(currentStructured, [newEntry]);
@@ -1232,6 +1069,51 @@ export default function MatchPage() {
       // Revert on error
       setMyProfile(myProfile);
     }
+  };
+
+  // --- QUICK ADD INTEREST ---
+  const handleQuickAdd = async () => {
+    const raw = quickAddValue.trim();
+    if (!raw || !user || !myProfile) return;
+
+    const items = raw.split(',').map(s => s.trim()).filter(Boolean);
+    const currentStructured = parseInterests(myProfile.interests);
+    const currentNames = interestNames(currentStructured);
+    const toAdd: StructuredInterest[] = [];
+
+    for (const item of items) {
+      const normalized = item.charAt(0).toUpperCase() + item.slice(1);
+      if (isBlockedInterest(normalized)) {
+        setBlockedNotice("That interest isn't allowed on BAE");
+        setTimeout(() => setBlockedNotice(null), 2000);
+        setQuickAddValue('');
+        return;
+      }
+      if (!currentNames.some(i => i.toLowerCase() === normalized.toLowerCase()) &&
+          !toAdd.some(i => i.name.toLowerCase() === normalized.toLowerCase())) {
+        toAdd.push(createInterest(normalized, 'profile'));
+      }
+    }
+
+    if (!toAdd.length) { setQuickAddValue(''); setQuickAddOpen(false); return; }
+
+    const updated = addStructuredInterests(currentStructured, toAdd);
+    const updatedProfile = { ...myProfile, interests: updated };
+    myProfileRef.current = updatedProfile;
+    setMyProfile(updatedProfile);
+    playCollectSound();
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        interests: updated,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('Quick-add failed:', e);
+    }
+
+    setQuickAddValue('');
+    setQuickAddOpen(false);
   };
 
   // --- TOGGLE SAVE PARTNER ---
@@ -1380,6 +1262,46 @@ export default function MatchPage() {
           BAE
         </div>
       </header>
+
+      {/* INTEREST-ADD NOTIFICATION */}
+      <AnimatePresence>
+        {addNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[85] pointer-events-none"
+          >
+            <div
+              className="px-4 py-2 rounded-full text-sm font-bold text-black whitespace-nowrap"
+              style={{
+                background: 'linear-gradient(135deg, #fde047, #fbbf24)',
+                boxShadow: '0 0 20px rgba(253,224,71,0.5), 0 4px 12px rgba(0,0,0,0.3)',
+              }}
+            >
+              {addNotification.name} added {addNotification.interest}! ✨
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* BLOCKED NOTICE TOAST */}
+      <AnimatePresence>
+        {blockedNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[90] pointer-events-none"
+          >
+            <div className="px-4 py-2 rounded-full text-sm font-semibold text-red-100 bg-red-600/90 border border-red-400/30 whitespace-nowrap shadow-lg">
+              {blockedNotice}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* TICKET OVERLAY */}
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
@@ -1614,24 +1536,55 @@ export default function MatchPage() {
                   </button>
                 )}
               </div>
-            </div>
-          )}
 
-          {/* MOBILE VIBE METER */}
-          {isMatched && visibleSharedInterests.length > 0 && (
-            <div className="mb-2">
-              <FluidVibeOMeter count={visibleSharedInterests.length} />
+              {/* MOBILE QUICK-ADD */}
+              <div className="mt-2">
+                {!quickAddOpen ? (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setQuickAddOpen(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold text-white/50 bg-white/8 border border-white/15 hover:text-white/70 hover:bg-white/12 transition-all"
+                  >
+                    <Plus size={12} /> Add your own
+                  </motion.button>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      value={quickAddValue}
+                      onChange={e => setQuickAddValue(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                      placeholder="Add interest..."
+                      autoFocus
+                      className="flex-1 min-w-0 px-3 py-1.5 rounded-full text-[12px] bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50"
+                    />
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleQuickAdd}
+                      className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-yellow-300 text-black"
+                    >
+                      Add
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => { setQuickAddOpen(false); setQuickAddValue(''); }}
+                      className="p-1 text-white/40 hover:text-white/70"
+                    >
+                      <X size={14} />
+                    </motion.button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* MOBILE SHARED INTERESTS — scrollable row with label + glow */}
-          {isMatched && visibleSharedInterests.length > 0 && (
+          {isMatched && sharedInterests.length > 0 && (
             <div className="mb-2">
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
-                ✨ Shared Interests
+                ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
               <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                {visibleSharedInterests.map((interest: string, idx: number) => (
+                {displayedSharedInterests.map((interest: string, idx: number) => (
                   <motion.div
                     key={`m-shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
@@ -1647,49 +1600,6 @@ export default function MatchPage() {
             </div>
           )}
         </div>
-
-        {/* GHOST PILL — golden spark rising (mobile) */}
-        <AnimatePresence>
-          {floatingAdd && (
-            <motion.div
-              key={floatingAdd.key}
-              initial={{ opacity: 1, y: 0, scale: 0.8 }}
-              animate={{ opacity: 0, y: -110, scale: 1.05 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute bottom-[5.5rem] left-1/2 -translate-x-1/2 z-25 pointer-events-none lg:hidden"
-            >
-              {[...Array(7)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0.9, y: 0, x: 0, scale: 1 }}
-                  animate={{
-                    opacity: 0,
-                    y: 14 + i * 9,
-                    x: (i % 2 === 0 ? 1 : -1) * (3 + i * 4),
-                    scale: 0,
-                  }}
-                  transition={{ duration: 0.4 + i * 0.08, delay: i * 0.04, ease: 'easeOut' }}
-                  className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
-                  style={{
-                    width: `${3 - i * 0.3}px`,
-                    height: `${3 - i * 0.3}px`,
-                    background: i < 3 ? '#fde047' : '#fbbf24',
-                    boxShadow: `0 0 ${5 - i * 0.5}px ${i < 3 ? '#fde047' : '#fbbf24'}`,
-                  }}
-                />
-              ))}
-              <motion.div
-                initial={{ boxShadow: '0 0 28px rgba(253,224,71,0.7), 0 0 8px rgba(253,224,71,0.4)' }}
-                animate={{ boxShadow: '0 0 6px rgba(253,224,71,0.1)' }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="px-3 py-1.5 rounded-full text-[12px] font-bold text-black bg-yellow-300 border border-yellow-200/80 whitespace-nowrap"
-              >
-                {floatingAdd.interest}
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ONBOARDING HINTS */}
         <AnimatePresence mode="wait">
@@ -1766,19 +1676,59 @@ export default function MatchPage() {
                   </div>
                 ))}
               </div>
+
+              {/* DESKTOP QUICK-ADD */}
+              {isMatched && (
+                <div className="mt-3">
+                  {!quickAddOpen ? (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setQuickAddOpen(true)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white/50 bg-white/8 border border-white/15 hover:text-white/70 hover:bg-white/12 transition-all"
+                    >
+                      <Plus size={14} /> Add your own interest
+                    </motion.button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={quickAddValue}
+                        onChange={e => setQuickAddValue(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                        placeholder="Add interest..."
+                        autoFocus
+                        className="flex-1 min-w-0 px-4 py-2 rounded-full text-sm bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50"
+                      />
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleQuickAdd}
+                        className="px-4 py-2 rounded-full text-sm font-bold bg-yellow-300 text-black"
+                      >
+                        Add
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => { setQuickAddOpen(false); setQuickAddValue(''); }}
+                        className="p-1.5 text-white/40 hover:text-white/70"
+                      >
+                        <X size={16} />
+                      </motion.button>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
 
         {/* CENTER COLUMN — Shared interests + vibe bar */}
         <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-          {isMatched && visibleSharedInterests.length > 0 && (
+          {isMatched && sharedInterests.length > 0 && (
             <>
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-3">
-                ✨ Shared Interests
+                ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
               <div className="flex flex-wrap justify-center gap-3 mb-2">
-                {visibleSharedInterests.map((interest: string, idx: number) => (
+                {displayedSharedInterests.map((interest: string, idx: number) => (
                   <motion.div
                     key={`desk-shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
@@ -1791,7 +1741,6 @@ export default function MatchPage() {
                   </motion.div>
                 ))}
               </div>
-              <DesktopVibeBar count={visibleSharedInterests.length} />
             </>
           )}
         </div>
@@ -1923,7 +1872,8 @@ export default function MatchPage() {
             {REACTION_EMOJIS.map(emoji => (
               <motion.button
                 key={emoji}
-                whileTap={{ scale: 1.3 }}
+                whileTap={{ scale: 1.25 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 onClick={(e) => triggerReaction(emoji, e.currentTarget)}
                 className="text-xl opacity-60 hover:opacity-100 active:opacity-100 transition-opacity p-1 lg:text-3xl lg:p-2"
               >

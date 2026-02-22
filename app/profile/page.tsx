@@ -16,6 +16,7 @@ import {
   countBySource,
   mostRecentInterest,
 } from '@/lib/structuredInterests';
+import { isBlockedInterest } from '@/lib/interestBlocklist';
 
 // --- CONSTANTS ---
 const MIN_REQUIRED = 3;
@@ -259,6 +260,7 @@ export default function ProfilePage() {
     const toAdd: StructuredInterest[] = [];
     for (const item of items) {
       const normalized = item.charAt(0).toUpperCase() + item.slice(1);
+      if (isBlockedInterest(normalized)) continue;
       if (!interests.some(i => i.toLowerCase() === normalized.toLowerCase()) &&
           !toAdd.some(i => i.name.toLowerCase() === normalized.toLowerCase())) {
         toAdd.push(createInterest(normalized, 'profile'));
