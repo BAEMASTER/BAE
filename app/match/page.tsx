@@ -1277,7 +1277,7 @@ export default function MatchPage() {
       <div className="relative flex-1 flex flex-col overflow-hidden z-5 pt-14 lg:flex-none lg:h-[62vh] lg:flex-row lg:px-8 lg:pt-20 lg:pb-2 lg:gap-6">
         {/* PARTNER VIDEO — flex-fills mobile, flex-1 panel on desktop */}
         <div
-          className="partner-video-frame relative flex-1 min-h-0 mx-3 mt-1 rounded-2xl overflow-hidden border-[1.5px] border-[rgba(253,224,71,0.18)] shadow-[0_0_28px_rgba(253,224,71,0.08),0_4px_24px_rgba(0,0,0,0.4)] lg:flex-shrink lg:mx-0 lg:mt-0 lg:bg-black"
+          className="partner-video-frame relative flex-1 min-h-0 mx-3 mt-1 rounded-2xl overflow-hidden border-[1.5px] border-[rgba(253,224,71,0.18)] shadow-[0_0_28px_rgba(253,224,71,0.08),0_4px_24px_rgba(0,0,0,0.4)] lg:order-2 lg:flex-shrink lg:mx-0 lg:mt-0 lg:bg-black"
         >
           <video
             ref={theirVideoRef}
@@ -1381,7 +1381,7 @@ export default function MatchPage() {
 
         {/* YOUR VIDEO — FaceTime thumbnail on mobile, flex-1 panel on desktop */}
         <div
-          className="self-video-frame absolute z-20 bottom-28 right-4 w-[100px] h-[140px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:bg-black"
+          className="self-video-frame absolute z-20 bottom-28 right-4 w-[100px] h-[140px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:order-1 lg:bg-black"
         >
           <video
             ref={yourVideoRef}
