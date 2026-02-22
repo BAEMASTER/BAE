@@ -1492,7 +1492,7 @@ export default function MatchPage() {
 
         {/* YOUR VIDEO — FaceTime thumbnail on mobile, flex-1 panel on desktop */}
         <div
-          className="self-video-frame absolute z-20 bottom-[30%] right-6 w-[100px] h-[140px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:order-1 lg:bg-black"
+          className="self-video-frame absolute z-20 bottom-3 right-4 w-[100px] h-[140px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:order-1 lg:bg-black"
         >
           <video
             ref={yourVideoRef}
