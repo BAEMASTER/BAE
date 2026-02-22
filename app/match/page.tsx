@@ -443,6 +443,8 @@ export default function MatchPage() {
   const [savedUids, setSavedUids] = useState<Set<string>>(new Set());
   const [megaVibePreviouslyTriggered, setMegaVibePreviouslyTriggered] = useState(false);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const [revealedShared, setRevealedShared] = useState<Set<string>>(new Set());
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showPartnerDrawer, setShowPartnerDrawer] = useState(false);
   const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
   const [waitingTimedOut, setWaitingTimedOut] = useState(false);
@@ -466,6 +468,11 @@ export default function MatchPage() {
       theirInterestNames.some((ti: string) => ti.trim().toLowerCase() === i.trim().toLowerCase())
     );
   }, [myProfile, theirProfile, myInterestNames, theirInterestNames]);
+
+  const visibleSharedInterests = useMemo(
+    () => sharedInterests.filter((i: string) => revealedShared.has(i.trim().toLowerCase())),
+    [sharedInterests, revealedShared]
+  );
 
   // --- AUTH ---
   useEffect(() => {
@@ -841,7 +848,7 @@ export default function MatchPage() {
   useEffect(() => {
     if (!isMatched) return;
 
-    if (sharedInterests.length >= 5 && !celebratedCounts.has(5)) {
+    if (visibleSharedInterests.length >= 5 && !celebratedCounts.has(5)) {
       setCelebratedCounts(prev => new Set([...prev, 5]));
 
       // MEGAVIBE is a first-time-only discovery moment per unique pair
@@ -864,11 +871,32 @@ export default function MatchPage() {
         }
       }
     }
-  }, [sharedInterests.length, isMatched, celebratedCounts, megaVibePreviouslyTriggered, user, currentPartnerId]);
+  }, [visibleSharedInterests.length, isMatched, celebratedCounts, megaVibePreviouslyTriggered, user, currentPartnerId]);
+
+  // --- STAGGERED SHARED INTEREST REVEAL ---
+  useEffect(() => {
+    if (!isMatched) return;
+    const unrevealed = sharedInterests.filter(
+      (i: string) => !revealedShared.has(i.trim().toLowerCase())
+    );
+    if (unrevealed.length === 0) return;
+
+    const delay = revealedShared.size === 0 ? 1000 : 2000;
+    revealTimerRef.current = setTimeout(() => {
+      const next = unrevealed[0].trim().toLowerCase();
+      setRevealedShared(prev => new Set([...prev, next]));
+      playCollectSound();
+    }, delay);
+
+    return () => {
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+    };
+  }, [isMatched, sharedInterests, revealedShared]);
 
   // --- CLEANUP ON UNMOUNT ---
   useEffect(() => {
     return () => {
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
       clearMatchRetry();
       if (callObjectRef.current) {
         try { callObjectRef.current.leave(); callObjectRef.current.destroy(); } catch {}
@@ -994,6 +1022,8 @@ export default function MatchPage() {
     setCurrentPartnerId(null);
     setMegaVibePreviouslyTriggered(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
+    setRevealedShared(new Set());
+    if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
     setShowMoreMenu(false);
     setShowReportModal(false);
     setBlockConfirm(false);
@@ -1093,6 +1123,10 @@ export default function MatchPage() {
 
     // Floating "added" notification
     setFloatingAdd({ interest, key: Date.now() });
+    playCollectSound();
+
+    // Immediately reveal as shared (bypasses staggered timer)
+    setRevealedShared(prev => new Set([...prev, interest.trim().toLowerCase()]));
 
     const newEntry = createInterest(interest, 'match', currentPartnerId || undefined);
     const updated = addStructuredInterests(currentStructured, [newEntry]);
@@ -1240,10 +1274,10 @@ export default function MatchPage() {
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
 
       {/* ==================== VIDEO GRID (shared structure, responsive layout) ==================== */}
-      <div className="relative flex-1 flex flex-col overflow-hidden z-5 pt-12 lg:flex-none lg:h-[62vh] lg:flex-row lg:px-8 lg:pt-20 lg:pb-2 lg:gap-6">
-        {/* PARTNER VIDEO — hero on mobile (57vh), flex-1 panel on desktop */}
+      <div className="relative flex-1 flex flex-col overflow-hidden z-5 pt-14 lg:flex-none lg:h-[62vh] lg:flex-row lg:px-8 lg:pt-20 lg:pb-2 lg:gap-6">
+        {/* PARTNER VIDEO — flex-fills mobile, flex-1 panel on desktop */}
         <div
-          className="partner-video-frame relative flex-shrink-0 mx-3 mt-2 rounded-2xl overflow-hidden h-[57vh] border-[1.5px] border-[rgba(253,224,71,0.18)] shadow-[0_0_28px_rgba(253,224,71,0.08),0_4px_24px_rgba(0,0,0,0.4)] lg:flex-1 lg:flex-shrink lg:mx-0 lg:mt-0 lg:bg-black"
+          className="partner-video-frame relative flex-1 min-h-0 mx-3 mt-1 rounded-2xl overflow-hidden border-[1.5px] border-[rgba(253,224,71,0.18)] shadow-[0_0_28px_rgba(253,224,71,0.08),0_4px_24px_rgba(0,0,0,0.4)] lg:flex-shrink lg:mx-0 lg:mt-0 lg:bg-black"
         >
           <video
             ref={theirVideoRef}
@@ -1361,8 +1395,8 @@ export default function MatchPage() {
           />
         </div>
 
-        {/* MOBILE INFO SECTION — below partner video, scrollable (lg:hidden) */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-3 pt-2 pb-20 lg:hidden">
+        {/* MOBILE INFO SECTION — compact, no scroll (lg:hidden) */}
+        <div className="flex-shrink-0 flex flex-col overflow-hidden px-3 pt-1 pb-14 lg:hidden">
           {/* Partner info: name + heart + dots + interest pills */}
           {isMatched && theirProfile && (
             <div className="mb-2">
@@ -1470,20 +1504,20 @@ export default function MatchPage() {
           )}
 
           {/* MOBILE VIBE METER */}
-          {isMatched && sharedInterests.length > 0 && (
+          {isMatched && visibleSharedInterests.length > 0 && (
             <div className="mb-2">
-              <FluidVibeOMeter count={sharedInterests.length} />
+              <FluidVibeOMeter count={visibleSharedInterests.length} />
             </div>
           )}
 
           {/* MOBILE SHARED INTERESTS — scrollable row with label + glow */}
-          {isMatched && sharedInterests.length > 0 && (
+          {isMatched && visibleSharedInterests.length > 0 && (
             <div className="mb-2">
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
                 ✨ Shared Interests
               </p>
               <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                {sharedInterests.map((interest: string, idx: number) => (
+                {visibleSharedInterests.map((interest: string, idx: number) => (
                   <motion.div
                     key={`m-shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
@@ -1624,13 +1658,13 @@ export default function MatchPage() {
 
         {/* CENTER COLUMN — Shared interests + vibe bar */}
         <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-          {isMatched && sharedInterests.length > 0 && (
+          {isMatched && visibleSharedInterests.length > 0 && (
             <>
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-3">
                 ✨ Shared Interests
               </p>
               <div className="flex flex-wrap justify-center gap-3 mb-2">
-                {sharedInterests.map((interest: string, idx: number) => (
+                {visibleSharedInterests.map((interest: string, idx: number) => (
                   <motion.div
                     key={`desk-shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
@@ -1643,7 +1677,7 @@ export default function MatchPage() {
                   </motion.div>
                 ))}
               </div>
-              <DesktopVibeBar count={sharedInterests.length} />
+              <DesktopVibeBar count={visibleSharedInterests.length} />
             </>
           )}
         </div>
