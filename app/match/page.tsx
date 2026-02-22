@@ -44,6 +44,30 @@ const scrollbarStyle = `
       background: rgba(253,224,71,0.45);
     }
   }
+  /* Desktop overrides for partner/self video containers */
+  @media (min-width: 1024px) {
+    .partner-video-frame {
+      height: auto !important;
+      border-width: 1px !important;
+      border-color: rgba(168, 85, 247, 0.12) !important;
+      box-shadow: 0 4px 40px rgba(139,92,246,0.12), 0 0 0 1px rgba(253,224,71,0.04) !important;
+      margin: 0 !important;
+      margin-top: 0 !important;
+    }
+    .self-video-frame {
+      position: relative !important;
+      bottom: auto !important;
+      right: auto !important;
+      width: auto !important;
+      height: auto !important;
+      z-index: auto !important;
+      border-radius: 1rem !important;
+      border-width: 1px !important;
+      border-color: rgba(168, 85, 247, 0.12) !important;
+      box-shadow: 0 4px 40px rgba(139,92,246,0.12), 0 0 0 1px rgba(253,224,71,0.04) !important;
+      flex: 1 1 0% !important;
+    }
+  }
   /* Hide Daily.co video overlay controls (PiP, enhance, etc.) */
   video::-webkit-media-controls-panel,
   video::-webkit-media-controls-overlay-play-button,
@@ -1215,320 +1239,268 @@ export default function MatchPage() {
       {/* TICKET OVERLAY */}
       <AnimatePresence>{showTicket && <MegaVibeCelebration />}</AnimatePresence>
 
-      {/* VIDEO GRID */}
-      <div className="relative flex-1 flex flex-col sm:flex-row overflow-hidden z-5 pt-12 sm:pt-14 lg:flex-none lg:h-[62vh] lg:flex-row lg:px-8 lg:pt-20 lg:pb-2 lg:gap-6">
-        {/* PARTNER VIDEO SECTION (top on mobile, right on desktop) */}
-        <div className="relative order-1 sm:order-2 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden lg:rounded-2xl lg:border lg:border-purple-300/12 lg:shadow-[0_4px_40px_rgba(139,92,246,0.12),0_0_0_1px_rgba(253,224,71,0.04)]">
-          {/* Video wrapper: flex-1 on mobile (fills available space), absolute on desktop */}
-          <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
-            <video
-              ref={theirVideoRef}
-              autoPlay
-              playsInline
-              disablePictureInPicture
-              controlsList="nodownload noplaybackrate"
-              className="absolute inset-0 w-full h-full object-contain sm:object-cover"
-            />
-            {!isMatched && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
-                <AnimatePresence mode="wait">
-                  {!waitingTimedOut ? (
+      {/* ==================== VIDEO GRID (shared structure, responsive layout) ==================== */}
+      <div className="relative flex-1 flex flex-col overflow-hidden z-5 pt-12 lg:flex-none lg:h-[62vh] lg:flex-row lg:px-8 lg:pt-20 lg:pb-2 lg:gap-6">
+        {/* PARTNER VIDEO — hero on mobile (57vh), flex-1 panel on desktop */}
+        <div
+          className="partner-video-frame relative flex-shrink-0 mx-3 mt-2 rounded-2xl overflow-hidden h-[57vh] border-[1.5px] border-[rgba(253,224,71,0.18)] shadow-[0_0_28px_rgba(253,224,71,0.08),0_4px_24px_rgba(0,0,0,0.4)] lg:flex-1 lg:flex-shrink lg:mx-0 lg:mt-0 lg:bg-black"
+        >
+          <video
+            ref={theirVideoRef}
+            autoPlay
+            playsInline
+            disablePictureInPicture
+            controlsList="nodownload noplaybackrate"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {!isMatched && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
+              <AnimatePresence mode="wait">
+                {!waitingTimedOut ? (
+                  <motion.div
+                    key="searching"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-center px-6"
+                  >
                     <motion.div
-                      key="searching"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.4 }}
-                      className="text-center px-6"
+                      animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                      className="text-5xl mb-4"
                     >
-                      <motion.div
-                        animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                        className="text-5xl mb-4"
-                      >
-                        ✨
-                      </motion.div>
-                      <AnimatePresence mode="wait">
-                        <motion.p
-                          key={waitingMsgIdx}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.3 }}
-                          className="text-lg font-bold text-white"
-                        >
-                          {WAITING_MESSAGES[waitingMsgIdx]}
-                        </motion.p>
-                      </AnimatePresence>
+                      ✨
                     </motion.div>
-                  ) : (
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={waitingMsgIdx}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.3 }}
+                        className="text-lg font-bold text-white"
+                      >
+                        {WAITING_MESSAGES[waitingMsgIdx]}
+                      </motion.p>
+                    </AnimatePresence>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="timed-out"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="text-center px-8 max-w-sm"
+                  >
                     <motion.div
-                      key="timed-out"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="text-center px-8 max-w-sm"
+                      animate={{ scale: [1, 1.08, 1] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                      className="text-5xl mb-5"
                     >
-                      <motion.div
-                        animate={{ scale: [1, 1.08, 1] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                        className="text-5xl mb-5"
-                      >
-                        🌱
-                      </motion.div>
-                      <h2 className="text-xl font-bold text-white mb-2">
-                        BAE is growing
-                      </h2>
-                      <p className="text-sm text-white/60 leading-relaxed mb-6">
-                        No one's online right now — but the universe is expanding. Come back soon and you'll find your people.
-                      </p>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => router.push('/explorer')}
-                        className="px-6 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full text-sm shadow-lg shadow-violet-500/25"
-                      >
-                        Explore People
-                      </motion.button>
+                      🌱
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-            {/* Partner disconnect overlay */}
-            <AnimatePresence>
-              {isMatched && partnerDisconnected && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-                >
-                  <div className="text-center px-4">
-                    <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
+                    <h2 className="text-xl font-bold text-white mb-2">
+                      BAE is growing
+                    </h2>
+                    <p className="text-sm text-white/60 leading-relaxed mb-6">
+                      No one's online right now — but the universe is expanding. Come back soon and you'll find your people.
+                    </p>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={handleNext}
-                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                      onClick={() => router.push('/explorer')}
+                      className="px-6 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full text-sm shadow-lg shadow-violet-500/25"
                     >
-                      Find Next Match
-                      <RefreshCw size={16} />
+                      Explore People
                     </motion.button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* THEIR NAME + INTERESTS — flows below video on mobile, absolute overlay on tablet, hidden on desktop */}
-          {isMatched && (
-            <div className="relative sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px] lg:hidden">
-              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 px-2 py-1 sm:p-3">
-                {/* Name + heart badge */}
-                <div className="text-center mb-0.5 sm:mb-2">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-white">
-                      {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
-                      {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(theirProfile)}</span>}
-                    </h3>
-                    {currentPartnerId && (
-                      <motion.button
-                        whileTap={{ scale: 0.85 }}
-                        onClick={handleToggleSave}
-                        className="pointer-events-auto cursor-pointer p-0.5"
-                      >
-                        <Heart
-                          size={20}
-                          strokeWidth={1.5}
-                          className={savedUids.has(currentPartnerId)
-                            ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
-                            : 'text-white/60 hover:text-pink-300 transition-colors'}
-                        />
-                      </motion.button>
-                    )}
-                  </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+          {/* Partner disconnect overlay */}
+          <AnimatePresence>
+            {isMatched && partnerDisconnected && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              >
+                <div className="text-center px-4">
+                  <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleNext}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                  >
+                    Find Next Match
+                    <RefreshCw size={16} />
+                  </motion.button>
                 </div>
-                {/* Interest pills - scrollable row with See all */}
-                {theirProfile && (
-                  <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
-                    {theirInterestNames.map((interest: string) => {
-                      const isAdded = myInterestNames.some(
-                        (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
-                      );
-                      const isFlashing = justAdded.has(interest.toLowerCase());
-                      return (
-                        <motion.button
-                          key={interest}
-                          whileHover={!isAdded ? { scale: 1.08 } : {}}
-                          whileTap={!isAdded ? { scale: 0.95 } : {}}
-                          onClick={() => {
-                            console.log('Tapped interest:', interest);
-                            if (!isAdded) {
-                              addInterest(interest);
-                            }
-                          }}
-                          disabled={isAdded && !isFlashing}
-                          animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
-                          transition={isFlashing ? { duration: 0.4 } : {}}
-                          className={`relative px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-semibold whitespace-nowrap flex-shrink-0 transition-all pointer-events-auto ${
-                            isFlashing
-                              ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
-                              : isAdded
-                                ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15 cursor-default'
-                                : 'bg-white/25 text-white border border-white/40 hover:bg-white/35 cursor-pointer'
-                          }`}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* YOUR VIDEO — FaceTime thumbnail on mobile, flex-1 panel on desktop */}
+        <div
+          className="self-video-frame absolute z-20 bottom-28 right-4 w-[100px] h-[140px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:bg-black"
+        >
+          <video
+            ref={yourVideoRef}
+            autoPlay
+            muted
+            playsInline
+            disablePictureInPicture
+            controlsList="nodownload noplaybackrate"
+            className="w-full h-full object-cover lg:absolute lg:inset-0"
+            style={{ transform: 'scaleX(-1)' }}
+          />
+        </div>
+
+        {/* MOBILE INFO SECTION — below partner video, scrollable (lg:hidden) */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-3 pt-2 pb-20 lg:hidden">
+          {/* Partner info: name + heart + dots + interest pills */}
+          {isMatched && theirProfile && (
+            <div className="mb-2">
+              {/* Name row */}
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-sm font-bold text-white flex-1 min-w-0 truncate">
+                  {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
+                  {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/50"> — {formatLocation(theirProfile)}</span>}
+                </h3>
+                {currentPartnerId && (
+                  <motion.button
+                    whileTap={{ scale: 0.85 }}
+                    onClick={handleToggleSave}
+                    className="flex-shrink-0 p-0.5"
+                  >
+                    <Heart
+                      size={20}
+                      strokeWidth={1.5}
+                      className={savedUids.has(currentPartnerId)
+                        ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
+                        : 'text-white/50 hover:text-pink-300 transition-colors'}
+                    />
+                  </motion.button>
+                )}
+                {currentPartnerId && (
+                  <div className="relative flex-shrink-0">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setShowMoreMenu(!showMoreMenu)}
+                      className="p-1 text-white/35 hover:text-white transition-colors"
+                    >
+                      <MoreVertical size={16} />
+                    </motion.button>
+                    <AnimatePresence>
+                      {showMoreMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9, y: 4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, y: 4 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full right-0 mt-1 w-44 rounded-xl overflow-hidden shadow-xl z-50"
+                          style={{ background: 'rgba(20, 5, 40, 0.95)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
                         >
-                          {!isAdded && !isFlashing && <span className="text-white/40 mr-1">+</span>}
-                          {interest}
-                        </motion.button>
-                      );
-                    })}
-                    {theirInterestNames.length > 0 && (
-                      <button
-                        onClick={() => setShowPartnerDrawer(true)}
-                        className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all pointer-events-auto"
-                      >
-                        See all
-                      </button>
-                    )}
+                          <button
+                            onClick={() => { setShowMoreMenu(false); setShowReportModal(true); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                          >
+                            <Flag size={14} /> Report
+                          </button>
+                          <button
+                            onClick={() => { setShowMoreMenu(false); setBlockConfirm(true); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-400 hover:bg-white/5 transition-colors border-t border-white/5"
+                          >
+                            <Ban size={14} /> Block
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
+                )}
+              </div>
+              {/* Partner interest pills — scrollable row with '+' badge */}
+              <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
+                {theirInterestNames.map((interest: string) => {
+                  const isAdded = myInterestNames.some(
+                    (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
+                  );
+                  const isFlashing = justAdded.has(interest.toLowerCase());
+                  return (
+                    <motion.button
+                      key={interest}
+                      whileHover={!isAdded ? { scale: 1.08 } : {}}
+                      whileTap={!isAdded ? { scale: 0.95 } : {}}
+                      onClick={() => {
+                        if (!isAdded) addInterest(interest);
+                      }}
+                      disabled={isAdded && !isFlashing}
+                      animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
+                      transition={isFlashing ? { duration: 0.4 } : {}}
+                      className={`relative px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
+                        isFlashing
+                          ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
+                          : isAdded
+                            ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15 cursor-default'
+                            : 'bg-yellow-300 text-black border border-yellow-200 cursor-pointer'
+                      }`}
+                    >
+                      {interest}
+                      {!isAdded && !isFlashing && (
+                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-violet-500 text-white flex items-center justify-center text-[9px] font-black leading-none shadow-md">+</span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+                {theirInterestNames.length > 0 && (
+                  <button
+                    onClick={() => setShowPartnerDrawer(true)}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap flex-shrink-0 bg-white/10 text-white/60 border border-white/20 hover:text-white hover:bg-white/15 transition-all"
+                  >
+                    See all
+                  </button>
                 )}
               </div>
             </div>
           )}
-        </div>
 
-        {/* MOBILE ONLY: Shared strip with vibe meter between partner and your sections */}
-        {isMatched && sharedInterests.length > 0 && (
-          <div
-            className="order-2 sm:hidden z-15 flex items-center gap-2 px-2 py-1"
-            style={{
-              background: 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              borderTop: '1px solid rgba(255,255,255,0.1)',
-              borderBottom: '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
-            <FluidVibeOMeter count={sharedInterests.length} />
-            <div className="flex gap-1.5 overflow-x-auto interests-scroll flex-1 min-w-0">
-              {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
-                <motion.div
-                  key={`m-shared-${interest}`}
-                  initial={{ opacity: 0, scale: 0, boxShadow: '0 0 24px rgba(253,224,71,0.8)' }}
-                  animate={{ opacity: 1, scale: 1, boxShadow: '0 0 10px rgba(253,224,71,0.35)' }}
-                  transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                  className="px-2.5 py-1 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[11px] font-bold whitespace-nowrap flex-shrink-0"
-                >
-                  {interest}
-                </motion.div>
-              ))}
-              {sharedInterests.length > MAX_VISIBLE_SHARED && (
-                <div className="text-[10px] font-semibold text-yellow-300/70 whitespace-nowrap flex-shrink-0 self-center">
-                  +{sharedInterests.length - MAX_VISIBLE_SHARED} more
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* YOUR VIDEO SECTION (bottom on mobile, left on desktop) */}
-        <div className="relative order-3 sm:order-1 flex-1 bg-black flex flex-col sm:block min-h-0 overflow-hidden lg:rounded-2xl lg:border lg:border-purple-300/12 lg:shadow-[0_4px_40px_rgba(139,92,246,0.12),0_0_0_1px_rgba(253,224,71,0.04)]">
-          {/* Video wrapper */}
-          <div className="relative flex-1 sm:flex-none sm:absolute sm:inset-0">
-            <video
-              ref={yourVideoRef}
-              autoPlay
-              muted
-              playsInline
-              disablePictureInPicture
-              controlsList="nodownload noplaybackrate"
-              className="absolute inset-0 w-full h-full object-contain sm:object-cover"
-              style={{ transform: 'scaleX(-1)' }}
-            />
-          </div>
-
-          {/* YOUR NAME + INTERESTS — flows below video on mobile, absolute overlay on tablet, hidden on desktop */}
-          {myProfile && (
-            <div className="relative pb-11 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 z-15 sm:pb-[52px] lg:hidden">
-              <div className="bg-black/40 backdrop-blur-xl border-t border-white/20 px-2 py-1 sm:p-3">
-                {/* Name badge */}
-                <div className="text-center mb-0.5 sm:mb-2">
-                  <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 inline-block">
-                    <h3 className="text-sm font-bold text-white">
-                      {myProfile?.displayName ? formatPublicName(myProfile.displayName) : 'You'}
-                      {formatLocation(myProfile) && <span className="text-xs font-semibold text-white/60"> — {formatLocation(myProfile)}</span>}
-                    </h3>
-                  </div>
-                </div>
-                {/* Interest pills - scrollable row */}
-                <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                  {myInterestNames.map((interest: string) => (
-                    <div
-                      key={interest}
-                      className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-semibold bg-amber-300/15 text-amber-200 border border-amber-300/25 whitespace-nowrap flex-shrink-0"
-                    >
-                      {interest}
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* MOBILE VIBE METER */}
+          {isMatched && sharedInterests.length > 0 && (
+            <div className="mb-2">
+              <FluidVibeOMeter count={sharedInterests.length} />
             </div>
           )}
-        </div>
 
-        {/* DESKTOP ONLY: Vibe meter (absolute top center) */}
-        {isMatched && sharedInterests.length > 0 && (
-          <div className="hidden sm:block lg:hidden absolute top-[0.5rem] left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-            <FluidVibeOMeter count={sharedInterests.length} />
-          </div>
-        )}
-
-        {/* DESKTOP ONLY: Shared interests center column */}
-        <AnimatePresence>
+          {/* MOBILE SHARED INTERESTS — scrollable row with label + glow */}
           {isMatched && sharedInterests.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="hidden sm:block lg:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
-            >
-              <div
-                className="flex flex-col items-center gap-2 px-3 py-3 rounded-2xl"
-                style={{
-                  background: 'rgba(0,0,0,0.4)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                }}
-              >
-                {sharedInterests.slice(0, MAX_VISIBLE_SHARED).map((interest: string, idx: number) => (
+            <div className="mb-2">
+              <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
+                ✨ Shared Interests
+              </p>
+              <div className="flex gap-1.5 overflow-x-auto interests-scroll">
+                {sharedInterests.map((interest: string, idx: number) => (
                   <motion.div
-                    key={`shared-${interest}`}
-                    initial={{ opacity: 0, scale: 0, boxShadow: '0 0 32px rgba(253,224,71,0.8)' }}
-                    animate={{ opacity: 1, scale: 1, boxShadow: '0 0 16px rgba(253,224,71,0.45)' }}
-                    transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-4 py-1.5 text-black bg-yellow-300 border border-yellow-200/80 rounded-full text-[13px] font-bold whitespace-nowrap"
+                    key={`m-shared-${interest}`}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
+                    className="px-3 py-1.5 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[12px] font-bold whitespace-nowrap flex-shrink-0"
+                    style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
                   >
                     {interest}
                   </motion.div>
                 ))}
-                {sharedInterests.length > MAX_VISIBLE_SHARED && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: MAX_VISIBLE_SHARED * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="text-[11px] font-semibold text-yellow-300/70 tracking-wide"
-                  >
-                    +{sharedInterests.length - MAX_VISIBLE_SHARED} more
-                  </motion.div>
-                )}
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
 
-        {/* GHOST PILL — golden spark rising toward shared strip */}
+        {/* GHOST PILL — golden spark rising (mobile) */}
         <AnimatePresence>
           {floatingAdd && (
             <motion.div
@@ -1537,9 +1509,8 @@ export default function MatchPage() {
               animate={{ opacity: 0, y: -110, scale: 1.05 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute bottom-[5.5rem] sm:bottom-[6rem] left-1/2 -translate-x-1/2 z-25 pointer-events-none lg:hidden"
+              className="absolute bottom-[5.5rem] left-1/2 -translate-x-1/2 z-25 pointer-events-none lg:hidden"
             >
-              {/* Sparkle trail — campfire sparks drifting behind */}
               {[...Array(7)].map((_, i) => (
                 <motion.div
                   key={i}
@@ -1560,13 +1531,11 @@ export default function MatchPage() {
                   }}
                 />
               ))}
-
-              {/* Ghost pill — looks like a shared interest pill */}
               <motion.div
                 initial={{ boxShadow: '0 0 28px rgba(253,224,71,0.7), 0 0 8px rgba(253,224,71,0.4)' }}
                 animate={{ boxShadow: '0 0 6px rgba(253,224,71,0.1)' }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[12px] sm:text-[13px] font-bold text-black bg-yellow-300 border border-yellow-200/80 whitespace-nowrap"
+                className="px-3 py-1.5 rounded-full text-[12px] font-bold text-black bg-yellow-300 border border-yellow-200/80 whitespace-nowrap"
               >
                 {floatingAdd.interest}
               </motion.div>
@@ -1585,10 +1554,9 @@ export default function MatchPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: hint.arrow === 'up' ? 6 : -6 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
-                className="absolute z-30 pointer-events-none flex flex-col items-center gap-1"
+                className="absolute z-30 pointer-events-none flex flex-col items-center gap-1 lg:hidden"
                 style={hint.style}
               >
-                {/* Arrow pointing UP toward target above */}
                 {hint.arrow === 'up' && (
                   <motion.div
                     animate={{ y: [0, -5, 0] }}
@@ -1598,8 +1566,6 @@ export default function MatchPage() {
                     ▲
                   </motion.div>
                 )}
-
-                {/* Hint pill */}
                 <div
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-medium text-white/90 whitespace-nowrap"
                   style={{
@@ -1613,8 +1579,6 @@ export default function MatchPage() {
                   <span className="text-[13px]" aria-hidden>💡</span>
                   {hint.text}
                 </div>
-
-                {/* Arrow pointing DOWN toward target below */}
                 {hint.arrow === 'down' && (
                   <motion.div
                     animate={{ y: [0, 5, 0] }}
@@ -1662,6 +1626,9 @@ export default function MatchPage() {
         <div className="flex-1 flex flex-col items-center justify-center min-w-0">
           {isMatched && sharedInterests.length > 0 && (
             <>
+              <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-3">
+                ✨ Shared Interests
+              </p>
               <div className="flex flex-wrap justify-center gap-3 mb-2">
                 {sharedInterests.map((interest: string, idx: number) => (
                   <motion.div
@@ -1776,64 +1743,22 @@ export default function MatchPage() {
       </div>
 
       {/* BOTTOM CONTROLS BAR */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-2 sm:py-3 bg-black/60 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:px-8 lg:py-4">
+      <div
+        className="absolute bottom-0 left-0 right-0 z-30 flex items-center px-4 py-2 bg-black/60 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:px-8 lg:py-4"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0.5rem))' }}
+      >
         {/* End button - left */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleEnd}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl"
+          className="flex items-center gap-2 px-5 py-2.5 bg-red-500/90 hover:bg-red-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl"
         >
           <X size={14} className="lg:hidden" />
           End
         </motion.button>
 
         <div className="flex-1" />
-
-        {/* Three-dot menu — report/block (mobile/tablet only, desktop has it in right column) */}
-        {isMatched && currentPartnerId && (
-          <div className="relative mr-2 lg:hidden">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowMoreMenu(!showMoreMenu)}
-              className="p-2 text-white/50 hover:text-white transition-colors"
-            >
-              <MoreVertical size={18} />
-            </motion.button>
-
-            <AnimatePresence>
-              {showMoreMenu && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute bottom-full right-0 mb-2 w-44 rounded-xl overflow-hidden shadow-xl"
-                  style={{
-                    background: 'rgba(20, 5, 40, 0.95)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                  }}
-                >
-                  <button
-                    onClick={() => { setShowMoreMenu(false); setShowReportModal(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <Flag size={14} />
-                    Report
-                  </button>
-                  <button
-                    onClick={() => { setShowMoreMenu(false); setBlockConfirm(true); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400/80 hover:text-red-400 hover:bg-white/5 transition-colors border-t border-white/5"
-                  >
-                    <Ban size={14} />
-                    Block
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
 
         {/* Next button - right */}
         {isMatched && (
@@ -1843,7 +1768,7 @@ export default function MatchPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleNext}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl lg:from-amber-500 lg:to-orange-500"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl lg:from-amber-500 lg:to-orange-500"
           >
             Next
             <RefreshCw size={14} className="lg:hidden" />
