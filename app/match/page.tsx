@@ -134,6 +134,12 @@ function pairKey(a: string, b: string): string {
   return [a, b].sort().join('_');
 }
 
+// --- REACTION CONSTANTS ---
+const REACTION_EMOJIS = ['💛', '🔥', '😂', '🤯', '👏', '🧠'];
+const REACTION_NORMAL_COUNT = 18;
+const REACTION_INTENSE_COUNT = 45;
+const REACTION_INTENSE_THRESHOLD = 3; // taps within 1s window
+
 function FluidVibeOMeter({ count }: { count: number }) {
   const current = count > 0 ? VIBE_LEVELS[Math.min(count - 1, 4)] : null;
   const fillPercent = Math.min((count / 5) * 100, 100);
@@ -421,6 +427,59 @@ function MegaVibeCelebration() {
   );
 }
 
+// --- REACTION CASCADE ---
+function ReactionCascade({ emoji, count, originX, onComplete }: {
+  emoji: string;
+  count: number;
+  originX: number; // viewport %
+  onComplete: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onComplete, 2000); // 1.8s max duration + 200ms buffer
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <>
+      {[...Array(count)].map((_, i) => {
+        const drift = (Math.random() - 0.5) * 160; // ±80px
+        const riseVh = 30 + Math.random() * 50; // 30-80vh
+        const delay = Math.random() * 0.3;
+        const size = 20 + Math.random() * 12; // 20-32px
+        const duration = 1.4 + Math.random() * 0.6; // 1.4-2.0s
+
+        return (
+          <motion.div
+            key={i}
+            initial={{ opacity: 1, x: 0, y: 0, scale: 0.5 }}
+            animate={{
+              opacity: 0,
+              x: drift,
+              y: `-${riseVh}vh`,
+              scale: 1,
+            }}
+            transition={{
+              duration,
+              delay,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${originX}%`,
+              bottom: '15vh',
+              fontSize: `${size}px`,
+              filter: 'drop-shadow(0 0 6px rgba(253,224,71,0.4))',
+            }}
+          >
+            {emoji}
+          </motion.div>
+        );
+      })}
+    </>
+  );
+}
+
 // --- MAIN PAGE ---
 export default function MatchPage() {
   const router = useRouter();
@@ -466,6 +525,11 @@ export default function MatchPage() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportDone, setReportDone] = useState(false);
   const [blockConfirm, setBlockConfirm] = useState(false);
+
+  // --- REACTIONS ---
+  const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; count: number; originX: number }>>([]);
+  const reactionTapTimestamps = useRef<Record<string, number[]>>({});
+  const reactionIdCounter = useRef(0);
 
   // --- SHARED INTERESTS ---
   const myInterestNames = useMemo(() => interestNames(parseInterests(myProfile?.interests)), [myProfile?.interests]);
@@ -784,6 +848,20 @@ export default function MatchPage() {
         }
       });
 
+      // Receive reactions from partner
+      daily.on('app-message', (event: any) => {
+        const data = event?.data;
+        if (data?.type === 'reaction' && !event?.fromId?.startsWith?.('local')) {
+          const id = ++reactionIdCounter.current;
+          setReactionCascades(prev => [...prev, {
+            id,
+            emoji: data.emoji,
+            count: data.count,
+            originX: data.originX,
+          }]);
+        }
+      });
+
       // Ensure fresh tracks before joining
       if (mediaStreamRef.current) {
         const videoTracks = mediaStreamRef.current.getVideoTracks();
@@ -1038,6 +1116,7 @@ export default function MatchPage() {
     setReportReason('');
     setReportDetails('');
     setReportDone(false);
+    setReactionCascades([]);
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
@@ -1236,6 +1315,30 @@ export default function MatchPage() {
       handleNext(); // immediately move to next match
     } catch (e) {
       console.error('Block failed:', e);
+    }
+  };
+
+  // --- TRIGGER REACTION ---
+  const triggerReaction = (emoji: string, buttonEl: HTMLElement) => {
+    const now = Date.now();
+    if (!reactionTapTimestamps.current[emoji]) reactionTapTimestamps.current[emoji] = [];
+    reactionTapTimestamps.current[emoji].push(now);
+    // Keep only taps within last 1000ms
+    reactionTapTimestamps.current[emoji] = reactionTapTimestamps.current[emoji].filter(t => now - t < 1000);
+
+    const isIntense = reactionTapTimestamps.current[emoji].length >= REACTION_INTENSE_THRESHOLD;
+    const count = isIntense ? REACTION_INTENSE_COUNT : REACTION_NORMAL_COUNT;
+
+    // Calculate originX from button position
+    const rect = buttonEl.getBoundingClientRect();
+    const originX = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
+
+    const id = ++reactionIdCounter.current;
+    setReactionCascades(prev => [...prev, { id, emoji, count, originX }]);
+
+    // Send to partner
+    if (callObjectRef.current) {
+      callObjectRef.current.sendAppMessage({ type: 'reaction', emoji, count, originX }, '*');
     }
   };
 
@@ -1783,6 +1886,50 @@ export default function MatchPage() {
           )}
         </div>
       </div>
+
+      {/* REACTION CASCADE OVERLAY */}
+      <div className="fixed inset-0 z-[80] pointer-events-none overflow-hidden">
+        <AnimatePresence>
+          {reactionCascades.map(c => (
+            <ReactionCascade
+              key={c.id}
+              emoji={c.emoji}
+              count={c.count}
+              originX={c.originX}
+              onComplete={() => setReactionCascades(prev => prev.filter(r => r.id !== c.id))}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* REACTION BAR */}
+      {isMatched && (
+        <div
+          className="absolute left-0 right-0 z-[35] flex justify-center pointer-events-none"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
+        >
+          <div
+            className="pointer-events-auto flex items-center gap-1 px-3 py-1.5 rounded-full lg:gap-2 lg:px-4 lg:py-2"
+            style={{
+              background: 'rgba(0,0,0,0.55)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            {REACTION_EMOJIS.map(emoji => (
+              <motion.button
+                key={emoji}
+                whileTap={{ scale: 1.3 }}
+                onClick={(e) => triggerReaction(emoji, e.currentTarget)}
+                className="text-xl opacity-60 hover:opacity-100 active:opacity-100 transition-opacity p-1 lg:text-3xl lg:p-2"
+              >
+                {emoji}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* BOTTOM CONTROLS BAR */}
       <div
