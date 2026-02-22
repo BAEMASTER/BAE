@@ -49,8 +49,12 @@ const scrollbarStyle = `
     .partner-video-frame {
       height: auto !important;
       border-width: 1px !important;
-      border-color: rgba(168, 85, 247, 0.12) !important;
-      box-shadow: 0 4px 40px rgba(139,92,246,0.12), 0 0 0 1px rgba(253,224,71,0.04) !important;
+      border-color: rgba(139, 92, 246, 0.3) !important;
+      box-shadow:
+        0 0 20px rgba(139,92,246,0.15),
+        0 0 60px rgba(139,92,246,0.08),
+        inset 0 0 30px rgba(0,0,0,0.3),
+        0 0 0 1px rgba(253,224,71,0.06) !important;
       margin: 0 !important;
       margin-top: 0 !important;
     }
@@ -63,8 +67,12 @@ const scrollbarStyle = `
       z-index: auto !important;
       border-radius: 1rem !important;
       border-width: 1px !important;
-      border-color: rgba(168, 85, 247, 0.12) !important;
-      box-shadow: 0 4px 40px rgba(139,92,246,0.12), 0 0 0 1px rgba(253,224,71,0.04) !important;
+      border-color: rgba(139, 92, 246, 0.3) !important;
+      box-shadow:
+        0 0 20px rgba(139,92,246,0.15),
+        0 0 60px rgba(139,92,246,0.08),
+        inset 0 0 30px rgba(0,0,0,0.3),
+        0 0 0 1px rgba(253,224,71,0.06) !important;
       flex: 1 1 0% !important;
     }
   }
