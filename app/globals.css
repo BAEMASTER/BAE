@@ -6,7 +6,8 @@
 @layer base {
   html,
   body {
-    @apply min-h-screen font-sans text-gray-900 bg-transparent;
+    @apply min-h-screen font-sans text-gray-900;
+    background-color: #1A0033;
   }
 
   h1 {

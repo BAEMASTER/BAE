@@ -12,16 +12,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen">
-        {!isAuthPage && <Header />}
-        <main
-          className={
-            isAuthPage || isMatchPage
-              ? "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100"
-              : "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 pt-[72px]"
-          }
-        >
-          {children}
-        </main>
+        {!isAuthPage && !isMatchPage && <Header />}
+        {isMatchPage ? (
+          children
+        ) : (
+          <main
+            className={
+              isAuthPage
+                ? "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100"
+                : "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 pt-[72px]"
+            }
+          >
+            {children}
+          </main>
+        )}
       </body>
     </html>
   );
