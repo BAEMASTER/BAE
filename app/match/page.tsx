@@ -1255,7 +1255,7 @@ export default function MatchPage() {
   }
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col" style={{ height: '100dvh' }}>
+    <main className="fixed inset-0 overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
       <style>{scrollbarStyle}</style>
 
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
