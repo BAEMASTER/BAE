@@ -220,7 +220,7 @@ export default function HomePage() {
           }}
         >
           <span className="relative z-10 text-xl sm:text-2xl font-black tracking-wider">
-            {isChecking ? 'Initializing...' : !user ? 'BAE SOMEONE NOW!' : userInterests.length < MIN_REQUIRED ? 'Complete Your Profile' : 'BAE SOMEONE NOW!'}
+            {isChecking ? 'Initializing...' : !user ? 'BAE With Someone Now' : userInterests.length < MIN_REQUIRED ? 'Complete Your Profile' : 'BAE With Someone Now'}
           </span>
         </motion.button>
 

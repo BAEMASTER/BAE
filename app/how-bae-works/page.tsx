@@ -452,7 +452,7 @@ export default function GuidePage() {
             onClick={handleBAEClick}
             className="group inline-flex items-center gap-3 px-12 sm:px-20 py-5 sm:py-7 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xl sm:text-2xl rounded-full shadow-[0_10px_30px_rgba(245,158,11,0.4)] transition-all"
           >
-            BAE SOMEONE NOW!
+            BAE With Someone Now
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </motion.button>
           <p className="text-white/60 text-sm mt-6">

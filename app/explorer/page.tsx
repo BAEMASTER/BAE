@@ -666,7 +666,7 @@ function ExplorerPageContent() {
                 : 'bg-gray-500/50 cursor-not-allowed opacity-60'
             }`}
           >
-            {userInterests.length >= 3 ? 'BAE SOMEONE NOW!' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
+            {userInterests.length >= 3 ? 'BAE With Someone Now' : `Need ${Math.max(3 - userInterests.length, 0)} More Interest${3 - userInterests.length !== 1 ? 's' : ''}`}
           </motion.button>
         </div>
       </div>
