@@ -160,9 +160,9 @@ export default function HomePage() {
           transition={{ duration: 0.8 }}
           className="text-6xl sm:text-7xl lg:text-9xl font-extrabold mb-6 sm:mb-8 drop-shadow-[0_0_50px_rgba(255,160,255,0.8)] leading-tight" 
         >
-          Meet. Match.
-          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent ml-2 sm:ml-4">
-            BAE.
+          Be Yourself on{' '}
+          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+            BAE
           </span>
         </motion.h2>
 

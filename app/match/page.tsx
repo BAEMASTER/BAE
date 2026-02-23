@@ -126,7 +126,7 @@ function pairKey(a: string, b: string): string {
 }
 
 // --- REACTION CONSTANTS ---
-const REACTION_EMOJIS = ['💛', '🔥', '😂', '🤯', '👏', '🧠'];
+const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
 
 // --- CONFETTI ---
 function Confetti() {
