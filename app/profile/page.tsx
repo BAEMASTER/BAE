@@ -169,6 +169,7 @@ export default function ProfilePage() {
   const [minInterestWarning, setMinInterestWarning] = useState(false);
   const [ageError, setAgeError] = useState(false);
   const [locationError, setLocationError] = useState(false);
+  const [nameLocationSetupError, setNameLocationSetupError] = useState('');
   const [exampleIdx, setExampleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
 
@@ -189,7 +190,8 @@ export default function ProfilePage() {
         const snap = await getDoc(doc(db, 'users', u.uid));
         const data = snap.exists() ? snap.data() as any : null;
         if (data) {
-          setDisplayName(data.displayName || u.displayName || u.email || 'Mystery BAE');
+          // Pre-fill display name from Firestore only — use Google auth as hint for setup screen
+          setDisplayName(data.displayName || '');
           setCity(data.city || '');
           setState(data.state || '');
           setCountry(data.country || '');
@@ -203,7 +205,9 @@ export default function ProfilePage() {
           
           setStructuredInterests(parseInterests(data.interests));
         } else {
-          setDisplayName(u.displayName || u.email || 'Mystery BAE');
+          // Brand new user — pre-fill from Google auth as suggestion, but city/country stay empty
+          // so isSetupIncomplete triggers the setup screen
+          setDisplayName(u.displayName || '');
         }
       } catch (e) { console.error('Profile load failed', e); }
       setAuthReady(true);
@@ -286,7 +290,8 @@ export default function ProfilePage() {
   };
 
   const handleBAEClick = () => {
-    if (isProfileLocked) return; // Don't allow if locked
+    if (isProfileLocked) return;
+    if (isSetupIncomplete) return;
     if (interests.length < MIN_REQUIRED) {
       setMinInterestWarning(true);
       setTimeout(() => setMinInterestWarning(false), 1800);
@@ -303,6 +308,7 @@ export default function ProfilePage() {
   }
 
   const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
+  const isSetupIncomplete = !displayName.trim() || !city.trim() || !country.trim();
 
   // AGE/DOB LOCKED VIEW - shows if NO DOB or DOB < 18
   if (isProfileLocked) {
@@ -388,6 +394,123 @@ export default function ProfilePage() {
             className="w-full py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg"
           >
             Verify & Continue
+          </button>
+        </motion.div>
+      </main>
+    );
+  }
+
+  // NAME + LOCATION SETUP — shows if age verified but name/location missing
+  if (isSetupIncomplete) {
+    const handleSetupSave = async () => {
+      if (!displayName.trim()) {
+        setNameLocationSetupError('Please enter your display name');
+        setTimeout(() => setNameLocationSetupError(''), 3000);
+        return;
+      }
+      if (!city.trim() || !country.trim()) {
+        setNameLocationSetupError('Please enter your city and country');
+        setTimeout(() => setNameLocationSetupError(''), 3000);
+        return;
+      }
+      if (!user) return;
+      try {
+        const dob = formatDOB(birthYear, birthMonth, birthDay);
+        await setDoc(doc(db, 'users', user.uid), {
+          displayName, city, state, country, birthDate: dob,
+          interests: structuredInterests, updatedAt: new Date().toISOString()
+        }, { merge: true });
+        // Force re-render by clearing error — isSetupIncomplete will become false
+        setNameLocationSetupError('');
+      } catch (e) {
+        console.error('Setup save failed', e);
+      }
+    };
+
+    return (
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md w-full"
+        >
+          <div className="text-5xl mb-4">👋</div>
+          <h2 className="text-3xl font-black mb-2">Welcome to BAE</h2>
+          <p className="text-base text-white/60 mb-8">
+            Tell us a little about yourself so people can find you.
+          </p>
+
+          <div className="space-y-4 text-left">
+            <div>
+              <label className="block text-sm font-semibold mb-1.5 text-white/70">Display Name *</label>
+              <input
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                placeholder="What should people call you?"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold mb-1.5 text-white/70">City *</label>
+                <input
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  placeholder="Your city"
+                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1.5 text-white/70">State/Province</label>
+                <input
+                  value={state}
+                  onChange={e => setState(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-1.5 text-white/70">Country *</label>
+              <select
+                value={country}
+                onChange={e => setCountry(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                style={{ colorScheme: 'dark' }}
+              >
+                <option value="">Select your country</option>
+                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {nameLocationSetupError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
+              >
+                {nameLocationSetupError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <style jsx>{`
+            select option {
+              background: #1A0033;
+              color: white;
+            }
+          `}</style>
+
+          <button
+            onClick={handleSetupSave}
+            className="w-full mt-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg"
+          >
+            Continue
           </button>
         </motion.div>
       </main>

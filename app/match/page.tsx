@@ -9,7 +9,7 @@ import { doc, getDoc, onSnapshot, updateDoc, setDoc, arrayUnion } from 'firebase
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, RefreshCw, Heart, MoreVertical, Flag, Ban } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
-import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
+import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, removeInterest as removeStructuredInterest, StructuredInterest } from '@/lib/structuredInterests';
 import { formatPublicName } from '@/lib/formatName';
 import { isBlockedInterest } from '@/lib/interestBlocklist';
 import { Plus } from 'lucide-react';
@@ -110,8 +110,6 @@ function formatLocation(profile: any): string {
   return profile.city;
 }
 
-const MAX_VISIBLE_SHARED = 5;
-
 // --- ONBOARDING HINTS (first match only) ---
 const ONBOARDING_HINTS: { text: string; arrow: 'up' | 'down'; style: React.CSSProperties }[] = [
   { text: 'More shared interests = more vibes', arrow: 'up', style: { top: '2.25rem', left: '50%', transform: 'translateX(-50%)' } },
@@ -129,9 +127,6 @@ function pairKey(a: string, b: string): string {
 
 // --- REACTION CONSTANTS ---
 const REACTION_EMOJIS = ['💛', '🔥', '😂', '🤯', '👏', '🧠'];
-const REACTION_NORMAL_COUNT = 25;
-const REACTION_INTENSE_COUNT = 45;
-const REACTION_INTENSE_THRESHOLD = 3; // taps within 1s window
 
 // --- CONFETTI ---
 function Confetti() {
@@ -272,55 +267,42 @@ function MegaVibeCelebration() {
 }
 
 // --- REACTION CASCADE ---
-function ReactionCascade({ emoji, count, originX, onComplete }: {
+function ReactionCascade({ emoji, originX, onComplete }: {
   emoji: string;
-  count: number;
   originX: number; // viewport %
   onComplete: () => void;
 }) {
+  const drift = useMemo(() => (Math.random() - 0.5) * 60, []); // ±30px gentle drift
+
   useEffect(() => {
-    const t = setTimeout(onComplete, 1500);
+    const t = setTimeout(onComplete, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <>
-      {[...Array(count)].map((_, i) => {
-        const drift = (Math.random() - 0.5) * 160; // ±80px
-        const riseVh = 30 + Math.random() * 50; // 30-80vh
-        const delay = Math.random() * 0.3;
-        const size = 32 + Math.random() * 16; // 32-48px
-        const duration = 0.8 + Math.random() * 0.4; // 0.8-1.2s
-
-        return (
-          <motion.div
-            key={i}
-            initial={{ opacity: 1, x: 0, y: 0, scale: 0.5 }}
-            animate={{
-              opacity: 0.3,
-              x: drift,
-              y: `-${riseVh}vh`,
-              scale: 1,
-            }}
-            transition={{
-              duration,
-              delay,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${originX}%`,
-              bottom: '15vh',
-              fontSize: `${size}px`,
-              filter: 'drop-shadow(0 0 10px rgba(253,224,71,0.6))',
-            }}
-          >
-            {emoji}
-          </motion.div>
-        );
-      })}
-    </>
+    <motion.div
+      initial={{ opacity: 1, x: 0, y: 0, scale: 1.75 }}
+      animate={{
+        opacity: 0,
+        x: drift,
+        y: '-40vh',
+        scale: 1,
+      }}
+      transition={{
+        duration: 1,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="absolute pointer-events-none"
+      style={{
+        left: `${originX}%`,
+        bottom: '15vh',
+        fontSize: '32px',
+        filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.5))',
+      }}
+    >
+      {emoji}
+    </motion.div>
   );
 }
 
@@ -376,8 +358,7 @@ export default function MatchPage() {
   const [addNotification, setAddNotification] = useState<{ name: string; interest: string } | null>(null);
 
   // --- REACTIONS ---
-  const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; count: number; originX: number }>>([]);
-  const reactionTapTimestamps = useRef<Record<string, number[]>>({});
+  const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; originX: number }>>([]);
   const reactionIdCounter = useRef(0);
 
   // --- SHARED INTERESTS ---
@@ -389,11 +370,6 @@ export default function MatchPage() {
       theirInterestNames.some((ti: string) => ti.trim().toLowerCase() === i.trim().toLowerCase())
     );
   }, [myProfile, theirProfile, myInterestNames, theirInterestNames]);
-
-  const displayedSharedInterests = useMemo(
-    () => sharedInterests.slice(-5),
-    [sharedInterests]
-  );
 
   // --- AUTH ---
   useEffect(() => {
@@ -409,12 +385,23 @@ export default function MatchPage() {
         const snap = await getDoc(doc(db, 'users', u.uid));
         if (snap.exists()) {
           const profileData = snap.data();
+
+          // Gate: redirect to profile if name or location not set
+          if (!profileData.displayName?.trim() || !profileData.city?.trim() || !profileData.country?.trim()) {
+            router.push('/profile');
+            return;
+          }
+
           myProfileRef.current = profileData;
           setMyProfile(profileData);
           const parsed = parseSavedProfiles(profileData.savedProfiles);
           setSavedProfiles(parsed);
           setSavedUids(savedProfileUids(parsed));
           setOnboardingNeeded(!profileData.matchOnboardingDone);
+        } else {
+          // No profile at all — send to profile setup
+          router.push('/profile');
+          return;
         }
       } catch (e) {
         console.error('Profile load failed:', e);
@@ -705,7 +692,6 @@ export default function MatchPage() {
           setReactionCascades(prev => [...prev, {
             id,
             emoji: data.emoji,
-            count: data.count,
             originX: data.originX,
           }]);
         }
@@ -1116,6 +1102,25 @@ export default function MatchPage() {
     setQuickAddOpen(false);
   };
 
+  // --- REMOVE OWN INTEREST ---
+  const handleRemoveInterest = async (interest: string) => {
+    if (!user || !myProfile) return;
+    const currentStructured = parseInterests(myProfile.interests);
+    const updated = removeStructuredInterest(currentStructured, interest);
+    const updatedProfile = { ...myProfile, interests: updated };
+    myProfileRef.current = updatedProfile;
+    setMyProfile(updatedProfile);
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        interests: updated,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('Remove interest failed:', e);
+    }
+  };
+
   // --- TOGGLE SAVE PARTNER ---
   const handleToggleSave = async () => {
     if (!user || !currentPartnerId) return;
@@ -1202,25 +1207,15 @@ export default function MatchPage() {
 
   // --- TRIGGER REACTION ---
   const triggerReaction = (emoji: string, buttonEl: HTMLElement) => {
-    const now = Date.now();
-    if (!reactionTapTimestamps.current[emoji]) reactionTapTimestamps.current[emoji] = [];
-    reactionTapTimestamps.current[emoji].push(now);
-    // Keep only taps within last 1000ms
-    reactionTapTimestamps.current[emoji] = reactionTapTimestamps.current[emoji].filter(t => now - t < 1000);
-
-    const isIntense = reactionTapTimestamps.current[emoji].length >= REACTION_INTENSE_THRESHOLD;
-    const count = isIntense ? REACTION_INTENSE_COUNT : REACTION_NORMAL_COUNT;
-
-    // Calculate originX from button position
     const rect = buttonEl.getBoundingClientRect();
     const originX = ((rect.left + rect.width / 2) / window.innerWidth) * 100;
 
     const id = ++reactionIdCounter.current;
-    setReactionCascades(prev => [...prev, { id, emoji, count, originX }]);
+    setReactionCascades(prev => [...prev, { id, emoji, originX }]);
 
-    // Send to partner
+    // Send to partner (1 emoji per tap)
     if (callObjectRef.current) {
-      callObjectRef.current.sendAppMessage({ type: 'reaction', emoji, count, originX }, '*');
+      callObjectRef.current.sendAppMessage({ type: 'reaction', emoji, originX }, '*');
     }
   };
 
@@ -1432,7 +1427,8 @@ export default function MatchPage() {
         </div>
 
         {/* MOBILE INFO SECTION — compact, no scroll (lg:hidden) */}
-        <div className="flex-shrink-0 flex flex-col overflow-hidden px-3 pt-1 pb-14 lg:hidden">
+        {/* pb-28 = 112px clears both the reaction bar (~48px) and bottom controls bar (~56px) */}
+        <div className="flex-shrink-0 flex flex-col overflow-hidden px-3 pt-1 pb-28 lg:hidden">
           {/* Partner info: name + heart + dots + interest pills */}
           {isMatched && theirProfile && (
             <div className="mb-2">
@@ -1537,7 +1533,7 @@ export default function MatchPage() {
                 )}
               </div>
 
-              {/* MOBILE QUICK-ADD */}
+              {/* MOBILE QUICK-ADD + YOUR INTERESTS */}
               <div className="mt-2">
                 {!quickAddOpen ? (
                   <motion.button
@@ -1545,32 +1541,51 @@ export default function MatchPage() {
                     onClick={() => setQuickAddOpen(true)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold text-white/50 bg-white/8 border border-white/15 hover:text-white/70 hover:bg-white/12 transition-all"
                   >
-                    <Plus size={12} /> Add your own
+                    <Plus size={12} /> Your interests
                   </motion.button>
                 ) : (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      value={quickAddValue}
-                      onChange={e => setQuickAddValue(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
-                      placeholder="Add interest..."
-                      autoFocus
-                      className="flex-1 min-w-0 px-3 py-1.5 rounded-full text-[12px] bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50"
-                    />
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleQuickAdd}
-                      className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-yellow-300 text-black"
-                    >
-                      Add
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => { setQuickAddOpen(false); setQuickAddValue(''); }}
-                      className="p-1 text-white/40 hover:text-white/70"
-                    >
-                      <X size={14} />
-                    </motion.button>
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <input
+                        value={quickAddValue}
+                        onChange={e => setQuickAddValue(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                        placeholder="Add interest..."
+                        autoFocus
+                        className="flex-1 min-w-0 px-3 py-1.5 rounded-full text-[12px] bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50"
+                      />
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleQuickAdd}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-yellow-300 text-black"
+                      >
+                        Add
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => { setQuickAddOpen(false); setQuickAddValue(''); }}
+                        className="p-1 text-white/40 hover:text-white/70"
+                      >
+                        <X size={14} />
+                      </motion.button>
+                    </div>
+                    {/* Your interest pills with X to delete */}
+                    <div className="flex gap-1.5 overflow-x-auto interests-scroll">
+                      {myInterestNames.map((interest: string) => (
+                        <div
+                          key={`mob-my-${interest}`}
+                          className="relative px-3 py-1.5 rounded-full text-[12px] font-semibold text-black bg-yellow-300/80 border border-yellow-200/60 whitespace-nowrap flex-shrink-0"
+                        >
+                          {interest}
+                          <button
+                            onClick={() => handleRemoveInterest(interest)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[9px] font-black leading-none shadow-md"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1584,7 +1599,7 @@ export default function MatchPage() {
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
               <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                {displayedSharedInterests.map((interest: string, idx: number) => (
+                {sharedInterests.map((interest: string, idx: number) => (
                   <motion.div
                     key={`m-shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
@@ -1670,9 +1685,15 @@ export default function MatchPage() {
                 {myInterestNames.map((interest: string) => (
                   <div
                     key={`desk-my-${interest}`}
-                    className="px-5 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
+                    className="group relative px-5 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
                   >
                     {interest}
+                    <button
+                      onClick={() => handleRemoveInterest(interest)}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[9px] font-black leading-none shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -1728,7 +1749,7 @@ export default function MatchPage() {
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
               <div className="flex flex-wrap justify-center gap-3 mb-2">
-                {displayedSharedInterests.map((interest: string, idx: number) => (
+                {sharedInterests.map((interest: string, idx: number) => (
                   <motion.div
                     key={`desk-shared-${interest}`}
                     initial={{ opacity: 0, scale: 0 }}
@@ -1846,7 +1867,6 @@ export default function MatchPage() {
             <ReactionCascade
               key={c.id}
               emoji={c.emoji}
-              count={c.count}
               originX={c.originX}
               onComplete={() => setReactionCascades(prev => prev.filter(r => r.id !== c.id))}
             />

@@ -399,11 +399,21 @@ function ExplorerPageContent() {
       const snap = await getDoc(doc(db, 'users', u.uid));
       if (snap.exists()) {
         const data = snap.data();
+
+        // Gate: redirect to profile if name or location not set
+        if (!data?.displayName?.trim() || !data?.city?.trim() || !data?.country?.trim()) {
+          router.push('/profile');
+          return;
+        }
+
         setDisplayName(data?.displayName || 'Mystery BAE');
         setStructuredInterests(parseInterests(data?.interests));
         const parsed = parseSavedProfiles(data?.savedProfiles);
         setSavedProfilesList(parsed);
         setSavedProfileIds(savedProfileUids(parsed));
+      } else {
+        router.push('/profile');
+        return;
       }
 
       const snapshot = await getDocs(collection(db, 'users'));
