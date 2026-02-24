@@ -497,8 +497,10 @@ export default function MatchPage() {
         });
 
         if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          console.error('Match API error:', res.status, errBody);
           setError(true);
-          setErrorMessage('Match API failed');
+          setErrorMessage(`Match API failed (${res.status}: ${errBody.error || 'unknown'})`);
           return;
         }
 
