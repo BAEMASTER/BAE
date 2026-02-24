@@ -17,6 +17,8 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+// Use REST instead of gRPC — gRPC native bindings use OpenSSL 3.x which breaks on Vercel
+db.settings({ preferRest: true });
 
 // ✅ Only export what the server needs
 export { db };
