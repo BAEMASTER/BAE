@@ -20,6 +20,9 @@
         "react": "19.1.0",
         "react-dom": "19.1.0"
     },
+    "engines": {
+        "node": "18.x"
+    },
     "devDependencies": {
         "@eslint/eslintrc": "^3",
         "@tailwindcss/postcss": "^4.1.16",
