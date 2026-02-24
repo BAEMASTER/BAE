@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import { auth, db } from '@/lib/firebaseClient';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,12 +12,34 @@ import { parseInterests } from '@/lib/structuredInterests';
 // Shared rotating config with home
 const ROTATING_WORDS = ['uplift', 'elevate', 'inspire', 'change'];
 
+// Detect mobile / Safari where signInWithPopup fails
+function isMobileOrSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  return isMobile || isSafari;
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+
+  // Handle redirect result (fires after signInWithRedirect returns)
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (!result?.user) return;
+      const user = result.user;
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const interestCount = userDoc.exists() ? parseInterests(userDoc.data().interests).length : 0;
+      router.push(interestCount >= 3 ? '/' : '/profile');
+    }).catch((e) => {
+      console.error('Redirect sign-in error:', e);
+    });
+  }, [router]);
 
   // Redirect already-signed-in users to profile (no friction)
   useEffect(() => {
@@ -42,20 +64,22 @@ export default function AuthPage() {
       setLoading(true);
       setBusy(true);
       const provider = new GoogleAuthProvider();
+
+      // Use redirect on mobile/Safari (popup is unreliable there)
+      if (isMobileOrSafari()) {
+        await signInWithRedirect(auth, provider);
+        // Page will reload — getRedirectResult handles the rest
+        return;
+      }
+
+      // Desktop: use popup
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user has 3+ interests
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const interestCount = userDoc.exists() ? parseInterests(userDoc.data().interests).length : 0;
 
-      if (interestCount >= 3) {
-        // Has 3+ interests → go to homepage
-        router.push('/');
-      } else {
-        // Has 0-2 interests → go to profile to add more
-        router.push('/profile');
-      }
+      router.push(interestCount >= 3 ? '/' : '/profile');
     } catch (e) {
       console.error('Sign-in error:', e);
       alert('Sign-in failed, try again.');
