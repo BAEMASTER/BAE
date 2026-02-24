@@ -65,16 +65,19 @@ export default function AuthPage() {
       setBusy(true);
       const provider = new GoogleAuthProvider();
 
-      // Use redirect on mobile/Safari (popup is unreliable there)
-      if (isMobileOrSafari()) {
+      let user: User;
+
+      try {
+        // Try popup first (works on most desktop browsers)
+        const result = await signInWithPopup(auth, provider);
+        user = result.user;
+      } catch (popupErr: any) {
+        console.warn('Popup sign-in failed, trying redirect:', popupErr?.code);
+        // Popup blocked or failed (Safari, mobile) — fall back to redirect
+        // signInWithRedirect navigates away; getRedirectResult handles the return
         await signInWithRedirect(auth, provider);
-        // Page will reload — getRedirectResult handles the rest
         return;
       }
-
-      // Desktop: use popup
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
 
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const interestCount = userDoc.exists() ? parseInterests(userDoc.data().interests).length : 0;
