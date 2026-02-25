@@ -1430,7 +1430,7 @@ export default function MatchPage() {
 
         {/* MOBILE INFO SECTION — compact, no scroll (lg:hidden) */}
         {/* pb-28 = 112px clears both the reaction bar (~48px) and bottom controls bar (~56px) */}
-        <div className="flex-shrink-0 flex flex-col overflow-hidden px-3 pt-1 pb-28 lg:hidden">
+        <div className="flex-shrink-0 flex flex-col overflow-y-auto px-3 pt-1 pb-28 lg:hidden">
           {/* Partner info: name + heart + dots + interest pills */}
           {isMatched && theirProfile && (
             <div className="mb-2">
