@@ -170,6 +170,7 @@ export default function ProfilePage() {
   const [ageError, setAgeError] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const [nameLocationSetupError, setNameLocationSetupError] = useState('');
+  const [setupComplete, setSetupComplete] = useState(false); // only true after Firestore confirms name+city+country
   const [exampleIdx, setExampleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
 
@@ -204,6 +205,10 @@ export default function ProfilePage() {
           }
           
           setStructuredInterests(parseInterests(data.interests));
+          // Mark setup complete if Firestore already has required fields
+          if (data.displayName?.trim() && data.city?.trim() && data.country?.trim()) {
+            setSetupComplete(true);
+          }
         } else {
           // Brand new user — pre-fill from Google auth as suggestion, but city/country stay empty
           // so isSetupIncomplete triggers the setup screen
@@ -308,7 +313,7 @@ export default function ProfilePage() {
   }
 
   const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
-  const isSetupIncomplete = !displayName.trim() || !city.trim() || !country.trim();
+  const isSetupIncomplete = !setupComplete;
 
   // AGE/DOB LOCKED VIEW - shows if NO DOB or DOB < 18
   if (isProfileLocked) {
@@ -420,7 +425,7 @@ export default function ProfilePage() {
           displayName, city, state, country, birthDate: dob,
           interests: structuredInterests, updatedAt: new Date().toISOString()
         }, { merge: true });
-        // Force re-render by clearing error — isSetupIncomplete will become false
+        setSetupComplete(true);
         setNameLocationSetupError('');
       } catch (e) {
         console.error('Setup save failed', e);
