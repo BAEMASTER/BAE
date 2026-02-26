@@ -89,6 +89,10 @@ const scrollbarStyle = `
   video::-webkit-media-controls-start-playback-button {
     display: none !important;
   }
+  @keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
 `;
 
 // --- WAITING MESSAGES ---
@@ -356,6 +360,11 @@ export default function MatchPage() {
   // --- BLOCKLIST / NOTIFICATIONS ---
   const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
   const [addNotification, setAddNotification] = useState<{ name: string; interest: string } | null>(null);
+
+  // --- SHARED INTERESTS UI ---
+  const [marqueePaused, setMarqueePaused] = useState(false);
+  const marqueeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [sharedExpanded, setSharedExpanded] = useState(false);
 
   // --- REACTIONS ---
   const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; originX: number }>>([]);
@@ -932,6 +941,9 @@ export default function MatchPage() {
     setQuickAddValue('');
     setAddNotification(null);
     setBlockedNotice(null);
+    setSharedExpanded(false);
+    setMarqueePaused(false);
+    if (marqueeTimerRef.current) { clearTimeout(marqueeTimerRef.current); marqueeTimerRef.current = null; }
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
@@ -1600,19 +1612,48 @@ export default function MatchPage() {
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
-              <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                {sharedInterests.map((interest: string, idx: number) => (
-                  <motion.div
-                    key={`m-shared-${interest}`}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-3 py-1.5 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[12px] font-bold whitespace-nowrap flex-shrink-0"
-                    style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
-                  >
-                    {interest}
-                  </motion.div>
-                ))}
+              <div
+                className="overflow-x-auto interests-scroll"
+                onTouchStart={() => {
+                  setMarqueePaused(true);
+                  if (marqueeTimerRef.current) clearTimeout(marqueeTimerRef.current);
+                }}
+                onTouchEnd={() => {
+                  if (marqueeTimerRef.current) clearTimeout(marqueeTimerRef.current);
+                  marqueeTimerRef.current = setTimeout(() => setMarqueePaused(false), 3000);
+                }}
+              >
+                <div
+                  className="flex gap-1.5"
+                  style={sharedInterests.length >= 6 ? {
+                    animation: 'marquee-scroll 28s linear infinite',
+                    animationPlayState: marqueePaused ? 'paused' : 'running',
+                    width: 'max-content',
+                  } : undefined}
+                >
+                  {sharedInterests.map((interest: string, idx: number) => (
+                    <motion.div
+                      key={`m-shared-${interest}`}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
+                      className="px-3.5 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[13px] font-bold whitespace-nowrap flex-shrink-0"
+                      style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
+                    >
+                      {interest}
+                    </motion.div>
+                  ))}
+                  {/* Duplicate pills for seamless marquee loop */}
+                  {sharedInterests.length >= 6 && sharedInterests.map((interest: string) => (
+                    <div
+                      key={`m-shared-dup-${interest}`}
+                      className="px-3.5 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[13px] font-bold whitespace-nowrap flex-shrink-0"
+                      style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
+                    >
+                      {interest}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -1750,20 +1791,33 @@ export default function MatchPage() {
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-3">
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
-              <div className="flex flex-wrap justify-center gap-3 mb-2">
-                {sharedInterests.map((interest: string, idx: number) => (
-                  <motion.div
-                    key={`desk-shared-${interest}`}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                    className="px-5 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
-                    style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
-                  >
-                    {interest}
-                  </motion.div>
-                ))}
+              <div
+                className="overflow-hidden transition-all duration-300 mb-2"
+                style={{ maxHeight: !sharedExpanded && sharedInterests.length > 8 ? '132px' : 'none' }}
+              >
+                <div className="flex flex-wrap justify-center gap-3">
+                  {sharedInterests.map((interest: string, idx: number) => (
+                    <motion.div
+                      key={`desk-shared-${interest}`}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
+                      className="px-6 py-2.5 rounded-full text-[15px] font-bold text-black bg-yellow-300 border border-yellow-200"
+                      style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
+                    >
+                      {interest}
+                    </motion.div>
+                  ))}
+                </div>
               </div>
+              {sharedInterests.length > 8 && (
+                <button
+                  onClick={() => setSharedExpanded(!sharedExpanded)}
+                  className="text-[12px] font-semibold text-yellow-300/60 hover:text-yellow-300 transition-colors mt-1"
+                >
+                  {sharedExpanded ? 'Show less' : `See all \u2728`}
+                </button>
+              )}
             </>
           )}
         </div>
