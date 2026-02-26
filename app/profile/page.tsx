@@ -441,7 +441,6 @@ export default function ProfilePage() {
           className="text-center max-w-md w-full"
         >
           <div className="text-5xl mb-4">👋</div>
-          <h2 className="text-3xl font-black mb-2">Welcome to BAE</h2>
           <p className="text-base text-white/60 mb-2">
             People on BAE see each other's first name, last initial, and location in the world!
           </p>
