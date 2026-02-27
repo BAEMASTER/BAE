@@ -7,7 +7,7 @@ import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
 import { doc, getDoc, onSnapshot, updateDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, RefreshCw, Heart, MoreVertical, Flag, Ban } from 'lucide-react';
+import { X, Loader2, RefreshCw, Heart, Shield, Flag, Ban } from 'lucide-react';
 import { parseSavedProfiles, savedProfileUids, toggleSavedProfile, SavedProfile } from '@/lib/savedProfiles';
 import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, removeInterest as removeStructuredInterest, StructuredInterest } from '@/lib/structuredInterests';
 import { formatPublicName } from '@/lib/formatName';
@@ -88,10 +88,6 @@ const scrollbarStyle = `
   }
   video::-webkit-media-controls-start-playback-button {
     display: none !important;
-  }
-  @keyframes marquee-scroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
   }
 `;
 
@@ -277,31 +273,32 @@ function ReactionCascade({ emoji, originX, onComplete }: {
   onComplete: () => void;
 }) {
   const drift = useMemo(() => (Math.random() - 0.5) * 60, []); // ±30px gentle drift
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
 
   useEffect(() => {
-    const t = setTimeout(onComplete, 1200);
+    const t = setTimeout(onComplete, isMobile ? 1000 : 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 1, x: 0, y: 0, scale: 1.75 }}
+      initial={{ opacity: 1, x: 0, y: 0, scale: isMobile ? 1 : 1.75 }}
       animate={{
         opacity: 0,
         x: drift,
-        y: '-40vh',
-        scale: 1,
+        y: isMobile ? '-25vh' : '-40vh',
+        scale: isMobile ? 0.85 : 1,
       }}
       transition={{
-        duration: 1,
+        duration: isMobile ? 0.9 : 1,
         ease: [0.22, 1, 0.36, 1],
       }}
       className="absolute pointer-events-none"
       style={{
         left: `${originX}%`,
-        bottom: '15vh',
-        fontSize: '32px',
+        bottom: isMobile ? '18vh' : '15vh',
+        fontSize: isMobile ? '48px' : '32px',
         filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.5))',
       }}
     >
@@ -340,6 +337,9 @@ export default function MatchPage() {
   const [megaVibePreviouslyTriggered, setMegaVibePreviouslyTriggered] = useState(false);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [showPartnerDrawer, setShowPartnerDrawer] = useState(false);
+  const [showMyInterestsDrawer, setShowMyInterestsDrawer] = useState(false);
+  const [drawerQuickAddOpen, setDrawerQuickAddOpen] = useState(false);
+  const [drawerQuickAddValue, setDrawerQuickAddValue] = useState('');
   const [waitingMsgIdx, setWaitingMsgIdx] = useState(0);
   const [waitingTimedOut, setWaitingTimedOut] = useState(false);
   const myProfileRef = useRef<any>(null);
@@ -362,9 +362,15 @@ export default function MatchPage() {
   const [addNotification, setAddNotification] = useState<{ name: string; interest: string } | null>(null);
 
   // --- SHARED INTERESTS UI ---
-  const [marqueePaused, setMarqueePaused] = useState(false);
-  const marqueeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [sharedExpanded, setSharedExpanded] = useState(false);
+
+  // --- TELEPORT ANIMATION ---
+  const [flyingInterest, setFlyingInterest] = useState<{
+    interest: string;
+    startRect: { x: number; y: number; width: number; height: number };
+  } | null>(null);
+  const sharedSectionRef = useRef<HTMLDivElement>(null);
+  const sharedSectionDesktopRef = useRef<HTMLDivElement>(null);
 
   // --- REACTIONS ---
   const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; originX: number }>>([]);
@@ -927,6 +933,9 @@ export default function MatchPage() {
     setTheirProfile(null);
     setPartnerDisconnected(false);
     setShowPartnerDrawer(false);
+    setShowMyInterestsDrawer(false);
+    setDrawerQuickAddOpen(false);
+    setDrawerQuickAddValue('');
     setCurrentPartnerId(null);
     setMegaVibePreviouslyTriggered(false);
     setCelebratedCounts(new Set()); // Reset celebrations for new match
@@ -942,8 +951,6 @@ export default function MatchPage() {
     setAddNotification(null);
     setBlockedNotice(null);
     setSharedExpanded(false);
-    setMarqueePaused(false);
-    if (marqueeTimerRef.current) { clearTimeout(marqueeTimerRef.current); marqueeTimerRef.current = null; }
     if (theirVideoRef.current) {
       theirVideoRef.current.srcObject = null;
     }
@@ -1011,7 +1018,7 @@ export default function MatchPage() {
   };
 
   // --- ADD INTEREST (TAP THEIRS) ---
-  const addInterest = async (interest: string) => {
+  const addInterest = async (interest: string, sourceEl?: HTMLElement) => {
     if (!user || !myProfile) {
       console.error('No user or profile');
       return;
@@ -1036,6 +1043,13 @@ export default function MatchPage() {
     }
 
     console.log('Adding interest:', interest);
+
+    // Teleport animation
+    if (sourceEl) {
+      const rect = sourceEl.getBoundingClientRect();
+      setFlyingInterest({ interest, startRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height } });
+      setTimeout(() => setFlyingInterest(null), 500);
+    }
 
     // Flash feedback
     const key = interest.toLowerCase();
@@ -1114,6 +1128,51 @@ export default function MatchPage() {
 
     setQuickAddValue('');
     setQuickAddOpen(false);
+  };
+
+  // --- DRAWER QUICK ADD (mobile my-interests drawer) ---
+  const handleDrawerQuickAdd = async () => {
+    const raw = drawerQuickAddValue.trim();
+    if (!raw || !user || !myProfile) return;
+
+    const items = raw.split(',').map(s => s.trim()).filter(Boolean);
+    const currentStructured = parseInterests(myProfile.interests);
+    const currentNames = interestNames(currentStructured);
+    const toAdd: StructuredInterest[] = [];
+
+    for (const item of items) {
+      const normalized = item.charAt(0).toUpperCase() + item.slice(1);
+      if (isBlockedInterest(normalized)) {
+        setBlockedNotice("That interest isn't allowed on BAE");
+        setTimeout(() => setBlockedNotice(null), 2000);
+        setDrawerQuickAddValue('');
+        return;
+      }
+      if (!currentNames.some(i => i.toLowerCase() === normalized.toLowerCase()) &&
+          !toAdd.some(i => i.name.toLowerCase() === normalized.toLowerCase())) {
+        toAdd.push(createInterest(normalized, 'profile'));
+      }
+    }
+
+    if (!toAdd.length) { setDrawerQuickAddValue(''); setDrawerQuickAddOpen(false); return; }
+
+    const updated = addStructuredInterests(currentStructured, toAdd);
+    const updatedProfile = { ...myProfile, interests: updated };
+    myProfileRef.current = updatedProfile;
+    setMyProfile(updatedProfile);
+    playCollectSound();
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        interests: updated,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('Drawer quick-add failed:', e);
+    }
+
+    setDrawerQuickAddValue('');
+    setDrawerQuickAddOpen(false);
   };
 
   // --- REMOVE OWN INTEREST ---
@@ -1423,9 +1482,9 @@ export default function MatchPage() {
           </AnimatePresence>
         </div>
 
-        {/* YOUR VIDEO — FaceTime thumbnail on mobile, flex-1 panel on desktop */}
+        {/* YOUR VIDEO — small thumbnail top-right on mobile, flex-1 panel on desktop */}
         <div
-          className="self-video-frame absolute z-20 bottom-4 right-6 w-[100px] h-[140px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:order-1 lg:bg-black"
+          className="self-video-frame absolute z-20 top-2 right-3 w-[75px] h-[105px] rounded-xl overflow-hidden border-2 border-white/25 shadow-[0_4px_20px_rgba(0,0,0,0.5)] lg:order-1 lg:bg-black"
         >
           <video
             ref={yourVideoRef}
@@ -1448,33 +1507,38 @@ export default function MatchPage() {
             <div className="mb-2">
               {/* Name row */}
               <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-sm font-bold text-white flex-1 min-w-0 truncate">
-                  {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
-                  {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/50"> — {formatLocation(theirProfile)}</span>}
-                </h3>
                 {currentPartnerId && (
                   <motion.button
                     whileTap={{ scale: 0.85 }}
                     onClick={handleToggleSave}
                     className="flex-shrink-0 p-0.5"
                   >
-                    <Heart
-                      size={20}
-                      strokeWidth={1.5}
-                      className={savedUids.has(currentPartnerId)
-                        ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
-                        : 'text-white/50 hover:text-pink-300 transition-colors'}
-                    />
+                    <motion.div
+                      animate={savedUids.has(currentPartnerId) ? { scale: [1, 1.25, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Heart
+                        size={20}
+                        strokeWidth={savedUids.has(currentPartnerId) ? 0 : 1.8}
+                        className={savedUids.has(currentPartnerId)
+                          ? 'text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                          : 'text-amber-400/70 hover:text-amber-400 transition-colors'}
+                      />
+                    </motion.div>
                   </motion.button>
                 )}
+                <h3 className="text-sm font-bold text-white flex-1 min-w-0 truncate">
+                  {theirProfile?.displayName ? formatPublicName(theirProfile.displayName) : '...'}
+                  {formatLocation(theirProfile) && <span className="text-xs font-semibold text-white/50"> — {formatLocation(theirProfile)}</span>}
+                </h3>
                 {currentPartnerId && (
                   <div className="relative flex-shrink-0">
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => setShowMoreMenu(!showMoreMenu)}
-                      className="p-1 text-white/35 hover:text-white transition-colors"
+                      className="p-1 text-white/25 hover:text-white/50 transition-colors"
                     >
-                      <MoreVertical size={16} />
+                      <Shield size={14} fill="currentColor" />
                     </motion.button>
                     <AnimatePresence>
                       {showMoreMenu && (
@@ -1505,7 +1569,7 @@ export default function MatchPage() {
                 )}
               </div>
               {/* Partner interest pills — scrollable row with '+' badge */}
-              <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center">
+              <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center pt-2 pr-2">
                 {theirInterestNames.map((interest: string) => {
                   const isAdded = myInterestNames.some(
                     (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1516,8 +1580,8 @@ export default function MatchPage() {
                       key={interest}
                       whileHover={!isAdded ? { scale: 1.08 } : {}}
                       whileTap={!isAdded ? { scale: 0.95 } : {}}
-                      onClick={() => {
-                        if (!isAdded) addInterest(interest);
+                      onClick={(e) => {
+                        if (!isAdded) addInterest(interest, e.currentTarget as HTMLElement);
                       }}
                       disabled={isAdded && !isFlashing}
                       animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
@@ -1547,111 +1611,38 @@ export default function MatchPage() {
                 )}
               </div>
 
-              {/* MOBILE QUICK-ADD + YOUR INTERESTS */}
+              {/* MOBILE — Your interests button (opens drawer) */}
               <div className="mt-2">
-                {!quickAddOpen ? (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setQuickAddOpen(true)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold text-white/50 bg-white/8 border border-white/15 hover:text-white/70 hover:bg-white/12 transition-all"
-                  >
-                    <Plus size={12} /> Your interests
-                  </motion.button>
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <input
-                        value={quickAddValue}
-                        onChange={e => setQuickAddValue(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
-                        placeholder="Add interest..."
-                        autoFocus
-                        className="flex-1 min-w-0 px-3 py-1.5 rounded-full text-[12px] bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50"
-                      />
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleQuickAdd}
-                        className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-yellow-300 text-black"
-                      >
-                        Add
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => { setQuickAddOpen(false); setQuickAddValue(''); }}
-                        className="p-1 text-white/40 hover:text-white/70"
-                      >
-                        <X size={14} />
-                      </motion.button>
-                    </div>
-                    {/* Your interest pills with X to delete */}
-                    <div className="flex gap-1.5 overflow-x-auto interests-scroll">
-                      {myInterestNames.map((interest: string) => (
-                        <div
-                          key={`mob-my-${interest}`}
-                          className="relative px-3 py-1.5 rounded-full text-[12px] font-semibold text-black bg-yellow-300/80 border border-yellow-200/60 whitespace-nowrap flex-shrink-0"
-                        >
-                          {interest}
-                          <button
-                            onClick={() => handleRemoveInterest(interest)}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[9px] font-black leading-none shadow-md"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowMyInterestsDrawer(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold text-white/50 bg-white/8 border border-white/15 hover:text-white/70 hover:bg-white/12 transition-all"
+                >
+                  <Plus size={12} /> Your interests
+                </motion.button>
               </div>
             </div>
           )}
 
-          {/* MOBILE SHARED INTERESTS — scrollable row with label + glow */}
+          {/* MOBILE SHARED INTERESTS — simple scrollable row */}
           {isMatched && sharedInterests.length > 0 && (
-            <div className="mb-2">
+            <div ref={sharedSectionRef} className="mb-2">
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
-              <div
-                className="overflow-x-auto interests-scroll"
-                onTouchStart={() => {
-                  setMarqueePaused(true);
-                  if (marqueeTimerRef.current) clearTimeout(marqueeTimerRef.current);
-                }}
-                onTouchEnd={() => {
-                  if (marqueeTimerRef.current) clearTimeout(marqueeTimerRef.current);
-                  marqueeTimerRef.current = setTimeout(() => setMarqueePaused(false), 3000);
-                }}
-              >
-                <div
-                  className="flex gap-1.5"
-                  style={sharedInterests.length >= 6 ? {
-                    animation: 'marquee-scroll 28s linear infinite',
-                    animationPlayState: marqueePaused ? 'paused' : 'running',
-                    width: 'max-content',
-                  } : undefined}
-                >
+              <div className="overflow-x-auto interests-scroll">
+                <div className="flex gap-1.5">
                   {sharedInterests.map((interest: string, idx: number) => (
                     <motion.div
                       key={`m-shared-${interest}`}
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                      className="px-3.5 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[13px] font-bold whitespace-nowrap flex-shrink-0"
-                      style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
+                      className="px-3.5 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[13px] font-bold whitespace-nowrap flex-shrink-0 ring-2 ring-yellow-200/40"
+                      style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35), 0 0 44px rgba(253,224,71,0.15)' }}
                     >
                       {interest}
                     </motion.div>
-                  ))}
-                  {/* Duplicate pills for seamless marquee loop */}
-                  {sharedInterests.length >= 6 && sharedInterests.map((interest: string) => (
-                    <div
-                      key={`m-shared-dup-${interest}`}
-                      className="px-3.5 py-2 text-black bg-yellow-300 border border-yellow-200 rounded-full text-[13px] font-bold whitespace-nowrap flex-shrink-0"
-                      style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
-                    >
-                      {interest}
-                    </div>
                   ))}
                 </div>
               </div>
@@ -1724,7 +1715,7 @@ export default function MatchPage() {
                   )}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-2 pr-2">
                 {myInterestNames.map((interest: string) => (
                   <div
                     key={`desk-my-${interest}`}
@@ -1785,7 +1776,7 @@ export default function MatchPage() {
         </div>
 
         {/* CENTER COLUMN — Shared interests + vibe bar */}
-        <div className="flex-1 flex flex-col items-center justify-center min-w-0">
+        <div ref={sharedSectionDesktopRef} className="flex-1 flex flex-col items-center justify-center min-w-0">
           {isMatched && sharedInterests.length > 0 && (
             <>
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-3">
@@ -1802,8 +1793,8 @@ export default function MatchPage() {
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                      className="px-6 py-2.5 rounded-full text-[15px] font-bold text-black bg-yellow-300 border border-yellow-200"
-                      style={{ boxShadow: '0 0 18px rgba(253,224,71,0.35), 0 0 6px rgba(253,224,71,0.2)' }}
+                      className="px-6 py-2.5 rounded-full text-[15px] font-bold text-black bg-yellow-300 border border-yellow-200 ring-2 ring-yellow-200/40"
+                      style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35), 0 0 44px rgba(253,224,71,0.15)' }}
                     >
                       {interest}
                     </motion.div>
@@ -1827,31 +1818,36 @@ export default function MatchPage() {
           {isMatched && theirProfile && (
             <>
               <div className="flex items-center gap-2 rounded-xl px-4 py-2 mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {currentPartnerId && (
+                  <motion.button whileTap={{ scale: 0.85 }} onClick={handleToggleSave} className="p-0.5">
+                    <motion.div
+                      animate={savedUids.has(currentPartnerId) ? { scale: [1, 1.25, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Heart
+                        size={20}
+                        strokeWidth={savedUids.has(currentPartnerId) ? 0 : 1.8}
+                        className={savedUids.has(currentPartnerId)
+                          ? 'text-amber-400 fill-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                          : 'text-amber-400/70 hover:text-amber-400 transition-colors'}
+                      />
+                    </motion.div>
+                  </motion.button>
+                )}
                 <span className="text-sm font-bold text-amber-200">
                   {theirProfile.displayName ? formatPublicName(theirProfile.displayName) : '...'}
                   {formatLocation(theirProfile) && (
                     <span className="text-white/45 font-semibold"> — {formatLocation(theirProfile)}</span>
                   )}
                 </span>
-                {currentPartnerId && (
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={handleToggleSave} className="p-0.5">
-                    <Heart
-                      size={20}
-                      strokeWidth={1.5}
-                      className={savedUids.has(currentPartnerId)
-                        ? 'text-pink-400 fill-pink-400 drop-shadow-[0_0_6px_rgba(244,114,182,0.6)]'
-                        : 'text-white/50 hover:text-pink-300 transition-colors'}
-                    />
-                  </motion.button>
-                )}
-                {/* Desktop three-dot menu */}
+                {/* Desktop shield menu */}
                 <div className="relative">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setShowMoreMenu(!showMoreMenu)}
-                    className="p-1 text-white/35 hover:text-white transition-colors"
+                    className="p-1 text-white/25 hover:text-white/50 transition-colors"
                   >
-                    <MoreVertical size={16} />
+                    <Shield size={14} fill="currentColor" />
                   </motion.button>
                   <AnimatePresence>
                     {showMoreMenu && (
@@ -1880,7 +1876,7 @@ export default function MatchPage() {
                   </AnimatePresence>
                 </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-2.5">
+              <div className="flex flex-wrap justify-end gap-2.5 pt-2 pr-2">
                 {theirInterestNames.map((interest: string) => {
                   const isAdded = myInterestNames.some(
                     (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
@@ -1891,7 +1887,7 @@ export default function MatchPage() {
                       key={`desk-their-${interest}`}
                       whileHover={!isAdded ? { scale: 1.05 } : {}}
                       whileTap={!isAdded ? { scale: 0.95 } : {}}
-                      onClick={() => { if (!isAdded) addInterest(interest); }}
+                      onClick={(e) => { if (!isAdded) addInterest(interest, e.currentTarget as HTMLElement); }}
                       disabled={isAdded && !isFlashing}
                       animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
                       transition={isFlashing ? { duration: 0.4 } : {}}
@@ -1937,7 +1933,7 @@ export default function MatchPage() {
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
         >
           <div
-            className="pointer-events-auto flex items-center gap-1 px-3 py-1.5 rounded-full lg:gap-2 lg:px-4 lg:py-2"
+            className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full lg:gap-2 lg:px-4 lg:py-2"
             style={{
               background: 'rgba(0,0,0,0.55)',
               backdropFilter: 'blur(12px)',
@@ -1951,7 +1947,7 @@ export default function MatchPage() {
                 whileTap={{ scale: 1.25 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 onClick={(e) => triggerReaction(emoji, e.currentTarget)}
-                className="text-xl opacity-60 hover:opacity-100 active:opacity-100 transition-opacity p-1 lg:text-3xl lg:p-2"
+                className="text-[26px] opacity-70 hover:opacity-100 active:opacity-100 transition-opacity p-1.5 lg:text-3xl lg:p-2"
               >
                 {emoji}
               </motion.button>
@@ -2064,6 +2060,124 @@ export default function MatchPage() {
                         {!isShared && !isFlashing && <span className="text-violet-300/50 mr-1.5">+</span>}
                         {interest}
                       </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MY INTERESTS DRAWER (mobile only) */}
+      <AnimatePresence>
+        {showMyInterestsDrawer && myProfile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-end lg:hidden"
+          >
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => { setShowMyInterestsDrawer(false); setDrawerQuickAddOpen(false); setDrawerQuickAddValue(''); }} />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="relative w-full max-h-[50vh] sm:max-h-[60vh] rounded-t-3xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(165deg, rgba(45,10,70,0.97) 0%, rgba(26,0,51,0.98) 50%, rgba(20,5,60,0.97) 100%)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
+                borderTop: '1px solid rgba(167,139,250,0.2)',
+                boxShadow: '0 -8px 40px rgba(88,28,135,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+              }}
+            >
+              {/* Handle bar — tap to close */}
+              <button onClick={() => { setShowMyInterestsDrawer(false); setDrawerQuickAddOpen(false); setDrawerQuickAddValue(''); }} className="w-full flex justify-center pt-3 pb-2 cursor-pointer">
+                <div className="w-12 h-1 rounded-full bg-violet-400/40" />
+              </button>
+
+              {/* Header */}
+              <div className="px-4 sm:px-5 pb-2 sm:pb-3 flex items-center justify-between">
+                <h3 className="text-sm sm:text-base font-bold bg-gradient-to-r from-white to-amber-200 bg-clip-text text-transparent">
+                  Your Interests
+                </h3>
+                <div className="flex items-center gap-2">
+                  {!drawerQuickAddOpen && (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setDrawerQuickAddOpen(true)}
+                      className="w-7 h-7 rounded-full bg-yellow-300/20 border border-yellow-300/30 flex items-center justify-center text-yellow-300 hover:bg-yellow-300/30 transition-colors"
+                    >
+                      <Plus size={14} />
+                    </motion.button>
+                  )}
+                  <button onClick={() => { setShowMyInterestsDrawer(false); setDrawerQuickAddOpen(false); setDrawerQuickAddValue(''); }} className="text-violet-300/60 hover:text-white transition-colors p-2 -mr-1">
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick-add input (only visible when + tapped) */}
+              <AnimatePresence>
+                {drawerQuickAddOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden px-4 sm:px-5"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <input
+                        value={drawerQuickAddValue}
+                        onChange={e => setDrawerQuickAddValue(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleDrawerQuickAdd()}
+                        placeholder="Add interest..."
+                        autoFocus
+                        className="flex-1 min-w-0 px-3 py-1.5 rounded-full text-[12px] bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50"
+                      />
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleDrawerQuickAdd}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-bold bg-yellow-300 text-black"
+                      >
+                        Add
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => { setDrawerQuickAddOpen(false); setDrawerQuickAddValue(''); }}
+                        className="p-1 text-white/40 hover:text-white/70"
+                      >
+                        <X size={14} />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Interest pills — clean, no delete badges */}
+              <div
+                className="px-4 sm:px-5 overflow-y-auto max-h-[calc(50vh-68px)] sm:max-h-[calc(60vh-72px)]"
+                style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}
+              >
+                <div className="flex flex-wrap gap-2 sm:gap-2.5">
+                  {myInterestNames.map((interest: string) => {
+                    const isShared = theirInterestNames.some(
+                      (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
+                    );
+                    return (
+                      <div
+                        key={`drawer-my-${interest}`}
+                        className={`px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold ${
+                          isShared
+                            ? 'bg-yellow-300/15 text-yellow-300 border border-yellow-300/25 shadow-[0_0_8px_rgba(253,224,71,0.25)]'
+                            : 'bg-amber-300/10 text-amber-200/80 border border-amber-300/20'
+                        }`}
+                      >
+                        {interest}
+                      </div>
                     );
                   })}
                 </div>
@@ -2188,6 +2302,33 @@ export default function MatchPage() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* FLYING INTEREST TELEPORT ANIMATION */}
+      <AnimatePresence>
+        {flyingInterest && (() => {
+          const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+          const targetRef = isMobile ? sharedSectionRef : sharedSectionDesktopRef;
+          const targetEl = targetRef.current;
+          const targetRect = targetEl?.getBoundingClientRect();
+          const startX = flyingInterest.startRect.x + flyingInterest.startRect.width / 2;
+          const startY = flyingInterest.startRect.y + flyingInterest.startRect.height / 2;
+          const endX = targetRect ? targetRect.x + targetRect.width / 2 : (typeof window !== 'undefined' ? window.innerWidth / 2 : startX);
+          const endY = targetRect ? targetRect.y + targetRect.height / 2 : (typeof window !== 'undefined' ? window.innerHeight * 0.35 : startY);
+
+          return (
+            <motion.div
+              key={`fly-${flyingInterest.interest}-${Date.now()}`}
+              initial={{ position: 'fixed', left: startX, top: startY, x: '-50%', y: '-50%', scale: 1, opacity: 1 }}
+              animate={{ left: endX, top: endY, scale: [1, 1.15, 0.95], opacity: [1, 1, 0] }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed z-[200] pointer-events-none px-3.5 py-2 rounded-full text-[13px] font-bold text-black bg-yellow-300 border border-yellow-200 whitespace-nowrap"
+              style={{ boxShadow: '0 0 30px rgba(253,224,71,0.7), 0 0 60px rgba(253,224,71,0.3)' }}
+            >
+              {flyingInterest.interest}
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
     </main>
   );
