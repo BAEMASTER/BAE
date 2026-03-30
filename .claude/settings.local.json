@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx next build:*)",
+      "Bash(findstr:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(layout \")",
+      "Bash(git -C \"C:\\\\Users\\\\jrotm\\\\so-interesting\" diff -- app/explorer/page.tsx app/globals.css)",
+      "Bash(git -C \"C:\\\\Users\\\\jrotm\\\\so-interesting\" log --oneline -5)",
+      "Bash(git -C \"C:\\\\Users\\\\jrotm\\\\so-interesting\" add app/explorer/page.tsx app/globals.css)",
+      "Bash(git -C \"C:\\\\Users\\\\jrotm\\\\so-interesting\" commit -m \"$\\(cat <<''EOF''\nRedesign Explorer page: multi-card grid with vibe glow, search, and upgraded drawer\n\nReplaces single-profile view with responsive card grid \\(1/2/3 cols\\), adds interest\nsearch bar, per-card vibe glow based on shared interest count, and redesigned\ninterest drawer with slide-up animation. Adds custom-scrollbar styles to globals.css.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C \"C:\\\\Users\\\\jrotm\\\\so-interesting\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\jrotm\\\\so-interesting\" push origin main)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd save/heart feature to Explorer cards\n\nUsers can heart profiles while browsing to save them. Hearts persist\nto Firestore and a Saved/All toggle filters the grid view.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix video matching bugs: stream assignment, ref race condition, pill truncation\n\n- Always render partner video element so theirVideoRef is in DOM when\n  track-started fires \\(fixes partner video never connecting\\)\n- Add participant-updated fallback for missed/replaced remote tracks\n- Use myProfileRef to prevent startMatching effect re-triggering when\n  addInterest updates profile \\(was silently killing active matches\\)\n- Switch interest pills from CSS grid to flex-wrap \\(fixes text truncation\n  on long interests like \"Spanish speaking countries\"\\)\n- Reduce MEGAVIBE celebration duration from 3s to 1.5s\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(forehead\" issue on mobile front cameras.\n\nDesktop layout completely unchanged.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npx vercel:*)",
+      "WebFetch(domain:bae-demo.vercel.app)",
+      "WebFetch(domain:baewithme.com)",
+      "Bash(cat C:/Users/jrotm/so-interesting/next.config*)"
+    ]
+  }
+}

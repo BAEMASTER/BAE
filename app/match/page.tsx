@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import DailyIframe from '@daily-co/daily-js';
 import { auth, db } from '@/lib/firebaseClient';
@@ -310,6 +310,10 @@ function ReactionCascade({ emoji, originX, onComplete }: {
 // --- MAIN PAGE ---
 export default function MatchPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDirectCall = searchParams.get('directCall') === 'true';
+  const directRoomUrl = searchParams.get('roomUrl');
+  const directPartnerId = searchParams.get('partnerId');
   const yourVideoRef = useRef<HTMLVideoElement>(null);
   const theirVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -464,6 +468,29 @@ export default function MatchPage() {
     if (!authReady || !user || !myProfileRef.current) return;
 
     const startMatching = async () => {
+      // --- DIRECT CALL: skip matching, join room directly ---
+      if (isDirectCall && directRoomUrl && directPartnerId) {
+        // Get camera first
+        if (!mediaStreamRef.current) {
+          try {
+            mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+              audio: true,
+            });
+            if (yourVideoRef.current) {
+              yourVideoRef.current.srcObject = mediaStreamRef.current;
+              yourVideoRef.current.play().catch(() => {});
+            }
+          } catch (err: any) {
+            setError(true);
+            setErrorMessage('Camera permission denied');
+            return;
+          }
+        }
+        await joinRoom(directRoomUrl, directPartnerId);
+        return;
+      }
+
       // Clean up any previous match state first
       try {
         await updateDoc(doc(db, 'users', user.uid), {
@@ -1470,11 +1497,11 @@ export default function MatchPage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={handleNext}
+                    onClick={isDirectCall ? () => router.push('/') : handleNext}
                     className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
                   >
-                    Find Next Match
-                    <RefreshCw size={16} />
+                    {isDirectCall ? 'Back to BAE' : 'Find Next Match'}
+                    {!isDirectCall && <RefreshCw size={16} />}
                   </motion.button>
                 </div>
               </motion.div>
@@ -1981,11 +2008,11 @@ export default function MatchPage() {
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={handleNext}
+            onClick={isDirectCall ? () => router.push('/') : handleNext}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg text-sm lg:px-8 lg:py-3 lg:text-base lg:rounded-xl lg:from-amber-500 lg:to-orange-500"
           >
-            Next
-            <RefreshCw size={14} className="lg:hidden" />
+            {isDirectCall ? 'End' : 'Next'}
+            {!isDirectCall && <RefreshCw size={14} className="lg:hidden" />}
           </motion.button>
         )}
       </div>

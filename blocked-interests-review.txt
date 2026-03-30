@@ -1,0 +1,103 @@
+BLOCKED INTERESTS — Review List
+================================
+
+DRUGS / SUBSTANCES (25)
+  meth
+  heroin
+  cocaine
+  crack
+  fentanyl
+  molly
+  ecstasy
+  ketamine
+  lsd
+  shrooms
+  psilocybin
+  dmt
+  pcp
+  xanax
+  oxy
+  oxycontin
+  percocet
+  adderall
+  codeine
+  lean
+  opium
+  morphine
+  bath salts
+  mephedrone
+  ghb
+
+SLURS (19)
+  nigger
+  nigga
+  faggot
+  fag
+  dyke
+  tranny
+  retard
+  retarded
+  spic
+  kike
+  chink
+  gook
+  wetback
+  beaner
+  coon
+  jigaboo
+  raghead
+  towelhead
+  paki
+
+EXPLICIT / SEXUAL (19)
+  porn
+  pornhub
+  xvideos
+  hentai
+  onlyfans
+  blowjob
+  handjob
+  cumshot
+  creampie
+  deepthroat
+  gangbang
+  orgy
+  milf
+  dildo
+  fleshlight
+  camgirl
+  escort
+  hooker
+  prostitute
+  brothel
+
+HATE / VIOLENCE (18)
+  nazi
+  white power
+  white supremacy
+  kkk
+  ku klux
+  genocide
+  ethnic cleansing
+  jihad
+  terrorist
+  terrorism
+  school shooting
+  mass shooting
+  kill all
+  gas the
+  heil hitler
+  sieg heil
+  race war
+  incel
+
+SELF-HARM (4)
+  suicide
+  self harm
+  cutting myself
+  kill myself
+
+TOTAL: 85 terms
+
+NOTE: Uses word-boundary matching (\b), so "lean" blocks "lean"
+but not "cleaning". Case-insensitive.

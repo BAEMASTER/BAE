@@ -17,6 +17,7 @@ import {
   mostRecentInterest,
 } from '@/lib/structuredInterests';
 import { isBlockedInterest } from '@/lib/interestBlocklist';
+import { validateUsername } from '@/lib/reservedUsernames';
 
 // --- CONSTANTS ---
 const MIN_REQUIRED = 3;
@@ -175,6 +176,13 @@ export default function ProfilePage() {
   const [exampleIdx, setExampleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
 
+  // --- Username state ---
+  const [username, setUsername] = useState('');
+  const [usernameInput, setUsernameInput] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'saving' | 'saved'>('idle');
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameCopied, setUsernameCopied] = useState(false);
+
   // Check if locked: NO birthdate OR birthdate < 18
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
   const isProfileLocked = !birthDate || !isAdult(birthDate);
@@ -205,6 +213,11 @@ export default function ProfilePage() {
             setBirthDay(day || '');
           }
           
+          if (data.username) {
+            setUsername(data.username);
+            setUsernameInput(data.username);
+            setUsernameStatus('saved');
+          }
           setStructuredInterests(parseInterests(data.interests));
           // Mark setup complete if Firestore already has required fields
           if (data.displayName?.trim() && data.city?.trim() && data.country?.trim()) {
@@ -293,6 +306,72 @@ export default function ProfilePage() {
     if (!user) return;
     try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
     catch(e) { console.error(e); }
+  };
+
+  // --- Username handlers ---
+  useEffect(() => {
+    const val = usernameInput.toLowerCase().trim();
+    if (!val || val === username) {
+      setUsernameStatus(val === username && username ? 'saved' : 'idle');
+      setUsernameError('');
+      return;
+    }
+    const validation = validateUsername(val);
+    if (!validation.valid) {
+      setUsernameStatus('invalid');
+      setUsernameError(validation.error || '');
+      return;
+    }
+    setUsernameStatus('checking');
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/username?username=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (data.available) {
+          setUsernameStatus('available');
+          setUsernameError('');
+        } else {
+          setUsernameStatus('taken');
+          setUsernameError(data.error || 'Already taken');
+        }
+      } catch {
+        setUsernameStatus('invalid');
+        setUsernameError('Could not check availability');
+      }
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [usernameInput, username]);
+
+  const claimUsername = async () => {
+    if (!user || usernameStatus !== 'available') return;
+    const val = usernameInput.toLowerCase().trim();
+    setUsernameStatus('saving');
+    try {
+      const res = await fetch('/api/username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: user.uid, username: val }),
+      });
+      if (res.ok) {
+        setUsername(val);
+        setUsernameStatus('saved');
+        playAddSound();
+      } else {
+        const data = await res.json();
+        setUsernameStatus('taken');
+        setUsernameError(data.error || 'Could not claim username');
+      }
+    } catch {
+      setUsernameStatus('invalid');
+      setUsernameError('Something went wrong');
+    }
+  };
+
+  const copyBaeLink = () => {
+    if (!username) return;
+    navigator.clipboard.writeText(`${window.location.origin}/${username}`);
+    setUsernameCopied(true);
+    setTimeout(() => setUsernameCopied(false), 2000);
   };
 
   const handleBAEClick = () => {
@@ -621,6 +700,76 @@ export default function ProfilePage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
+              {/* YOUR BAE LINK */}
+              <div className="bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
+                <h4 className="text-lg font-bold mb-1">Your BAE Link</h4>
+                <p className="text-white/50 text-sm mb-4">Share this link so people can BAE with you</p>
+
+                {username && usernameStatus === 'saved' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-violet-400/30 text-white font-mono text-sm truncate">
+                        {typeof window !== 'undefined' ? window.location.origin : ''}/{username}
+                      </div>
+                      <motion.button
+                        onClick={copyBaeLink}
+                        whileTap={{ scale: 0.95 }}
+                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 font-bold text-sm whitespace-nowrap"
+                      >
+                        {usernameCopied ? 'Copied!' : 'Copy'}
+                      </motion.button>
+                    </div>
+                    <button
+                      onClick={() => { setUsernameStatus('idle'); }}
+                      className="text-white/30 text-xs hover:text-white/50 transition-colors"
+                    >
+                      Change username
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <input
+                          value={usernameInput}
+                          onChange={e => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                          placeholder="choose a username"
+                          maxLength={30}
+                          className={`w-full px-4 py-3 rounded-xl bg-white/10 border text-white placeholder:text-white/30 outline-none transition-all ${
+                            usernameStatus === 'available' ? 'border-green-400/50 focus:ring-2 focus:ring-green-400/20' :
+                            usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-400/50 focus:ring-2 focus:ring-red-400/20' :
+                            'border-white/20 focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20'
+                          }`}
+                        />
+                        {usernameStatus === 'checking' && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">checking...</div>
+                        )}
+                      </div>
+                      <motion.button
+                        onClick={claimUsername}
+                        whileTap={{ scale: 0.95 }}
+                        disabled={usernameStatus !== 'available'}
+                        className={`px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+                          usernameStatus === 'available'
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                            : 'bg-white/5 text-white/20 cursor-not-allowed'
+                        }`}
+                      >
+                        {usernameStatus === 'saving' ? 'Claiming...' : 'Claim'}
+                      </motion.button>
+                    </div>
+                    {usernameStatus === 'available' && (
+                      <p className="text-green-400 text-xs font-medium">
+                        {typeof window !== 'undefined' ? window.location.origin : ''}/{usernameInput.toLowerCase().trim()} is yours for the taking
+                      </p>
+                    )}
+                    {usernameError && (usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                      <p className="text-red-400 text-xs font-medium">{usernameError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Hero stat */}
               <div className="bg-white/5 backdrop-blur-lg p-8 rounded-3xl border border-white/10 shadow-2xl text-center">
                 <motion.div
