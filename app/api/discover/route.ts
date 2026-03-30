@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
@@ -39,13 +39,9 @@ export async function POST(req: NextRequest) {
     const { messages, existingInterests } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: "messages required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return NextResponse.json({ error: "messages required" }, { status: 400 });
     }
 
-    // Add context about existing interests so Claude doesn't re-discover them
     const contextMessage = existingInterests?.length
       ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
       : '';
@@ -53,7 +49,6 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 300,
-      stream: true,
       system: SYSTEM_PROMPT + contextMessage,
       messages: messages.map((m: any) => ({
         role: m.role,
@@ -61,39 +56,14 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    // Stream the response
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const event of response) {
-            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
-            }
-          }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
-        } catch (e) {
-          console.error('Stream error:', e);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`));
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
-        }
-      },
-    });
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    return new Response(readable, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+    return NextResponse.json({ text: text.trim() }, { status: 200 });
   } catch (error: any) {
     console.error("Discover API error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Failed" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(
+      { error: error.message || "Interview failed" },
+      { status: 500 }
+    );
   }
 }

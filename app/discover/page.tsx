@@ -123,10 +123,10 @@ export default function DiscoverPage() {
 
   const startInterview = async () => {
     setStarted(true);
-    await streamResponse([]);
+    await fetchResponse([]);
   };
 
-  const streamResponse = async (currentMessages: ChatMessage[]) => {
+  const fetchResponse = async (currentMessages: ChatMessage[]) => {
     setIsStreaming(true);
 
     const assistantIdx = currentMessages.length;
@@ -144,40 +144,23 @@ export default function DiscoverPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Stream failed');
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error('No reader');
-
-      const decoder = new TextDecoder();
-      let fullText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-
-        for (const line of lines) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.text) {
-              fullText += parsed.text;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[assistantIdx] = { role: 'assistant', content: fullText };
-                return updated;
-              });
-            }
-          } catch {}
-        }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error('API error:', res.status, errData);
+        throw new Error(errData.error || 'Interview failed');
       }
 
-      // Extract interests from completed message
+      const data = await res.json();
+      const fullText = data.text || '';
+
+      // Update the message
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[assistantIdx] = { role: 'assistant', content: fullText };
+        return updated;
+      });
+
+      // Extract interests from response
       const interestMatches = fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g);
       const newSuggested: SuggestedInterest[] = [];
       const existingNames = interestNames(existingInterests).map(n => n.toLowerCase());
@@ -205,7 +188,13 @@ export default function DiscoverPage() {
         } catch {}
       }
     } catch (e) {
-      console.error('Stream error:', e);
+      console.error('Interview error:', e);
+      // Show error in the message
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[assistantIdx] = { role: 'assistant', content: 'Hmm, something went wrong. Try again in a moment.' };
+        return updated;
+      });
     }
 
     setIsStreaming(false);
@@ -229,7 +218,7 @@ export default function DiscoverPage() {
       } catch {}
     }
 
-    await streamResponse(newMessages);
+    await fetchResponse(newMessages);
   };
 
   const handleAddInterest = async (interest: SuggestedInterest) => {
