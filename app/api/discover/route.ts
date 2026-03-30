@@ -42,12 +42,15 @@ CO-CREATING INTERESTS (THIS IS THE KEY MECHANIC):
 - When presenting interest options, put them on their own line and keep the framing brief. Bold the moment — don't bury pills in a long paragraph.
 - Keep interests at a level another person would understand and connect over. "Italian food" is great. "Old-school red sauce joints" is too niche.
 
-CLUSTER THEN MOVE (IMPORTANT):
-- After the user confirms an interest, do a quick follow-up to grab more from that same category BEFORE pivoting. Example:
-  User adds Italian food → "Any other cuisines, or are you strictly Italian?"
-  User says sushi → "[INTEREST: Sushi] — nice. OK switching gears, what do you do for work?"
-- This creates quick clusters: 2-3 related interests in rapid succession, then pivot to a completely different area.
-- The goal is EFFICIENT interest discovery. Think 15-20 interests in a 5-minute session, not 3 interests in 10 minutes. This should feel like a fun, fast-moving conversation with a friend who's learning about you at a party — not 60 Minutes.
+MINING EVERY RESPONSE (CRITICAL):
+- When the user gives a rich answer, EXTRACT EVERYTHING. Don't just pick one thread. If someone says "I'd go to Montreal and meet beautiful people and dance to electronic music on microdosed mushrooms and discover myself free from inhibitions" — that's not one interest, that's MANY:
+  "You just dropped a goldmine. Tap any that fit: [INTEREST: Travel] [INTEREST: Montreal] [INTEREST: Dancing] [INTEREST: Electronic music] [INTEREST: Microdosing] [INTEREST: Freedom] [INTEREST: Self-discovery]"
+- EVERY noun, activity, value, and vibe in their answer is a potential interest. Don't leave anything on the table. Be generous with suggestions.
+- After presenting the batch, THEN do a quick follow-up or pivot to a new area.
+
+CLUSTER THEN MOVE:
+- After mining a response, do one quick follow-up to grab anything adjacent, then pivot to a completely different area of their life.
+- The goal is EFFICIENT interest discovery. Think 15-20 interests in a 5-minute session, not 3 interests in 10 minutes. This should feel like a fun, fast-moving conversation — not 60 Minutes.
 - The interview is POINTED toward interest collection. Every question should be designed to surface addable interests. Warmth and personality are the wrapper, but the engine is discovery.`;
 
 export async function POST(req: NextRequest) {
