@@ -369,6 +369,11 @@ function MatchPage() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddValue, setQuickAddValue] = useState('');
 
+  // --- AI ORACLE ---
+  const [oraclePrompt, setOraclePrompt] = useState<string | null>(null);
+  const [oracleLoading, setOracleLoading] = useState(false);
+  const [oracleVisible, setOracleVisible] = useState(false);
+
   // --- BLOCKLIST / NOTIFICATIONS ---
   const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
   const [addNotification, setAddNotification] = useState<{ name: string; interest: string } | null>(null);
@@ -1239,6 +1244,36 @@ function MatchPage() {
   };
 
   // --- END CALL ---
+  // --- AI ORACLE ---
+  const fetchOraclePrompt = async () => {
+    if (oracleLoading) return;
+    setOracleLoading(true);
+    setOracleVisible(true);
+    try {
+      const res = await fetch('/api/oracle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          myInterests: myInterestNames.slice(0, 10),
+          theirInterests: theirInterestNames.slice(0, 10),
+          sharedInterests: sharedInterests.slice(0, 8),
+        }),
+      });
+      const data = await res.json();
+      if (data.prompt) {
+        setOraclePrompt(data.prompt);
+      }
+    } catch (e) {
+      console.error('Oracle failed:', e);
+    }
+    setOracleLoading(false);
+  };
+
+  const dismissOracle = () => {
+    setOracleVisible(false);
+    setTimeout(() => setOraclePrompt(null), 300);
+  };
+
   const handleEnd = async () => {
     clearMatchRetry();
     if (callObjectRef.current) {
@@ -1961,6 +1996,58 @@ function MatchPage() {
         </AnimatePresence>
       </div>
 
+      {/* ORACLE PROMPT CARD */}
+      <AnimatePresence>
+        {oracleVisible && isMatched && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="absolute left-4 right-4 z-[36] flex justify-center pointer-events-none"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)' }}
+          >
+            <div
+              className="pointer-events-auto max-w-md w-full px-5 py-4 rounded-2xl relative"
+              style={{
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.2))',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid rgba(139,92,246,0.3)',
+                boxShadow: '0 0 30px rgba(139,92,246,0.15)',
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center mt-0.5">
+                  <span className="text-[13px]">✦</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  {oracleLoading ? (
+                    <p className="text-white/50 text-sm italic">The oracle is thinking...</p>
+                  ) : (
+                    <p className="text-white/90 text-sm leading-relaxed">{oraclePrompt}</p>
+                  )}
+                </div>
+                <button
+                  onClick={dismissOracle}
+                  className="flex-shrink-0 text-white/30 hover:text-white/60 transition-colors text-lg leading-none mt-0.5"
+                >
+                  ×
+                </button>
+              </div>
+              {!oracleLoading && (
+                <button
+                  onClick={fetchOraclePrompt}
+                  className="mt-2 ml-10 text-violet-300/60 hover:text-violet-300 text-xs font-medium transition-colors"
+                >
+                  Another one
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* REACTION BAR */}
       {isMatched && (
         <div
@@ -1968,7 +2055,7 @@ function MatchPage() {
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
         >
           <div
-            className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full lg:gap-2 lg:px-4 lg:py-2"
+            className="pointer-events-auto flex items-center gap-2.5 px-5 py-3 rounded-full lg:gap-3 lg:px-6 lg:py-3"
             style={{
               background: 'rgba(0,0,0,0.55)',
               backdropFilter: 'blur(12px)',
@@ -1982,11 +2069,38 @@ function MatchPage() {
                 whileTap={{ scale: 1.25 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 onClick={(e) => triggerReaction(emoji, e.currentTarget)}
-                className="text-[26px] opacity-70 hover:opacity-100 active:opacity-100 transition-opacity p-1.5 lg:text-3xl lg:p-2"
+                className="text-[30px] opacity-70 hover:opacity-100 active:opacity-100 transition-opacity p-1 lg:text-[34px] lg:p-1.5"
               >
                 {emoji}
               </motion.button>
             ))}
+
+            {/* Separator */}
+            <div className="w-px h-7 bg-white/15 mx-0.5" />
+
+            {/* AI Oracle button */}
+            <motion.button
+              whileTap={{ scale: 1.2 }}
+              whileHover={{ scale: 1.1 }}
+              onClick={fetchOraclePrompt}
+              disabled={oracleLoading}
+              transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+              className="relative p-1 lg:p-1.5"
+            >
+              <motion.div
+                animate={oracleLoading ? { rotate: 360 } : {
+                  boxShadow: [
+                    '0 0 8px rgba(139,92,246,0.3)',
+                    '0 0 16px rgba(139,92,246,0.6)',
+                    '0 0 8px rgba(139,92,246,0.3)',
+                  ],
+                }}
+                transition={oracleLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity }}
+                className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-violet-500/80 to-indigo-500/80 border border-violet-400/40 flex items-center justify-center"
+              >
+                <span className="text-[18px] lg:text-[20px]">✦</span>
+              </motion.div>
+            </motion.button>
           </div>
         </div>
       )}
