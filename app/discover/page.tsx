@@ -63,6 +63,8 @@ export default function DiscoverPage() {
   const [started, setStarted] = useState(false);
   const [userName, setUserName] = useState('');
 
+  const [lastAddedInterest, setLastAddedInterest] = useState<string | null>(null);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -128,6 +130,7 @@ export default function DiscoverPage() {
 
   const fetchResponse = async (currentMessages: ChatMessage[]) => {
     setIsStreaming(true);
+    setLastAddedInterest(null);
 
     const assistantIdx = currentMessages.length;
     setMessages([...currentMessages, { role: 'assistant', content: '' }]);
@@ -229,6 +232,7 @@ export default function DiscoverPage() {
     const updated = addStructuredInterests(existingInterests, [newInterest]);
     setExistingInterests(updated);
     playAddSound();
+    setLastAddedInterest(interest.name);
 
     setSuggestedInterests(prev =>
       prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
@@ -262,21 +266,23 @@ export default function DiscoverPage() {
           <motion.button
             key={`${msgIdx}-interest-${i}`}
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={isAdded
+              ? { opacity: 1, scale: [1.2, 1], boxShadow: '0 0 0px rgba(253,224,71,0)' }
+              : { opacity: 1, scale: 1 }
+            }
             whileTap={!isAdded ? { scale: 0.95 } : {}}
             onClick={() => {
               if (!isAdded && suggested) handleAddInterest(suggested);
             }}
             className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold mx-1 my-1 transition-all ${
               isAdded
-                ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15'
+                ? 'bg-green-400/20 text-green-300 border border-green-400/30'
                 : 'text-black bg-yellow-300 border border-yellow-200 ring-2 ring-yellow-200/40 cursor-pointer hover:scale-105'
             }`}
             style={!isAdded ? { boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' } : {}}
           >
-            {!isAdded && <span className="text-xs font-black">+</span>}
-            {name}
-            {isAdded && <span className="text-[11px] ml-0.5">added</span>}
+            {isAdded ? '✓' : '+'}
+            <span className="ml-0.5">{name}</span>
           </motion.button>
         );
       }
@@ -509,6 +515,30 @@ export default function DiscoverPage() {
                 ✦ ✦ ✦
               </motion.div>
             </div>
+          </motion.div>
+        )}
+
+        {/* Show me related button */}
+        {lastAddedInterest && !isStreaming && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-center pt-2"
+          >
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={async () => {
+                const msg = `Show me more interests related to ${lastAddedInterest}`;
+                setLastAddedInterest(null);
+                const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
+                setMessages(newMessages);
+                setConversationHistory(newMessages);
+                await fetchResponse(newMessages);
+              }}
+              className="px-4 py-2 rounded-full text-xs font-bold bg-violet-500/20 border border-violet-400/20 text-violet-300 hover:bg-violet-500/30 transition-all"
+            >
+              Show me related interests
+            </motion.button>
           </motion.div>
         )}
 

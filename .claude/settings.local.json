@@ -28,7 +28,8 @@
       "Bash(cat C:/Users/jrotm/so-interesting/next.config*)",
       "Bash(git config:*)",
       "Bash(gh auth:*)",
-      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status 2>&1)"
+      "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status 2>&1)",
+      "Bash(cd:*)"
     ]
   }
 }
