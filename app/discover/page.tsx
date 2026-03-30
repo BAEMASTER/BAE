@@ -6,7 +6,7 @@ import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Mic, Send } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import {
   StructuredInterest,
   parseInterests,
@@ -60,6 +60,8 @@ export default function DiscoverPage() {
   const [suggestedInterests, setSuggestedInterests] = useState<SuggestedInterest[]>([]);
   const [existingInterests, setExistingInterests] = useState<StructuredInterest[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
+  const [started, setStarted] = useState(false);
+  const [userName, setUserName] = useState('');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,11 +86,13 @@ export default function DiscoverPage() {
           const data = snap.data();
           const interests = parseInterests(data.interests);
           setExistingInterests(interests);
+          if (data.displayName) setUserName(data.displayName.split(' ')[0]);
 
           // Load previous conversation if exists
           if (data.discoverConversation?.length) {
             setMessages(data.discoverConversation);
             setConversationHistory(data.discoverConversation);
+            setStarted(true);
 
             // Re-extract suggested interests from history
             const suggested: SuggestedInterest[] = [];
@@ -117,17 +121,14 @@ export default function DiscoverPage() {
     return () => unsub();
   }, []);
 
-  // Start the conversation if empty
-  useEffect(() => {
-    if (authReady && user && messages.length === 0 && !isStreaming) {
-      streamResponse([]);
-    }
-  }, [authReady, user]);
+  const startInterview = async () => {
+    setStarted(true);
+    await streamResponse([]);
+  };
 
   const streamResponse = async (currentMessages: ChatMessage[]) => {
     setIsStreaming(true);
 
-    // Add empty assistant message for streaming
     const assistantIdx = currentMessages.length;
     setMessages([...currentMessages, { role: 'assistant', content: '' }]);
 
@@ -137,7 +138,7 @@ export default function DiscoverPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: currentMessages.length === 0
-            ? [{ role: 'user', content: '(The guest just sat down. Start the podcast.)' }]
+            ? [{ role: 'user', content: `(The guest just sat down. Their first name is ${userName || 'there'}. Start the interview.)` }]
             : currentMessages,
           existingInterests: interestNames(existingInterests),
         }),
@@ -219,7 +220,6 @@ export default function DiscoverPage() {
     setMessages(newMessages);
     setConversationHistory(newMessages);
 
-    // Save user message immediately
     if (user) {
       try {
         await setDoc(doc(firestore, 'users', user.uid), {
@@ -241,7 +241,6 @@ export default function DiscoverPage() {
     setExistingInterests(updated);
     playAddSound();
 
-    // Mark as added
     setSuggestedInterests(prev =>
       prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
     );
@@ -279,7 +278,7 @@ export default function DiscoverPage() {
             onClick={() => {
               if (!isAdded && suggested) handleAddInterest(suggested);
             }}
-            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold mx-1 my-0.5 transition-all ${
+            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold mx-1 my-0.5 transition-all ${
               isAdded
                 ? 'bg-amber-300/15 text-amber-200/50 border border-amber-300/20'
                 : 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.5)] cursor-pointer hover:shadow-[0_0_20px_rgba(253,224,71,0.7)]'
@@ -298,54 +297,136 @@ export default function DiscoverPage() {
   if (!authReady) {
     return (
       <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center">
-        <div className="text-white/50">Loading...</div>
+        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-white/50 text-sm">
+          Loading...
+        </motion.div>
       </main>
     );
   }
 
+  // ====== INTRO SCREEN ======
+  if (!started) {
+    return (
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center max-w-md"
+        >
+          {/* Oracle icon */}
+          <motion.div
+            animate={{
+              boxShadow: [
+                '0 0 30px rgba(139,92,246,0.3)',
+                '0 0 60px rgba(139,92,246,0.5)',
+                '0 0 30px rgba(139,92,246,0.3)',
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="w-20 h-20 mx-auto mb-8 rounded-full bg-gradient-to-br from-violet-500/40 to-indigo-500/40 border border-violet-400/30 flex items-center justify-center"
+          >
+            <span className="text-3xl">✦</span>
+          </motion.div>
+
+          <h1 className="text-3xl font-black mb-3">
+            The Interview
+          </h1>
+          <p className="text-white/60 text-base leading-relaxed mb-3">
+            This is a conversation about you.
+          </p>
+          <p className="text-white/40 text-sm leading-relaxed mb-10">
+            We'll talk, and as your interests come up naturally, they'll appear as golden pills you can tap to add to your profile. Go as long as you want. Come back anytime.
+          </p>
+
+          {/* Existing interests preview */}
+          {existingInterests.length > 0 && (
+            <div className="mb-8">
+              <p className="text-white/25 text-xs mb-3">You already have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''} — let's find more</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {interestNames(existingInterests).slice(0, 6).map(name => (
+                  <span key={name} className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-300/10 text-amber-200/40 border border-amber-300/15">
+                    {name}
+                  </span>
+                ))}
+                {existingInterests.length > 6 && (
+                  <span className="px-3 py-1 rounded-full text-xs text-white/20">+{existingInterests.length - 6} more</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <motion.button
+            onClick={startInterview}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            animate={{
+              boxShadow: [
+                '0 0 20px rgba(139,92,246,0.3), 0 0 60px rgba(99,102,241,0.15)',
+                '0 0 30px rgba(139,92,246,0.5), 0 0 80px rgba(99,102,241,0.25)',
+                '0 0 20px rgba(139,92,246,0.3), 0 0 60px rgba(99,102,241,0.15)',
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="px-12 py-4 rounded-full font-black text-lg bg-gradient-to-r from-violet-500 to-indigo-500 border border-violet-400/30"
+          >
+            Let's go
+          </motion.button>
+        </motion.div>
+      </main>
+    );
+  }
+
+  // ====== CONVERSATION ======
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-black/20 backdrop-blur-sm">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/5">
         <button
           onClick={() => router.push('/profile')}
-          className="p-2 text-white/50 hover:text-white transition-colors"
+          className="p-2 text-white/30 hover:text-white/60 transition-colors"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={18} />
         </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-bold">Discover Yourself</h1>
-          <p className="text-white/40 text-xs">Your podcast. Your interests. Your story.</p>
+        <div className="flex-1 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500/40 to-indigo-500/40 border border-violet-400/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-sm">✦</span>
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-white/80">The Interview</h1>
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-red-400/70 text-xs font-medium tracking-wide uppercase">Live</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-white/30 text-[11px] font-medium">live</span>
         </div>
       </div>
 
-      {/* Chat area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
         {messages.map((msg, idx) => (
           <motion.div
             key={idx}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25 }}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-violet-500/30 border border-violet-400/20 text-white'
-                  : 'bg-white/5 border border-white/10 text-white/90'
-              }`}
-            >
-              {msg.role === 'assistant' ? (
-                <div className="whitespace-pre-wrap">{renderMessage(msg.content, idx)}</div>
-              ) : (
-                <div className="whitespace-pre-wrap">{msg.content}</div>
-              )}
-            </div>
+            {msg.role === 'assistant' && (
+              <div className="flex gap-3 max-w-[88%]">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/30 to-indigo-500/30 border border-violet-400/15 flex items-center justify-center flex-shrink-0 mt-1">
+                  <span className="text-[10px]">✦</span>
+                </div>
+                <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">
+                  {renderMessage(msg.content, idx)}
+                </div>
+              </div>
+            )}
+            {msg.role === 'user' && (
+              <div className="max-w-[80%] px-4 py-2.5 rounded-2xl bg-violet-500/20 border border-violet-400/15 text-sm text-white/90 leading-relaxed whitespace-pre-wrap">
+                {msg.content}
+              </div>
+            )}
           </motion.div>
         ))}
 
@@ -353,32 +434,33 @@ export default function DiscoverPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex justify-start"
+            className="flex gap-3"
           >
-            <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
-              <motion.div
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="text-white/40 text-sm"
-              >
-                ...
-              </motion.div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500/30 to-indigo-500/30 border border-violet-400/15 flex items-center justify-center flex-shrink-0">
+              <span className="text-[10px]">✦</span>
             </div>
+            <motion.div
+              animate={{ opacity: [0.2, 0.6, 0.2] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-white/30 text-sm pt-1"
+            >
+              thinking...
+            </motion.div>
           </motion.div>
         )}
 
         <div ref={chatEndRef} />
       </div>
 
-      {/* Added interests count */}
+      {/* Discovered interests tray */}
       {suggestedInterests.filter(s => s.added).length > 0 && (
         <div className="flex-shrink-0 px-4 py-2 border-t border-white/5">
           <div className="flex items-center gap-2 overflow-x-auto">
-            <span className="text-white/30 text-xs whitespace-nowrap flex-shrink-0">Added:</span>
+            <span className="text-white/20 text-[11px] whitespace-nowrap flex-shrink-0">Discovered:</span>
             {suggestedInterests.filter(s => s.added).map(s => (
               <span
                 key={s.name}
-                className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-300/15 text-amber-200/60 border border-amber-300/20 whitespace-nowrap flex-shrink-0"
+                className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-300/10 text-amber-200/50 border border-amber-300/15 whitespace-nowrap flex-shrink-0"
               >
                 {s.name}
               </span>
@@ -389,7 +471,7 @@ export default function DiscoverPage() {
 
       {/* Input */}
       <div
-        className="flex-shrink-0 px-4 py-3 border-t border-white/10 bg-black/20 backdrop-blur-sm"
+        className="flex-shrink-0 px-4 py-3 border-t border-white/5"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex gap-2 items-center">
@@ -398,21 +480,21 @@ export default function DiscoverPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={isStreaming ? "Listening..." : "Say something..."}
+            placeholder={isStreaming ? "" : "Your turn..."}
             disabled={isStreaming}
-            className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 text-sm disabled:opacity-50"
+            className="flex-1 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/8 text-sm transition-all disabled:opacity-40"
           />
           <motion.button
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
             whileTap={{ scale: 0.9 }}
-            className={`p-3 rounded-xl transition-all ${
+            className={`p-3 rounded-2xl transition-all ${
               input.trim() && !isStreaming
-                ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white'
-                : 'bg-white/5 text-white/20'
+                ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/20'
+                : 'bg-white/5 text-white/15'
             }`}
           >
-            <Send size={18} />
+            <Send size={16} />
           </motion.button>
         </div>
       </div>
