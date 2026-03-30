@@ -267,15 +267,16 @@ export default function DiscoverPage() {
             onClick={() => {
               if (!isAdded && suggested) handleAddInterest(suggested);
             }}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-black mx-1 my-1 transition-all ${
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold mx-1 my-1 transition-all ${
               isAdded
-                ? 'bg-amber-300/15 text-amber-200/50 border border-amber-300/20'
-                : 'bg-yellow-300 text-black border-2 border-yellow-200 shadow-[0_0_18px_rgba(253,224,71,0.6)] cursor-pointer hover:shadow-[0_0_30px_rgba(253,224,71,0.8)] hover:scale-105'
+                ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15'
+                : 'text-black bg-yellow-300 border border-yellow-200 ring-2 ring-yellow-200/40 cursor-pointer hover:scale-105'
             }`}
+            style={!isAdded ? { boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' } : {}}
           >
             {!isAdded && <span className="text-xs font-black">+</span>}
             {name}
-            {isAdded && <span className="text-[11px] ml-0.5 font-semibold">added</span>}
+            {isAdded && <span className="text-[11px] ml-0.5">added</span>}
           </motion.button>
         );
       }
