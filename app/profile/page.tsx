@@ -739,6 +739,28 @@ export default function ProfilePage() {
                 />
                 <button onClick={addInterest} className="px-6 py-2.5 bg-pink-400 hover:bg-pink-300 text-white rounded-full font-bold transition-colors">Add</button>
               </div>
+
+              {/* Discover — AI podcast entry */}
+              <motion.button
+                onClick={() => router.push('/discover')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full mt-4 px-5 py-4 rounded-2xl text-left transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.1))',
+                  border: '1px solid rgba(139,92,246,0.25)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500/60 to-indigo-500/60 border border-violet-400/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm">✦</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white/90 text-sm font-semibold">Discover more about yourself</p>
+                    <p className="text-white/40 text-xs">A conversation that uncovers what you're really about</p>
+                  </div>
+                </div>
+              </motion.button>
             </motion.div>
           )}
 
