@@ -320,11 +320,19 @@ export default function DiscoverPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="text-white/50 text-lg leading-relaxed mb-12"
+            className="text-white/50 text-lg leading-relaxed mb-3"
           >
             <p>I'll ask. You talk.</p>
             <p className="mt-1">Tap the <span className="text-yellow-300 font-bold">golden pills</span> to collect your interests.</p>
           </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+            className="text-white/25 text-sm mb-12"
+          >
+            Stay a while or bounce anytime.
+          </motion.p>
 
           {/* Existing interests as glowing pills */}
           {existingInterests.length > 0 && (
