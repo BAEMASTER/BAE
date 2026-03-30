@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+function getClient() {
+  return new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+}
 
 const SYSTEM_PROMPT = `You are the interviewer on BAE — a platform for authentic human connection. You're interviewing the user to uncover who they really are. This interview is all about THEM. Their answers become interests on their BAE profile — things other people will see and connect with them over.
 
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
       ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
       : '';
 
-    const response = await client.messages.create({
+    const response = await getClient().messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 300,
       system: SYSTEM_PROMPT + contextMessage,
