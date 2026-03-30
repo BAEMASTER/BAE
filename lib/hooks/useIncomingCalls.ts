@@ -73,6 +73,10 @@ export function useIncomingCalls() {
             createdAt: callData.createdAt,
           });
         }
+      }, (error) => {
+        // Silently handle permission errors — Firestore rules may not include directCalls yet
+        console.warn('Incoming calls listener error (expected if rules not set):', error.code);
+        setIncomingCall(null);
       });
     });
 
