@@ -412,10 +412,25 @@ export default function DiscoverPage() {
           </motion.div>
           <h1 className="text-base font-black text-white">The Interview</h1>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-400/20">
-          <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-red-400 text-[11px] font-bold tracking-wide uppercase">Live</span>
-        </div>
+        <button
+          onClick={async () => {
+            if (!user) return;
+            try {
+              await fetch('/api/clear-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: user.uid }),
+              });
+              setMessages([]);
+              setConversationHistory([]);
+              setSuggestedInterests([]);
+              setStarted(false);
+            } catch {}
+          }}
+          className="text-white/20 text-[11px] hover:text-white/50 transition-colors"
+        >
+          Start over
+        </button>
       </div>
 
       {/* Interest counter */}
