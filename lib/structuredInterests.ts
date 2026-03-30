@@ -76,7 +76,7 @@ export function countBySource(
   return interests.filter((i) => i.source === source).length;
 }
 
-const MAX_PINNED = 3;
+const MAX_PINNED = 5;
 
 /** Toggle pin status on an interest */
 export function togglePin(

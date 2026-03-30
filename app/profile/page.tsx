@@ -706,7 +706,7 @@ export default function ProfilePage() {
                 </span>
               </div>
               <p className="text-white/90 text-sm mb-1">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
-              <p className="text-white/30 text-xs mb-5">Tap an interest to pin your top 3 — the ones you could talk about all day. <span className="text-amber-300/50">✦ = pinned</span></p>
+              <p className="text-white/30 text-xs mb-5">Tap an interest to pin your top 5 — the ones you could talk about all day. <span className="text-amber-300/50">✦ = pinned</span></p>
 
               <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
                 <AnimatePresence>
@@ -719,7 +719,7 @@ export default function ProfilePage() {
                         pinned={!!si?.pinned}
                         onRemove={handleRemoveInterest}
                         onTogglePin={handleTogglePin}
-                        canPin={currentPinnedCount < 3}
+                        canPin={currentPinnedCount < 5}
                       />
                     );
                   })}
