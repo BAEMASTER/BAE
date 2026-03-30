@@ -756,8 +756,8 @@ export default function ProfilePage() {
                     <span className="text-sm">✦</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white/90 text-sm font-semibold">Discover more about yourself</p>
-                    <p className="text-white/40 text-xs">A conversation that uncovers what you're really about</p>
+                    <p className="text-white/90 text-sm font-semibold">Tell BAE About It</p>
+                    <p className="text-white/40 text-xs">Talk to BAE and build your interests through conversation</p>
                   </div>
                 </div>
               </motion.button>

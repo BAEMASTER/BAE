@@ -309,18 +309,11 @@ export default function DiscoverPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-5xl sm:text-6xl font-black mb-6 leading-tight"
+            className="text-4xl sm:text-5xl font-black mb-6 leading-tight"
           >
-            {userName ? (
-              <>
-                <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">{userName}</span>
-                <span className="text-white">,</span>
-                <br />
-                <span className="text-white">let's get into it.</span>
-              </>
-            ) : (
-              <span className="text-white">Let's get into it.</span>
-            )}
+            <span className="text-white">Tell </span>
+            <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">BAE</span>
+            <span className="text-white"> About It</span>
           </motion.h1>
 
           <motion.div
@@ -411,7 +404,7 @@ export default function DiscoverPage() {
           >
             <span className="text-sm font-bold">✦</span>
           </motion.div>
-          <h1 className="text-base font-black text-white">The Interview</h1>
+          <h1 className="text-base font-black text-white">Tell BAE About It</h1>
         </div>
         <button
           onClick={async () => {

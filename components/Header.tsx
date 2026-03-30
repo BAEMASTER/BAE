@@ -69,7 +69,7 @@ export default function Header() {
   const navLinks = (
     <>
       <NavLink href="/explorer" label="Explorer" />
-      <NavLink href="/discover" label="Interview" />
+      <NavLink href="/discover" label="Tell BAE" />
       <NavLink href="/profile" label="Profile" />
     </>
   );
@@ -77,7 +77,7 @@ export default function Header() {
   const mobileNavLinks = (
     <>
       <NavLink href="/explorer" label="Explorer" mobile />
-      <NavLink href="/discover" label="Interview" mobile />
+      <NavLink href="/discover" label="Tell BAE" mobile />
       <NavLink href="/profile" label="Profile" mobile />
     </>
   );
