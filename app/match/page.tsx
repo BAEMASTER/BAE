@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { Suspense, useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { onAuthStateChanged } from 'firebase/auth';
 import DailyIframe from '@daily-co/daily-js';
@@ -308,7 +308,15 @@ function ReactionCascade({ emoji, originX, onComplete }: {
 }
 
 // --- MAIN PAGE ---
-export default function MatchPage() {
+export default function MatchPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white">Loading...</div>}>
+      <MatchPage />
+    </Suspense>
+  );
+}
+
+function MatchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDirectCall = searchParams.get('directCall') === 'true';
