@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic();
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 const SYSTEM_PROMPT = `You are the interviewer on BAE — a platform for authentic human connection. You're interviewing the user to uncover who they really are. This interview is all about THEM. Their answers become interests on their BAE profile — things other people will see and connect with them over.
 
