@@ -330,14 +330,13 @@ export default function DiscoverPage() {
           </motion.div>
 
           <h1 className="text-3xl font-black mb-3">
-            The Interview
+            {userName ? `${userName}, let's get into it.` : `Let's get into it.`}
           </h1>
-          <p className="text-white/60 text-base leading-relaxed mb-3">
-            This is a conversation about you.
-          </p>
-          <p className="text-white/40 text-sm leading-relaxed mb-10">
-            We'll talk, and as your interests come up naturally, they'll appear as golden pills you can tap to add to your profile. Go as long as you want. Come back anytime.
-          </p>
+          <div className="text-white/50 text-base leading-loose mb-10">
+            <p>We'll talk. I'll listen.</p>
+            <p>As your interests come up,</p>
+            <p>tap the golden pills to add them to your profile.</p>
+          </div>
 
           {/* Existing interests preview */}
           {existingInterests.length > 0 && (
@@ -370,8 +369,12 @@ export default function DiscoverPage() {
             transition={{ duration: 2, repeat: Infinity }}
             className="px-12 py-4 rounded-full font-black text-lg bg-gradient-to-r from-violet-500 to-indigo-500 border border-violet-400/30"
           >
-            Let's go
+            Start the interview
           </motion.button>
+
+          <p className="mt-6 text-white/20 text-xs italic">
+            First question might be something like: "What's your favorite movie?"
+          </p>
         </motion.div>
       </main>
     );
