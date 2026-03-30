@@ -50,9 +50,10 @@ export async function POST(req: NextRequest) {
       ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
       : '';
 
-    const stream = await client.messages.stream({
+    const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 300,
+      stream: true,
       system: SYSTEM_PROMPT + contextMessage,
       messages: messages.map((m: any) => ({
         role: m.role,
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const event of stream) {
+          for await (const event of response) {
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
             }
@@ -73,7 +74,10 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (e) {
-          controller.error(e);
+          console.error('Stream error:', e);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
         }
       },
     });
