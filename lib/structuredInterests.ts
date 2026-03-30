@@ -3,6 +3,7 @@ export type StructuredInterest = {
   source: 'profile' | 'match' | 'explorer';
   from?: string; // uid of user it came from
   addedAt: string; // ISO timestamp
+  pinned?: boolean; // top interest — what you're on fire about
 };
 
 /** Backward-compatible parser: handles old string[] and new StructuredInterest[] */
@@ -73,4 +74,45 @@ export function countBySource(
   source: 'profile' | 'match' | 'explorer',
 ): number {
   return interests.filter((i) => i.source === source).length;
+}
+
+const MAX_PINNED = 3;
+
+/** Toggle pin status on an interest */
+export function togglePin(
+  interests: StructuredInterest[],
+  name: string,
+): StructuredInterest[] {
+  const lower = name.toLowerCase();
+  const target = interests.find((i) => i.name.toLowerCase() === lower);
+  if (!target) return interests;
+
+  // Unpinning — always allowed
+  if (target.pinned) {
+    return interests.map((i) =>
+      i.name.toLowerCase() === lower ? { ...i, pinned: false } : i
+    );
+  }
+
+  // Pinning — check max
+  const pinnedCount = interests.filter((i) => i.pinned).length;
+  if (pinnedCount >= MAX_PINNED) return interests;
+
+  return interests.map((i) =>
+    i.name.toLowerCase() === lower ? { ...i, pinned: true } : i
+  );
+}
+
+/** Get pinned interests (sorted to front) */
+export function pinnedFirst(interests: StructuredInterest[]): StructuredInterest[] {
+  return [...interests].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return 0;
+  });
+}
+
+/** Get pinned interest names */
+export function pinnedNames(interests: StructuredInterest[]): string[] {
+  return interests.filter((i) => i.pinned).map((i) => i.name);
 }

@@ -5,7 +5,7 @@ const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {
-    const { myInterests, theirInterests, sharedInterests } = await req.json();
+    const { myInterests, theirInterests, sharedInterests, myPinned, theirPinned } = await req.json();
 
     if (!myInterests?.length && !theirInterests?.length) {
       return NextResponse.json({ error: "Interests required" }, { status: 400 });
@@ -28,11 +28,11 @@ Rules:
       messages: [
         {
           role: "user",
-          content: `Person A's interests: ${myInterests.join(', ')}
-Person B's interests: ${theirInterests.join(', ')}
+          content: `Person A's interests: ${myInterests.join(', ')}${myPinned?.length ? `\nPerson A's top interests (what they're most passionate about): ${myPinned.join(', ')}` : ''}
+Person B's interests: ${theirInterests.join(', ')}${theirPinned?.length ? `\nPerson B's top interests (what they're most passionate about): ${theirPinned.join(', ')}` : ''}
 ${sharedInterests?.length ? `Shared interests: ${sharedInterests.join(', ')}` : 'No shared interests yet.'}
 
-Generate one conversation prompt.`,
+Generate one conversation prompt. Lean toward their top interests when possible.`,
         },
       ],
     });

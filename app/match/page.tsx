@@ -1257,6 +1257,8 @@ function MatchPage() {
           myInterests: myInterestNames.slice(0, 10),
           theirInterests: theirInterestNames.slice(0, 10),
           sharedInterests: sharedInterests.slice(0, 8),
+          myPinned: parseInterests(myProfile?.interests).filter(i => i.pinned).map(i => i.name),
+          theirPinned: parseInterests(theirProfile?.interests).filter(i => i.pinned).map(i => i.name),
         }),
       });
       const data = await res.json();
@@ -1638,9 +1640,14 @@ function MatchPage() {
                   </div>
                 )}
               </div>
-              {/* Partner interest pills — scrollable row with '+' badge */}
+              {/* Partner interest pills — scrollable row with '+' badge, pinned first */}
               <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center pt-2 pr-2">
-                {theirInterestNames.map((interest: string) => {
+                {(() => {
+                  const parsed = parseInterests(theirProfile?.interests);
+                  const sorted = [...parsed].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+                  return sorted.map((si) => {
+                  const interest = si.name;
+                  const isPinned = !!si.pinned;
                   const isAdded = myInterestNames.some(
                     (i: string) => i.trim().toLowerCase() === interest.trim().toLowerCase()
                   );
@@ -1661,16 +1668,20 @@ function MatchPage() {
                           ? 'bg-yellow-300 text-black border border-yellow-200 shadow-[0_0_12px_rgba(253,224,71,0.6)]'
                           : isAdded
                             ? 'bg-amber-300/10 text-amber-200/40 border border-amber-300/15 cursor-default'
-                            : 'bg-yellow-300 text-black border border-yellow-200 cursor-pointer'
+                            : isPinned
+                              ? 'bg-yellow-300 text-black border-2 border-amber-400 shadow-[0_0_16px_rgba(253,224,71,0.7)] cursor-pointer font-bold'
+                              : 'bg-yellow-300 text-black border border-yellow-200 cursor-pointer'
                       }`}
                     >
+                      {isPinned && <span className="mr-0.5">✦</span>}
                       {interest}
                       {!isAdded && !isFlashing && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-violet-500 text-white flex items-center justify-center text-[9px] font-black leading-none shadow-md">+</span>
                       )}
                     </motion.button>
                   );
-                })}
+                });
+                })()}
                 {theirInterestNames.length > 0 && (
                   <button
                     onClick={() => setShowPartnerDrawer(true)}

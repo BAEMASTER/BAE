@@ -15,6 +15,8 @@ import {
   removeInterest as removeStructuredInterest,
   countBySource,
   mostRecentInterest,
+  togglePin,
+  pinnedNames,
 } from '@/lib/structuredInterests';
 import { isBlockedInterest } from '@/lib/interestBlocklist';
 import { validateUsername } from '@/lib/reservedUsernames';
@@ -106,9 +108,19 @@ const playRemoveSound = () => {
   } catch {}
 };
 
-// --- Interest Pill (tap OR hover to reveal delete) ---
-function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: string) => void }) {
+// --- Interest Pill (tap to reveal actions, double-tap to pin) ---
+function InterestPill({ interest, pinned, onRemove, onTogglePin, canPin }: {
+  interest: string;
+  pinned: boolean;
+  onRemove: (i: string) => void;
+  onTogglePin: (i: string) => void;
+  canPin: boolean;
+}) {
   const [active, setActive] = useState(false);
+  const pinnedStyle = pinned
+    ? 'text-black bg-yellow-300 border-2 border-amber-400 shadow-[0_0_20px_rgba(253,224,71,0.9),0_0_40px_rgba(245,158,11,0.3)] font-black'
+    : GOLD_PILL_CLASSES;
+
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.7 }}
@@ -116,23 +128,39 @@ function InterestPill({ interest, onRemove }: { interest: string; onRemove: (i: 
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       whileHover={{ scale: 1.05 }}
-      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES} ${active ? 'ring-2 ring-violet-400/60' : ''}`}
+      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${pinnedStyle} ${active ? 'ring-2 ring-violet-400/60' : ''}`}
       onClick={() => setActive(a => !a)}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => setActive(false)}
     >
+      {pinned && <span className="mr-1">✦</span>}
       {interest}
       <AnimatePresence>
         {active && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
-            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10"
-          >
-            ×
-          </motion.button>
+          <>
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10"
+            >
+              ×
+            </motion.button>
+            {(canPin || pinned) && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                onClick={(e) => { e.stopPropagation(); onTogglePin(interest); }}
+                className={`absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shadow-lg z-10 ${
+                  pinned ? 'bg-amber-500 text-black' : 'bg-violet-500 text-white'
+                }`}
+              >
+                ✦
+              </motion.button>
+            )}
+          </>
         )}
       </AnimatePresence>
     </motion.span>
@@ -307,6 +335,17 @@ export default function ProfilePage() {
     try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
     catch(e) { console.error(e); }
   };
+
+  const handleTogglePin = async (val: string) => {
+    const updated = togglePin(structuredInterests, val);
+    setStructuredInterests(updated);
+    playAddSound();
+    if (!user) return;
+    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
+    catch(e) { console.error(e); }
+  };
+
+  const currentPinnedCount = structuredInterests.filter(i => i.pinned).length;
 
   // --- Username handlers ---
   useEffect(() => {
@@ -666,11 +705,24 @@ export default function ProfilePage() {
                     : `${interests.length}/${MIN_REQUIRED} minimum`}
                 </span>
               </div>
-              <p className="text-white/90 text-sm mb-6">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
+              <p className="text-white/90 text-sm mb-1">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
+              <p className="text-white/30 text-xs mb-5">Tap an interest to pin your top 3 — the ones you could talk about all day. <span className="text-amber-300/50">✦ = pinned</span></p>
 
               <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
                 <AnimatePresence>
-                  {interests.map(i => <InterestPill key={i} interest={i} onRemove={handleRemoveInterest} />)}
+                  {interests.map(i => {
+                    const si = structuredInterests.find(s => s.name === i);
+                    return (
+                      <InterestPill
+                        key={i}
+                        interest={i}
+                        pinned={!!si?.pinned}
+                        onRemove={handleRemoveInterest}
+                        onTogglePin={handleTogglePin}
+                        canPin={currentPinnedCount < 3}
+                      />
+                    );
+                  })}
                 </AnimatePresence>
                 {interests.length === 0 && (
                   <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
