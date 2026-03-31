@@ -27,6 +27,14 @@ type SuggestedInterest = {
   messageIdx: number;
 };
 
+const SAMPLE_QUESTIONS = [
+  "What could you give a TED talk on with zero prep?",
+  "If I looked at your YouTube history, what would I find?",
+  "What's a strong opinion you have that most people disagree with?",
+  "What's the most random rabbit hole you've gone down?",
+  "When you were a kid, what did you think you'd be doing now?",
+];
+
 const playAddSound = () => {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -60,6 +68,7 @@ export default function DiscoverPage() {
   const [suggestedInterests, setSuggestedInterests] = useState<SuggestedInterest[]>([]);
   const [existingInterests, setExistingInterests] = useState<StructuredInterest[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
+  const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [started, setStarted] = useState(false);
   const [userName, setUserName] = useState('');
 
@@ -69,6 +78,12 @@ export default function DiscoverPage() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Pick 3 random sample questions
+  const [sampleQuestions] = useState(() => {
+    const shuffled = [...SAMPLE_QUESTIONS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
+  });
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -92,11 +107,12 @@ export default function DiscoverPage() {
           setExistingInterests(interests);
           if (data.displayName) setUserName(data.displayName.split(' ')[0]);
 
-          // Load previous conversation if exists
+          // Returning user — skip intro, load conversation
           if (data.discoverConversation?.length) {
             setMessages(data.discoverConversation);
             setConversationHistory(data.discoverConversation);
             setStarted(true);
+            setIsFirstVisit(false);
 
             // Re-extract suggested interests from history
             const suggested: SuggestedInterest[] = [];
@@ -158,7 +174,6 @@ export default function DiscoverPage() {
       const data = await res.json();
       const fullText = data.text || '';
 
-      // Update the message
       setMessages(prev => {
         const updated = [...prev];
         updated[assistantIdx] = { role: 'assistant', content: fullText };
@@ -194,7 +209,6 @@ export default function DiscoverPage() {
       }
     } catch (e) {
       console.error('Interview error:', e);
-      // Show error in the message
       setMessages(prev => {
         const updated = [...prev];
         updated[assistantIdx] = { role: 'assistant', content: 'Hmm, something went wrong. Try again in a moment.' };
@@ -209,11 +223,11 @@ export default function DiscoverPage() {
     const text = input.trim();
     if (!text || isStreaming) return;
 
-    setInput('');
     // User is typing — cancel any auto-follow-up
     if (autoFollowUpRef.current) clearTimeout(autoFollowUpRef.current);
     setRecentlyAdded([]);
 
+    setInput('');
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
     setMessages(newMessages);
     setConversationHistory(newMessages);
@@ -264,7 +278,6 @@ export default function DiscoverPage() {
           ? `(User tapped and added "${added[0]}" to their profile. React naturally — like "nice one" or "good pick" — then ask if there's anything else on their mind about this topic, or if they want to move on to something new. Keep it warm and casual, like a friend. If they seem done with this area, pivot to something totally different about their life.)`
           : `(User tapped and added these interests: ${added.join(', ')}. React naturally and briefly. Then ask if anything else comes to mind on this topic or if they want to switch gears. Keep it casual and warm.)`;
         const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: systemMsg }];
-        setMessages(prev => [...prev]); // keep current view
         fetchResponse(newMessages);
       }
     }, 3000);
@@ -289,7 +302,7 @@ export default function DiscoverPage() {
             key={`${msgIdx}-interest-${i}`}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={isAdded
-              ? { opacity: 1, scale: [1.2, 1], boxShadow: '0 0 0px rgba(253,224,71,0)' }
+              ? { opacity: 1, scale: [1.2, 1] }
               : { opacity: 1, scale: 1 }
             }
             whileTap={!isAdded ? { scale: 0.95 } : {}}
@@ -322,92 +335,141 @@ export default function DiscoverPage() {
     );
   }
 
-  // ====== INTRO SCREEN ======
-  if (!started) {
+  // ====== INTRO SCREEN (first-time visitors only) ======
+  if (!started && isFirstVisit) {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-6">
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-6 overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="text-center max-w-lg"
+          className="text-center max-w-lg py-12"
         >
-          {/* Big bold greeting */}
+          {/* Heading */}
           <motion.h1
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-4xl sm:text-5xl font-black mb-6 leading-tight"
+            className="text-4xl sm:text-5xl font-black mb-4 leading-tight"
           >
             <span className="text-white">Tell </span>
             <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">BAE</span>
             <span className="text-white"> About It</span>
           </motion.h1>
 
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="text-white/50 text-lg mb-10"
+          >
+            A conversation that builds your interests — and makes every BAE connection deeper.
+          </motion.p>
+
+          {/* How it works — visual */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="text-white/50 text-lg leading-relaxed mb-12"
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="flex items-center justify-center gap-4 mb-10 text-sm"
           >
-            <p>I'll ask. You talk.</p>
-            <p className="mt-1">Tap the <span className="text-yellow-300 font-bold">golden pills</span> to collect your interests.</p>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-violet-500/20 border border-violet-400/20 flex items-center justify-center">
+                <span className="text-lg">✦</span>
+              </div>
+              <span className="text-white/40 text-xs">BAE asks</span>
+            </div>
+            <div className="text-white/15">→</div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400/20 flex items-center justify-center">
+                <span className="text-lg font-bold text-amber-300">You</span>
+              </div>
+              <span className="text-white/40 text-xs">You talk</span>
+            </div>
+            <div className="text-white/15">→</div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-yellow-300/20 border border-yellow-300/20 flex items-center justify-center">
+                <span className="text-yellow-300 text-lg font-black">+</span>
+              </div>
+              <span className="text-white/40 text-xs">Tap to add</span>
+            </div>
           </motion.div>
 
-          {/* Existing interests as glowing pills */}
+          {/* Sample questions */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
+            className="mb-10"
+          >
+            <p className="text-white/25 text-xs mb-4 uppercase tracking-wider font-semibold">Questions like...</p>
+            <div className="flex flex-col gap-2.5">
+              {sampleQuestions.map((q, i) => (
+                <motion.div
+                  key={q}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.9 + i * 0.1, duration: 0.3 }}
+                  className="px-5 py-3 rounded-2xl text-left text-sm text-white/70"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(99,102,241,0.08))',
+                    border: '1px solid rgba(139,92,246,0.15)',
+                  }}
+                >
+                  "{q}"
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Existing interests */}
           {existingInterests.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-              className="mb-10"
+              transition={{ delay: 1.2, duration: 0.5 }}
+              className="mb-8"
             >
-              <p className="text-white/30 text-sm mb-4">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''} so far — let's find more</p>
-              <div className="flex flex-wrap justify-center gap-2.5">
+              <p className="text-white/30 text-sm mb-3">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''} — let's find more</p>
+              <div className="flex flex-wrap justify-center gap-2">
                 {interestNames(existingInterests).slice(0, 8).map((name, i) => (
                   <motion.span
                     key={name}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.8 + i * 0.06, type: 'spring', stiffness: 300 }}
-                    className="px-4 py-1.5 rounded-full text-sm font-bold bg-yellow-300/10 text-yellow-200/50 border border-yellow-300/15"
+                    transition={{ delay: 1.3 + i * 0.04, type: 'spring', stiffness: 300 }}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-300/10 text-yellow-200/40 border border-yellow-300/15"
                   >
                     {name}
                   </motion.span>
                 ))}
                 {existingInterests.length > 8 && (
-                  <span className="px-4 py-1.5 rounded-full text-sm text-white/20">+{existingInterests.length - 8} more</span>
+                  <span className="px-3 py-1.5 rounded-full text-xs text-white/20">+{existingInterests.length - 8} more</span>
                 )}
               </div>
             </motion.div>
           )}
 
+          {/* CTA */}
           <motion.button
             onClick={startInterview}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.4 }}
+            transition={{ delay: 1.4, duration: 0.4 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="px-14 py-5 rounded-full font-black text-xl bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-amber-300/30 shadow-[0_0_30px_rgba(245,158,11,0.4),0_0_60px_rgba(249,115,22,0.15)]"
           >
-            Start the interview
+            Let's go
           </motion.button>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.3, duration: 0.5 }}
-            className="mt-6 text-white/25 text-sm"
-          >
-            First question might be: "What's your favorite movie?"
-          </motion.p>
         </motion.div>
       </main>
     );
   }
 
   // ====== CONVERSATION ======
+  const addedCount = suggestedInterests.filter(s => s.added).length;
+
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col">
       {/* Header */}
@@ -434,6 +496,18 @@ export default function DiscoverPage() {
           </motion.div>
           <h1 className="text-base font-black text-white">Tell BAE About It</h1>
         </div>
+        {/* Interest score */}
+        {addedCount > 0 && (
+          <motion.div
+            key={addedCount}
+            initial={{ scale: 1.3 }}
+            animate={{ scale: 1 }}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-300/10 border border-yellow-300/20"
+          >
+            <span className="text-yellow-300 font-black text-sm">+{addedCount}</span>
+            <span className="text-yellow-300/50 text-[10px] font-semibold">new</span>
+          </motion.div>
+        )}
         <button
           onClick={async () => {
             if (!user) return;
@@ -447,6 +521,7 @@ export default function DiscoverPage() {
               setConversationHistory([]);
               setSuggestedInterests([]);
               setStarted(false);
+              setIsFirstVisit(true);
             } catch {}
           }}
           className="text-white/20 text-[11px] hover:text-white/50 transition-colors"
@@ -454,36 +529,6 @@ export default function DiscoverPage() {
           Start over
         </button>
       </div>
-
-      {/* Interest counter */}
-      {suggestedInterests.filter(s => s.added).length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex-shrink-0 px-4 py-3 bg-yellow-300/5 border-b border-yellow-300/10"
-        >
-          <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 0.4 }}
-              key={suggestedInterests.filter(s => s.added).length}
-              className="w-8 h-8 rounded-full bg-yellow-300 text-black font-black text-sm flex items-center justify-center shadow-[0_0_15px_rgba(253,224,71,0.5)]"
-            >
-              {suggestedInterests.filter(s => s.added).length}
-            </motion.div>
-            <div className="flex gap-2 overflow-x-auto flex-1">
-              {suggestedInterests.filter(s => s.added).map(s => (
-                <span
-                  key={s.name}
-                  className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-300/15 text-yellow-200 border border-yellow-300/20 whitespace-nowrap flex-shrink-0"
-                >
-                  {s.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
@@ -553,8 +598,7 @@ export default function DiscoverPage() {
                 const msg = `Show me more interests related to ${lastAddedInterest}`;
                 setLastAddedInterest(null);
                 const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
-                setMessages(newMessages);
-                setConversationHistory(newMessages);
+                setMessages(prev => [...prev]);
                 await fetchResponse(newMessages);
               }}
               className="px-4 py-2 rounded-full text-xs font-bold bg-violet-500/20 border border-violet-400/20 text-violet-300 hover:bg-violet-500/30 transition-all"
@@ -578,7 +622,7 @@ export default function DiscoverPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={isStreaming ? "" : "Your turn..."}
+            placeholder={isStreaming ? "" : "Tell BAE anything..."}
             disabled={isStreaming}
             className="flex-1 px-5 py-4 rounded-2xl bg-white/8 border border-white/15 text-white text-base placeholder:text-white/25 outline-none focus:border-violet-400/40 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all disabled:opacity-40"
           />
