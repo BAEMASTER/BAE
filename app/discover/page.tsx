@@ -338,129 +338,109 @@ export default function DiscoverPage() {
   // ====== INTRO SCREEN (first-time visitors only) ======
   if (!started && isFirstVisit) {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-y-auto">
-        {/* Ambient glow */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-violet-500/8 blur-[120px]" />
-          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-amber-500/5 blur-[100px]" />
+      <main className="min-h-screen w-full text-white overflow-y-auto" style={{ background: 'linear-gradient(180deg, #0a0618 0%, #1a0a3e 30%, #2d1654 60%, #1a0a3e 100%)' }}>
+
+        {/* Golden ambient light */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            animate={{ opacity: [0.06, 0.12, 0.06], scale: [1, 1.05, 1] }}
+            transition={{ duration: 8, repeat: Infinity }}
+            className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-amber-400 blur-[200px]"
+          />
+          <motion.div
+            animate={{ opacity: [0.04, 0.08, 0.04] }}
+            transition={{ duration: 6, repeat: Infinity, delay: 2 }}
+            className="absolute bottom-[20%] left-1/4 w-[500px] h-[500px] rounded-full bg-violet-500 blur-[150px]"
+          />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 py-12">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="text-center max-w-lg"
-          >
-            {/* Hero */}
+        <div className="relative z-10">
+
+          {/* HERO SECTION */}
+          <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 pt-24 pb-12">
+
+            {/* Animated geometric symbol */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+              className="relative mb-10"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+                className="w-36 h-36 sm:w-44 sm:h-44"
+              >
+                <svg viewBox="0 0 200 200" className="w-full h-full">
+                  <defs>
+                    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.8" />
+                      <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.6" />
+                      <stop offset="100%" stopColor="#d97706" stopOpacity="0.8" />
+                    </linearGradient>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
+                  {/* Outer hexagon */}
+                  <polygon points="100,10 178,55 178,145 100,190 22,145 22,55" fill="none" stroke="url(#goldGrad)" strokeWidth="1.5" filter="url(#glow)" />
+                  {/* Inner connections */}
+                  <polygon points="100,40 155,70 155,130 100,160 45,130 45,70" fill="none" stroke="url(#goldGrad)" strokeWidth="1" opacity="0.5" />
+                  {/* Center diamond */}
+                  <polygon points="100,65 130,100 100,135 70,100" fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.7" />
+                  {/* Cross lines */}
+                  <line x1="100" y1="10" x2="100" y2="190" stroke="url(#goldGrad)" strokeWidth="0.5" opacity="0.3" />
+                  <line x1="22" y1="55" x2="178" y2="145" stroke="url(#goldGrad)" strokeWidth="0.5" opacity="0.3" />
+                  <line x1="178" y1="55" x2="22" y2="145" stroke="url(#goldGrad)" strokeWidth="0.5" opacity="0.3" />
+                  {/* Center dot */}
+                  <circle cx="100" cy="100" r="4" fill="#fbbf24" opacity="0.9" />
+                  {/* Vertex dots */}
+                  <circle cx="100" cy="10" r="2.5" fill="#fbbf24" opacity="0.6" />
+                  <circle cx="178" cy="55" r="2.5" fill="#fbbf24" opacity="0.6" />
+                  <circle cx="178" cy="145" r="2.5" fill="#fbbf24" opacity="0.6" />
+                  <circle cx="100" cy="190" r="2.5" fill="#fbbf24" opacity="0.6" />
+                  <circle cx="22" cy="145" r="2.5" fill="#fbbf24" opacity="0.6" />
+                  <circle cx="22" cy="55" r="2.5" fill="#fbbf24" opacity="0.6" />
+                </svg>
+              </motion.div>
+              {/* Glow behind */}
+              <div className="absolute inset-0 rounded-full bg-amber-400/10 blur-[60px] -z-10" />
+            </motion.div>
+
+            {/* Title */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
+              transition={{ delay: 0.4, duration: 0.7 }}
+              className="text-center mb-6"
             >
-              <h1 className="text-5xl sm:text-6xl font-black mb-2 leading-[1.1]">
+              <h1 className="text-5xl sm:text-7xl font-black tracking-tight leading-[1.05]">
                 <span className="text-white">Tell </span>
-                <span className="bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(253,224,71,0.3)]">BAE</span>
+                <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-400 bg-clip-text text-transparent">BAE</span>
               </h1>
-              <h1 className="text-5xl sm:text-6xl font-black mb-6 leading-[1.1] text-white">
+              <h1 className="text-5xl sm:text-7xl font-black tracking-tight leading-[1.05] text-white">
                 About It
               </h1>
             </motion.div>
 
+            {/* Tagline */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="text-white/60 text-xl leading-relaxed mb-4 font-medium"
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="text-center text-xl sm:text-2xl font-medium text-white/60 max-w-md leading-relaxed mb-4"
             >
-              You are the main attraction.
+              You are the story.
             </motion.p>
-
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-              className="text-white/35 text-base leading-relaxed mb-12 max-w-md mx-auto"
+              transition={{ delay: 1.0, duration: 0.5 }}
+              className="text-center text-base text-white/35 max-w-sm leading-relaxed mb-12"
             >
-              BAE's AI listens like no one else — picking up on what makes you <em>you</em>, and turning it into interests that connect you with the right people.
+              BAE's AI draws out who you really are through conversation — and turns it into connections that actually mean something.
             </motion.p>
-
-            {/* Sample questions as conversation preview */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-              className="mb-12"
-            >
-              <div className="flex flex-col gap-3">
-                {sampleQuestions.map((q, i) => (
-                  <motion.div
-                    key={q}
-                    initial={{ opacity: 0, x: -15 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 1.0 + i * 0.12, duration: 0.4, type: 'spring', stiffness: 200 }}
-                    className="flex items-start gap-3"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-[0_0_12px_rgba(139,92,246,0.4)]">
-                      <span className="text-[10px] font-bold">✦</span>
-                    </div>
-                    <div
-                      className="px-4 py-3 rounded-2xl rounded-tl-sm text-left text-[15px] text-white/80 font-medium flex-1"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.1))',
-                        border: '1px solid rgba(139,92,246,0.2)',
-                      }}
-                    >
-                      {q}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* The mechanic — what happens */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.4, duration: 0.5 }}
-              className="mb-10"
-            >
-              <p className="text-white/40 text-sm mb-4">As you talk, your interests appear as golden pills —</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {['Italian food', 'Yoga', 'Venture capital', 'Live music', 'Microdosing'].map((name, i) => (
-                  <motion.span
-                    key={name}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.5 + i * 0.08, type: 'spring', stiffness: 400, damping: 15 }}
-                    className="px-4 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200 ring-2 ring-yellow-200/30"
-                    style={{ boxShadow: '0 0 20px rgba(253,224,71,0.4)' }}
-                  >
-                    + {name}
-                  </motion.span>
-                ))}
-              </div>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.9, duration: 0.4 }}
-                className="text-white/30 text-sm mt-3"
-              >
-                Tap the ones that feel like you.
-              </motion.p>
-            </motion.div>
-
-            {/* Existing interests */}
-            {existingInterests.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 2.0, duration: 0.5 }}
-                className="mb-8"
-              >
-                <p className="text-white/25 text-sm mb-3">You already have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''} — let's uncover more</p>
-              </motion.div>
-            )}
 
             {/* CTA */}
             <motion.button
@@ -470,28 +450,113 @@ export default function DiscoverPage() {
                 opacity: 1,
                 y: 0,
                 boxShadow: [
-                  '0 0 30px rgba(245,158,11,0.4), 0 0 60px rgba(249,115,22,0.15)',
-                  '0 0 40px rgba(245,158,11,0.6), 0 0 80px rgba(249,115,22,0.25)',
-                  '0 0 30px rgba(245,158,11,0.4), 0 0 60px rgba(249,115,22,0.15)',
+                  '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
+                  '0 0 60px rgba(251,191,36,0.5), 0 0 120px rgba(245,158,11,0.2)',
+                  '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
                 ],
               }}
-              transition={{ duration: 2, repeat: Infinity, delay: 2.1 }}
+              transition={{ duration: 2.5, repeat: Infinity, delay: 1.2 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-16 py-6 rounded-full font-black text-2xl bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-amber-300/30"
+              className="px-16 py-6 rounded-full font-black text-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-black border-2 border-yellow-300/50"
             >
-              Let's go
+              Begin
             </motion.button>
+          </div>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.4, duration: 0.4 }}
-              className="mt-5 text-white/20 text-xs"
+          {/* BELOW THE FOLD — how it works */}
+          <div className="px-6 pb-20 max-w-2xl mx-auto">
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 mb-16">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+              <span className="text-amber-300/30 text-xs font-bold tracking-[0.3em] uppercase">How it works</span>
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+            </div>
+
+            {/* Step 1: BAE asks */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mb-14"
             >
-              Takes a few minutes. Feels like a real conversation.
-            </motion.p>
-          </motion.div>
+              <p className="text-amber-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-4">BAE asks questions like</p>
+              <div className="flex flex-col gap-3">
+                {sampleQuestions.map((q, i) => (
+                  <motion.div
+                    key={q}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1, duration: 0.4 }}
+                    className="px-5 py-4 rounded-2xl text-[15px] sm:text-base text-white/75 font-medium"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.08))',
+                      border: '1px solid rgba(139,92,246,0.2)',
+                    }}
+                  >
+                    {q}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Step 2: Your interests emerge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mb-14"
+            >
+              <p className="text-amber-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-4">Your interests emerge</p>
+              <p className="text-white/40 text-sm mb-5">As you talk, golden pills appear. Tap the ones that feel like you.</p>
+              <div className="flex flex-wrap gap-2.5">
+                {['Italian food', 'Yoga', 'Venture capital', 'Live music', 'Microdosing', 'Self-discovery', 'Travel', 'Raw food'].map((name, i) => (
+                  <motion.span
+                    key={name}
+                    initial={{ opacity: 0, scale: 0 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.06, type: 'spring', stiffness: 400, damping: 15 }}
+                    className="px-4 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
+                    style={{ boxShadow: '0 0 20px rgba(253,224,71,0.35)' }}
+                  >
+                    + {name}
+                  </motion.span>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Step 3: Everything gets better */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mb-16"
+            >
+              <p className="text-amber-300/50 text-xs font-bold tracking-[0.2em] uppercase mb-4">Your BAE experience evolves</p>
+              <p className="text-white/40 text-sm">Every interest you add makes your calls deeper, your matches smarter, and your conversations richer. The more you share, the more BAE comes alive.</p>
+            </motion.div>
+
+            {/* Bottom CTA */}
+            <div className="text-center">
+              {existingInterests.length > 0 && (
+                <p className="text-white/25 text-sm mb-4">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.</p>
+              )}
+              <motion.button
+                onClick={startInterview}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-14 py-5 rounded-full font-black text-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-black border-2 border-yellow-300/50 shadow-[0_0_40px_rgba(251,191,36,0.3)]"
+              >
+                Begin
+              </motion.button>
+            </div>
+          </div>
         </div>
       </main>
     );
