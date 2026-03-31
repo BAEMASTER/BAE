@@ -64,6 +64,8 @@ export default function DiscoverPage() {
   const [userName, setUserName] = useState('');
 
   const [lastAddedInterest, setLastAddedInterest] = useState<string | null>(null);
+  const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
+  const autoFollowUpRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -208,6 +210,10 @@ export default function DiscoverPage() {
     if (!text || isStreaming) return;
 
     setInput('');
+    // User is typing — cancel any auto-follow-up
+    if (autoFollowUpRef.current) clearTimeout(autoFollowUpRef.current);
+    setRecentlyAdded([]);
+
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
     setMessages(newMessages);
     setConversationHistory(newMessages);
@@ -233,6 +239,7 @@ export default function DiscoverPage() {
     setExistingInterests(updated);
     playAddSound();
     setLastAddedInterest(interest.name);
+    setRecentlyAdded(prev => [...prev, interest.name]);
 
     setSuggestedInterests(prev =>
       prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
@@ -246,6 +253,21 @@ export default function DiscoverPage() {
     } catch (e) {
       console.error('Failed to add interest:', e);
     }
+
+    // Auto-follow-up: wait 3 seconds after last tap, then AI continues
+    if (autoFollowUpRef.current) clearTimeout(autoFollowUpRef.current);
+    autoFollowUpRef.current = setTimeout(() => {
+      if (!isStreaming) {
+        const added = [...recentlyAdded, interest.name];
+        setRecentlyAdded([]);
+        const systemMsg = added.length === 1
+          ? `(User tapped and added "${added[0]}" to their profile. React naturally — like "nice one" or "good pick" — then ask if there's anything else on their mind about this topic, or if they want to move on to something new. Keep it warm and casual, like a friend. If they seem done with this area, pivot to something totally different about their life.)`
+          : `(User tapped and added these interests: ${added.join(', ')}. React naturally and briefly. Then ask if anything else comes to mind on this topic or if they want to switch gears. Keep it casual and warm.)`;
+        const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: systemMsg }];
+        setMessages(prev => [...prev]); // keep current view
+        fetchResponse(newMessages);
+      }
+    }, 3000);
   };
 
   // Render message text, replacing [INTEREST: x] with inline pills
@@ -465,7 +487,7 @@ export default function DiscoverPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.map((msg, idx) => (
+        {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 12 }}
