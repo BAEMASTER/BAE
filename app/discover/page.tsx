@@ -338,189 +338,147 @@ export default function DiscoverPage() {
   // ====== INTRO SCREEN (first-time visitors only) ======
   if (!started && isFirstVisit) {
     return (
-      <main className="min-h-screen w-full text-white overflow-y-auto" style={{ background: '#070412' }}>
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-hidden">
 
-        {/* Ambient light show */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <motion.div
-            animate={{ opacity: [0.08, 0.15, 0.08], x: ['-5%', '5%', '-5%'] }}
-            transition={{ duration: 12, repeat: Infinity }}
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] rounded-full bg-violet-600 blur-[200px]"
-          />
-          <motion.div
-            animate={{ opacity: [0.05, 0.1, 0.05] }}
-            transition={{ duration: 8, repeat: Infinity, delay: 3 }}
-            className="absolute bottom-[10%] right-[10%] w-[600px] h-[600px] rounded-full bg-amber-500 blur-[180px]"
-          />
-          <motion.div
-            animate={{ opacity: [0.03, 0.07, 0.03] }}
-            transition={{ duration: 10, repeat: Infinity, delay: 5 }}
-            className="absolute top-[40%] left-[5%] w-[400px] h-[400px] rounded-full bg-indigo-500 blur-[150px]"
-          />
-        </div>
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 lg:px-20">
 
-        <div className="relative z-10">
+          <div className="w-full max-w-5xl">
 
-          {/* ===== HERO — full viewport ===== */}
-          <div className="min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 lg:px-20">
-
-            <div className="w-full max-w-5xl">
-
-              {/* BAE AI badge */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="flex justify-center mb-8"
-              >
-                <div className="flex items-center gap-2 px-5 py-2 rounded-full border border-amber-400/20 bg-amber-400/5">
-                  <motion.div
-                    animate={{
-                      boxShadow: [
-                        '0 0 8px rgba(251,191,36,0.4)',
-                        '0 0 16px rgba(251,191,36,0.7)',
-                        '0 0 8px rgba(251,191,36,0.4)',
-                      ],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="w-2.5 h-2.5 rounded-full bg-amber-400"
-                  />
-                  <span className="text-amber-300 text-sm font-bold tracking-wider">BAE AI</span>
-                </div>
-              </motion.div>
-
-              {/* Main headline */}
-              <motion.div
-                initial={{ opacity: 0, y: 25 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.7 }}
-                className="text-center mb-6"
-              >
-                <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.1] mb-3">
-                  <span className="text-white">Tell </span>
-                  <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-400 bg-clip-text text-transparent">BAE</span>
-                  <span className="text-white"> About Your World</span>
-                </h1>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white/40">
-                  Watch the Magic Happen
-                </h2>
-              </motion.div>
-
-              {/* Subtext */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-                className="text-center text-lg sm:text-xl text-white/40 max-w-2xl mx-auto leading-relaxed mb-14"
-              >
-                The best conversation you've never had. Until now.
-              </motion.p>
-
-              {/* Three cards — Talk / See / Fun */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.0, duration: 0.6 }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-16 max-w-4xl mx-auto"
-              >
+            {/* BAE AI badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="flex justify-center mb-8"
+            >
+              <div className="flex items-center gap-2 px-5 py-2 rounded-full border border-amber-400/20 bg-amber-400/5">
                 <motion.div
-                  whileHover={{ y: -4, scale: 1.02 }}
-                  className="rounded-2xl p-6 sm:p-8 text-center"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))',
-                    border: '1px solid rgba(139,92,246,0.2)',
-                  }}
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
-                    className="text-4xl mb-4"
-                  >
-                    ✦
-                  </motion.div>
-                  <h3 className="text-xl font-black text-white mb-2">Talk with BAE</h3>
-                  <p className="text-white/35 text-sm leading-relaxed">Smart questions that go wherever you go. No script. No agenda. Just real conversation.</p>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ y: -4, scale: 1.02 }}
-                  className="rounded-2xl p-6 sm:p-8 text-center"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.05))',
-                    border: '1px solid rgba(251,191,36,0.2)',
-                  }}
-                >
-                  <motion.div
-                    animate={{ scale: [1, 1.15, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 1 }}
-                    className="text-4xl mb-4"
-                  >
-                    +
-                  </motion.div>
-                  <h3 className="text-xl font-black text-white mb-2">See Your Interests Come Alive</h3>
-                  <p className="text-white/35 text-sm leading-relaxed">Golden pills appear as you talk. Tap the ones that feel like you. Watch your profile build itself.</p>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ y: -4, scale: 1.02 }}
-                  className="rounded-2xl p-6 sm:p-8 text-center"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(52,211,153,0.1), rgba(16,185,129,0.05))',
-                    border: '1px solid rgba(52,211,153,0.15)',
-                  }}
-                >
-                  <motion.div
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
-                    className="text-4xl mb-4"
-                  >
-                    ✨
-                  </motion.div>
-                  <h3 className="text-xl font-black text-white mb-2">Have Fun</h3>
-                  <p className="text-white/35 text-sm leading-relaxed">This isn't a form or a quiz. It's you, talking freely, discovering things about yourself you didn't know you'd say.</p>
-                </motion.div>
-              </motion.div>
-
-              {/* CTA */}
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.3, duration: 0.5 }}
-                className="text-center mb-6"
-              >
-                {existingInterests.length > 0 && (
-                  <p className="text-white/25 text-sm mb-5">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.</p>
-                )}
-                <motion.button
-                  onClick={startInterview}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   animate={{
                     boxShadow: [
-                      '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
-                      '0 0 60px rgba(251,191,36,0.5), 0 0 120px rgba(245,158,11,0.2)',
-                      '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
+                      '0 0 8px rgba(251,191,36,0.4)',
+                      '0 0 16px rgba(251,191,36,0.7)',
+                      '0 0 8px rgba(251,191,36,0.4)',
                     ],
                   }}
-                  transition={{ duration: 2.5, repeat: Infinity }}
-                  className="px-20 py-7 rounded-full font-black text-2xl sm:text-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/50"
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-2.5 h-2.5 rounded-full bg-amber-400"
+                />
+                <span className="text-amber-300 text-sm font-bold tracking-wider">BAE AI</span>
+              </div>
+            </motion.div>
+
+            {/* Main headline */}
+            <motion.div
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.7 }}
+              className="text-center mb-5"
+            >
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.1] mb-5">
+                <span className="text-white">The Best Conversation</span>
+                <br />
+                <span className="text-white">You've Never Had.</span>
+              </h1>
+              <div className="flex items-center justify-center gap-3 sm:gap-4">
+                <motion.span
+                  animate={{
+                    boxShadow: ['0 0 15px rgba(253,224,71,0.6)', '0 0 25px rgba(253,224,71,0.9)', '0 0 15px rgba(253,224,71,0.6)']
+                  }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="px-5 py-2 sm:px-8 sm:py-3 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-2xl sm:text-4xl lg:text-5xl"
                 >
-                  Begin
-                </motion.button>
+                  Until Now
+                </motion.span>
+              </div>
+            </motion.div>
+
+            {/* Purpose line */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="text-center text-base sm:text-lg text-white/45 max-w-2xl mx-auto leading-relaxed mb-10"
+            >
+              BAE AI talks with you to uncover your real, authentic interests — making every connection on BAE deeper, and teaching you something about yourself along the way.
+            </motion.p>
+
+            {/* Three cards — Talk / Discover / Fun */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.0, duration: 0.6 }}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10 max-w-4xl mx-auto"
+            >
+              <motion.div
+                whileHover={{ y: -4, scale: 1.02 }}
+                className="rounded-2xl p-6 sm:p-8 text-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))',
+                  border: '1px solid rgba(139,92,246,0.2)',
+                }}
+              >
+                <div className="text-3xl mb-3">✦</div>
+                <h3 className="text-lg font-black text-white mb-2">Talk with BAE</h3>
+                <p className="text-white/35 text-sm leading-relaxed">Smart, curious questions about your life. You talk, BAE listens and picks up on what matters.</p>
               </motion.div>
 
-              {/* Sample question teaser */}
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.6, duration: 0.5 }}
-                className="text-center"
+                whileHover={{ y: -4, scale: 1.02 }}
+                className="rounded-2xl p-6 sm:p-8 text-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.05))',
+                  border: '1px solid rgba(251,191,36,0.2)',
+                }}
               >
-                <p className="text-white/20 text-sm italic">
-                  First question might be: "{sampleQuestions[0]}"
-                </p>
+                <div className="text-3xl mb-3">+</div>
+                <h3 className="text-lg font-black text-white mb-2">Discover Your Interests</h3>
+                <p className="text-white/35 text-sm leading-relaxed">Golden pills appear as you talk. Tap the ones that feel like you. Your profile builds itself.</p>
               </motion.div>
-            </div>
+
+              <motion.div
+                whileHover={{ y: -4, scale: 1.02 }}
+                className="rounded-2xl p-6 sm:p-8 text-center"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(52,211,153,0.1), rgba(16,185,129,0.05))',
+                  border: '1px solid rgba(52,211,153,0.15)',
+                }}
+              >
+                <div className="text-3xl mb-3">✨</div>
+                <h3 className="text-lg font-black text-white mb-2">Have Fun</h3>
+                <p className="text-white/35 text-sm leading-relaxed">Not a quiz. Not a form. Just a real conversation where you discover things you didn't know you'd say.</p>
+              </motion.div>
+            </motion.div>
+
+            {/* CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.3, duration: 0.5 }}
+              className="text-center"
+            >
+              {existingInterests.length > 0 && (
+                <p className="text-white/25 text-sm mb-4">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.</p>
+              )}
+              <motion.button
+                onClick={startInterview}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                animate={{
+                  boxShadow: [
+                    '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
+                    '0 0 60px rgba(251,191,36,0.5), 0 0 120px rgba(245,158,11,0.2)',
+                    '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
+                  ],
+                }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className="px-20 py-7 rounded-full font-black text-2xl sm:text-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/50"
+              >
+                Begin
+              </motion.button>
+              <p className="text-white/15 text-xs mt-4 italic">
+                First question might be: "{sampleQuestions[0]}"
+              </p>
+            </motion.div>
           </div>
         </div>
       </main>
