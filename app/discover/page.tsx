@@ -778,18 +778,20 @@ export default function DiscoverPage() {
                   style={isLatest ? {
                     boxShadow: '0 0 20px rgba(139,92,246,0.15)',
                   } : {
-                    opacity: Math.max(0.35, 1 - (topicHistory.length - 1 - i) * 0.1),
+                    opacity: Math.max(0.6, 1 - (topicHistory.length - 1 - i) * 0.06),
                   }}
                 >
-                  <span className={`text-5xl select-none transition-all ${isLatest ? '' : 'grayscale-[30%]'}`}
+                  <span className="text-5xl select-none transition-all"
                     style={isLatest ? {
                       filter: 'drop-shadow(0 0 20px rgba(253,224,71,0.5)) drop-shadow(0 0 40px rgba(253,224,71,0.2))',
-                    } : {}}
+                    } : {
+                      filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.2))',
+                    }}
                   >
                     {topic.icon}
                   </span>
                   <span className={`text-[11px] font-bold truncate transition-colors ${
-                    isLatest ? 'text-white/70' : 'text-white/25 group-hover:text-white/50'
+                    isLatest ? 'text-white/90' : 'text-white/50 group-hover:text-white/70'
                   }`}>
                     {topic.label}
                   </span>
