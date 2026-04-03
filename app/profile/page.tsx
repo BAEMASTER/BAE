@@ -597,7 +597,7 @@ export default function ProfilePage() {
       }
       if (!user) return;
       try {
-        // Check if username is taken
+        // Check if username is taken (skip check if user already owns it)
         const usernameDoc = await getDoc(doc(db, 'usernames', usernameVal));
         if (usernameDoc.exists() && usernameDoc.data()?.uid !== user.uid) {
           setNameLocationSetupError('That room name is taken — try another');
@@ -633,65 +633,62 @@ export default function ProfilePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md w-full"
+          className="text-center max-w-xl w-full"
         >
-          <h2 className="text-3xl font-black mb-3">Welcome in!</h2>
-          <p className="text-base text-white/60 mb-2">
-            People on BAE see each other's first name, last initial, and location in the world.
-          </p>
-          <p className="text-sm text-white/40 mb-8">
-            The fun part comes next.
+          <h2 className="text-5xl sm:text-6xl font-black mb-4">Welcome to BAE!</h2>
+          <p className="text-lg text-white/50 mb-8">
+            Set up your profile. The fun part comes next.
           </p>
 
           <div className="space-y-4 text-left">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-semibold mb-1.5 text-white/70">First Name *</label>
+                <label className="block text-base font-bold mb-2 text-white/70">First Name *</label>
                 <input
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   placeholder="First name"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                  className="w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white text-lg placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1.5 text-white/70">Last Name *</label>
+                <label className="block text-base font-bold mb-2 text-white/70">Last Name *</label>
                 <input
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   placeholder="Last name"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                  className="w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white text-lg placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-semibold mb-1.5 text-white/70">City *</label>
+                <label className="block text-base font-bold mb-2 text-white/70">City *</label>
                 <input
                   value={city}
                   onChange={e => setCity(e.target.value)}
                   placeholder="Your city"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                  className="w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white text-lg placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1.5 text-white/70">State/Province</label>
+                <label className="block text-base font-bold mb-2 text-white/70">State/Province</label>
                 <input
                   value={state}
                   onChange={e => setState(e.target.value)}
                   placeholder="Optional"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                  className="w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white text-lg placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-1.5 text-white/70">Country *</label>
+              <label className="block text-base font-bold mb-2 text-white/70">Country *</label>
               <select
                 value={country}
                 onChange={e => setCountry(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                className="w-full px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white text-lg outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
                 style={{ colorScheme: 'dark' }}
               >
                 <option value="">Select your country</option>
@@ -700,20 +697,20 @@ export default function ProfilePage() {
             </div>
 
             {/* BAE Room Link */}
-            <div className="mt-2 p-4 rounded-2xl bg-gradient-to-r from-yellow-300/5 to-amber-300/5 border border-yellow-300/15">
-              <label className="block text-sm font-bold mb-1 text-yellow-300/90">Your BAE Room *</label>
-              <p className="text-xs text-white/40 mb-3">This is your personal room on BAE. Share your link so people can talk with you. No spaces or periods.</p>
-              <div className="flex items-center gap-2">
-                <span className="text-white/30 text-sm font-mono">baewithme.com/</span>
+            <div className="mt-4 p-6 rounded-2xl bg-gradient-to-r from-yellow-300/8 to-amber-300/5 border border-yellow-300/20">
+              <label className="block text-xl font-black mb-2 text-yellow-300">Your BAE Room *</label>
+              <p className="text-sm text-white/50 mb-4">This is your personal room on BAE. Share your link so people can talk with you.</p>
+              <div className="flex items-center gap-3">
+                <span className="text-white/40 text-base font-mono font-bold">baewithme.com/</span>
                 <input
                   value={usernameInput}
                   onChange={e => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                   placeholder="yourname"
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-yellow-300/20 text-white placeholder:text-white/20 outline-none focus:border-yellow-300/40 focus:ring-2 focus:ring-yellow-300/20 font-mono"
+                  className="flex-1 px-5 py-4 rounded-xl bg-white/10 border-2 border-yellow-300/25 text-white text-lg placeholder:text-white/20 outline-none focus:border-yellow-300/50 focus:ring-2 focus:ring-yellow-300/20 font-mono font-bold"
                 />
               </div>
               {usernameInput && (
-                <p className="text-xs text-yellow-300/50 mt-2 font-mono">
+                <p className="text-sm text-yellow-300/60 mt-3 font-mono font-bold">
                   Your link: baewithme.com/{usernameInput}
                 </p>
               )}
@@ -742,7 +739,7 @@ export default function ProfilePage() {
 
           <button
             onClick={handleSetupSave}
-            className="w-full mt-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg"
+            className="w-full mt-8 py-5 bg-gradient-to-r from-violet-500 to-indigo-500 font-black text-xl rounded-2xl shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all"
           >
             Continue
           </button>
