@@ -781,9 +781,9 @@ export default function DiscoverPage() {
                     opacity: Math.max(0.35, 1 - (topicHistory.length - 1 - i) * 0.1),
                   }}
                 >
-                  <span className={`text-3xl select-none transition-all ${isLatest ? '' : 'grayscale-[30%]'}`}
+                  <span className={`text-5xl select-none transition-all ${isLatest ? '' : 'grayscale-[30%]'}`}
                     style={isLatest ? {
-                      filter: 'drop-shadow(0 0 12px rgba(253,224,71,0.4))',
+                      filter: 'drop-shadow(0 0 20px rgba(253,224,71,0.5)) drop-shadow(0 0 40px rgba(253,224,71,0.2))',
                     } : {}}
                   >
                     {topic.icon}
