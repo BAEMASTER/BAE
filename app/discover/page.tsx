@@ -264,17 +264,16 @@ export default function DiscoverPage() {
       }
       setRecentlySelected([]);
 
-      // Detect topic icon from interests in this response only (not full text to avoid false matches)
+      // Detect topic icon — only add to history when the ICON CATEGORY changes (major topic shift)
       const interestNamesFromResponse = [...fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g)].map(m => m[1].trim());
       if (interestNamesFromResponse.length > 0) {
-        // Use the first interest as the label, detect icon from interests only
         const icon = detectTopicIcon('', interestNamesFromResponse);
         setTopicIcon(icon);
         setTopicHistory(prev => {
-          const lastLabel = prev.length > 0 ? prev[prev.length - 1].label : null;
-          const label = interestNamesFromResponse[0];
-          // Only add if the primary interest is different from last entry
-          if (label !== lastLabel) {
+          const lastIcon = prev.length > 0 ? prev[prev.length - 1].icon : null;
+          // Only add when the icon category actually changes — not every response
+          if (icon !== lastIcon) {
+            const label = interestNamesFromResponse[0];
             return [...prev, { icon, label, msgIdx: assistantIdx }];
           }
           return prev;
