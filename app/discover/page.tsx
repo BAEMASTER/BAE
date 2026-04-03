@@ -126,8 +126,9 @@ export default function DiscoverPage() {
       const single = interest.toLowerCase();
       const map: [string[], string][] = [
         [['music', 'singing', 'guitar', 'piano', 'jazz', 'hip hop', 'rap', 'concert', 'band', 'instrument', 'song', 'dj', 'producer', 'vinyl', 'playlist', 'kirtan', 'mantra', 'chanting'], '🎵'],
-        [['cook', 'food', 'recipe', 'restaurant', 'chef', 'cuisine', 'dinner', 'meal', 'raw food', 'nutrition', 'eating', 'vegan', 'plant-based'], '🍳'],
-        [['fitness', 'gym', 'workout', 'running', 'exercise', 'lift', 'crossfit', 'training', 'marathon', 'strength'], '💪'],
+        [['chocolate', 'brownie', 'dessert', 'candy', 'sweets', 'ice cream', 'cake', 'cookie'], '🍫'],
+        [['fitness', 'gym', 'workout', 'running', 'exercise', 'lift', 'crossfit', 'training', 'marathon', 'strength', 'protein', 'nutrition', 'healthy snack'], '💪'],
+        [['cook', 'food', 'recipe', 'restaurant', 'chef', 'cuisine', 'dinner', 'meal', 'raw food', 'eating', 'vegan', 'plant-based', 'snack'], '🍕'],
         [['yoga', 'meditation', 'mindful', 'breathwork', 'spiritual', 'consciousness', 'awakening', 'presence', 'zen', 'buddhis', 'hindu', 'sai baba', 'kundalini', 'chakra', 'energy healing'], '🧘'],
         [['travel', 'trip', 'country', 'city', 'flight', 'explore', 'backpack', 'adventure', 'destination', 'abroad'], '✈️'],
         [['tech', 'coding', 'software', 'ai', 'artificial intelligence', 'programming', 'startup', 'app', 'build', 'engineer', 'claude', 'machine learning', 'vibe coding'], '💻'],
