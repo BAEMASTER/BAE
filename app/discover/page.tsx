@@ -6,7 +6,7 @@ import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Sparkles, ChevronUp, ChevronDown, Search, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Search, ChevronRight } from 'lucide-react';
 import {
   StructuredInterest,
   parseInterests,
@@ -26,14 +26,6 @@ type SuggestedInterest = {
   added: boolean;
   messageIdx: number;
 };
-
-// What's on the center stage right now
-type StageState =
-  | { type: 'welcome' }
-  | { type: 'userEcho'; text: string }
-  | { type: 'breathing' }
-  | { type: 'utterance'; text: string; interests: { name: string; added: boolean }[] }
-  | { type: 'error'; text: string };
 
 const playDiscoverSound = () => {
   try {
@@ -66,22 +58,29 @@ const playAddSound = () => {
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
     osc.start(); osc.stop(audioCtx.currentTime + 0.15);
   } catch {}
 };
 
-// Parse BAE's message into text parts and interest names
-function parseUtterance(content: string): { text: string; interests: string[] } {
-  const interests: string[] = [];
-  const text = content.replace(/\[INTEREST:\s*([^\]]+)\]/g, (_, name) => {
-    interests.push(name.trim());
-    return '';
-  }).trim();
-  return { text, interests };
-}
+const playMilestoneSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.08);
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.08 + 0.2);
+      osc.start(audioCtx.currentTime + i * 0.08);
+      osc.stop(audioCtx.currentTime + i * 0.08 + 0.2);
+    });
+  } catch {}
+};
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -95,37 +94,32 @@ export default function DiscoverPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [suggestedInterests, setSuggestedInterests] = useState<SuggestedInterest[]>([]);
   const [existingInterests, setExistingInterests] = useState<StructuredInterest[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [started, setStarted] = useState(false);
   const [userName, setUserName] = useState('');
 
-  // Session-collected interests for the sidebar
   const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [longPressInterest, setLongPressInterest] = useState<string | null>(null);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [milestoneText, setMilestoneText] = useState<string | null>(null);
 
-  // Exploring mode — user is browsing related interests, not in normal conversation
-  const [isExploring, setIsExploring] = useState(false);
-
-  // The center stage — only shows the CURRENT moment
-  const [stage, setStage] = useState<StageState>({ type: 'welcome' });
-  // Track which interests in the current utterance have been added
-  const [currentPillStates, setCurrentPillStates] = useState<Record<string, boolean>>({});
-
+  const scrollEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auth + load existing data
+  // Auto-scroll
+  useEffect(() => {
+    scrollEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, suggestedInterests]);
+
+  // Auth + load
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.push('/auth');
-        return;
-      }
+      if (!u) { router.push('/auth'); return; }
       setUser(u);
 
       try {
@@ -136,48 +130,31 @@ export default function DiscoverPage() {
           setExistingInterests(interests);
           if (data.displayName) setUserName(data.displayName.split(' ')[0]);
 
-          // Returning user — show last BAE message on stage
           if (data.discoverConversation?.length) {
-            const msgs: ChatMessage[] = data.discoverConversation;
-            setConversationHistory(msgs);
+            setMessages(data.discoverConversation);
+            setConversationHistory(data.discoverConversation);
             setStarted(true);
             setIsFirstVisit(false);
 
-            // Find last assistant message and show it on stage
-            const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant');
-            if (lastAssistant) {
-              const { text, interests: foundInterests } = parseUtterance(lastAssistant.content);
-              const existingNames = interestNames(interests).map(n => n.toLowerCase());
-              const pillStates: Record<string, boolean> = {};
-              const interestData = foundInterests.map(name => {
-                const isAdded = existingNames.includes(name.toLowerCase());
-                pillStates[name.toLowerCase()] = isAdded;
-                return { name, added: isAdded };
-              });
-              setCurrentPillStates(pillStates);
-              setStage({ type: 'utterance', text, interests: interestData });
-            }
-
-            // Rebuild collected interests from history
-            const collected: string[] = [];
+            const suggested: SuggestedInterest[] = [];
             const existingNames = interestNames(interests).map(n => n.toLowerCase());
-            msgs.forEach((msg: ChatMessage) => {
+            const collected: string[] = [];
+            data.discoverConversation.forEach((msg: ChatMessage, idx: number) => {
               if (msg.role === 'assistant') {
                 const matches = msg.content.matchAll(/\[INTEREST:\s*([^\]]+)\]/g);
                 for (const match of matches) {
                   const name = match[1].trim();
-                  if (existingNames.includes(name.toLowerCase()) && !collected.includes(name)) {
-                    collected.push(name);
-                  }
+                  const isAdded = existingNames.includes(name.toLowerCase());
+                  suggested.push({ name, added: isAdded, messageIdx: idx });
+                  if (isAdded && !collected.includes(name)) collected.push(name);
                 }
               }
             });
+            setSuggestedInterests(suggested);
             setCollectedInterests(collected);
           }
         }
-      } catch (e) {
-        console.error('Load failed:', e);
-      }
+      } catch (e) { console.error('Load failed:', e); }
       setAuthReady(true);
     });
     return () => unsub();
@@ -185,12 +162,13 @@ export default function DiscoverPage() {
 
   const startConversation = async () => {
     setStarted(true);
-    setStage({ type: 'breathing' });
     await fetchResponse([]);
   };
 
   const fetchResponse = async (currentMessages: ChatMessage[]) => {
     setIsStreaming(true);
+    const assistantIdx = currentMessages.length;
+    setMessages([...currentMessages, { role: 'assistant', content: '' }]);
 
     try {
       const res = await fetch('/api/discover', {
@@ -204,31 +182,34 @@ export default function DiscoverPage() {
         }),
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Something went wrong');
-      }
+      if (!res.ok) throw new Error('Something went wrong');
 
       const data = await res.json();
       const fullText = data.text || '';
 
-      // Parse into text + interests
-      const { text, interests } = parseUtterance(fullText);
-      const existingNames = interestNames(existingInterests).map(n => n.toLowerCase());
-      const pillStates: Record<string, boolean> = {};
-      const interestData = interests.map(name => {
-        const isAdded = existingNames.includes(name.toLowerCase());
-        pillStates[name.toLowerCase()] = isAdded;
-        return { name, added: isAdded };
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[assistantIdx] = { role: 'assistant', content: fullText };
+        return updated;
       });
-      setCurrentPillStates(pillStates);
 
-      if (interests.length > 0) playDiscoverSound();
+      // Extract interests
+      const interestMatches = fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g);
+      const newSuggested: SuggestedInterest[] = [];
+      const existingNames = interestNames(existingInterests).map(n => n.toLowerCase());
 
-      // Show on stage
-      setStage({ type: 'utterance', text, interests: interestData });
+      for (const match of interestMatches) {
+        const name = match[1].trim();
+        if (!existingNames.includes(name.toLowerCase())) {
+          newSuggested.push({ name, added: false, messageIdx: assistantIdx });
+        }
+      }
 
-      // Save conversation
+      if (newSuggested.length > 0) {
+        setSuggestedInterests(prev => [...prev, ...newSuggested]);
+        playDiscoverSound();
+      }
+
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
       setConversationHistory(finalMessages);
       if (user) {
@@ -241,7 +222,11 @@ export default function DiscoverPage() {
       }
     } catch (e) {
       console.error('Error:', e);
-      setStage({ type: 'error', text: 'Something went wrong. Try again.' });
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[assistantIdx] = { role: 'assistant', content: 'Something went wrong. Try again.' };
+        return updated;
+      });
     }
 
     setIsStreaming(false);
@@ -251,14 +236,10 @@ export default function DiscoverPage() {
   const handleSend = async (textOverride?: string) => {
     const text = textOverride || input.trim();
     if (!text || isStreaming) return;
-
     if (!textOverride) setInput('');
-    setLongPressInterest(null);
-
-    // Show user echo briefly, then breathing, then fetch
-    setStage({ type: 'userEcho', text });
 
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
+    setMessages(newMessages);
     setConversationHistory(newMessages);
 
     if (user) {
@@ -270,48 +251,33 @@ export default function DiscoverPage() {
       } catch {}
     }
 
-    // User echo → breathing → fetch
-    setTimeout(() => {
-      setStage({ type: 'breathing' });
-      setTimeout(() => {
-        fetchResponse(newMessages);
-      }, 800);
-    }, 1200);
+    await fetchResponse(newMessages);
   };
 
-  const handleAddInterest = async (interestName: string) => {
-    if (!user) return;
-    if (isBlockedInterest(interestName)) return;
-    if (currentPillStates[interestName.toLowerCase()]) return;
+  const handleAddInterest = async (interest: SuggestedInterest) => {
+    if (interest.added || !user) return;
+    if (isBlockedInterest(interest.name)) return;
 
-    const newInterest = createInterest(interestName, 'profile');
+    const newInterest = createInterest(interest.name, 'profile');
     const updated = addStructuredInterests(existingInterests, [newInterest]);
     setExistingInterests(updated);
     playAddSound();
 
-    // Mark as added in current pills
-    setCurrentPillStates(prev => ({ ...prev, [interestName.toLowerCase()]: true }));
-
-    // Add to sidebar collection
     setCollectedInterests(prev =>
-      prev.includes(interestName) ? prev : [...prev, interestName]
+      prev.includes(interest.name) ? prev : [...prev, interest.name]
     );
 
-    // Auto-open sidebar when first interest is collected
-    if (collectedInterests.length === 0) setSidebarOpen(true);
+    setSuggestedInterests(prev =>
+      prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
+    );
 
-    // Update stage interests
-    setStage(prev => {
-      if (prev.type !== 'utterance') return prev;
-      return {
-        ...prev,
-        interests: prev.interests.map(i =>
-          i.name.toLowerCase() === interestName.toLowerCase()
-            ? { ...i, added: true }
-            : i
-        ),
-      };
-    });
+    // Milestone celebrations
+    const newCount = collectedInterests.length + 1;
+    if (newCount === 5 || newCount === 10 || newCount === 15 || newCount === 20 || newCount === 25) {
+      playMilestoneSound();
+      setMilestoneText(`${newCount} interests discovered!`);
+      setTimeout(() => setMilestoneText(null), 2500);
+    }
 
     try {
       await setDoc(doc(firestore, 'users', user.uid), {
@@ -323,31 +289,11 @@ export default function DiscoverPage() {
     }
   };
 
-  // Long press handlers for sidebar interests
-  const handleLongPressStart = (name: string) => {
-    longPressTimer.current = setTimeout(() => {
-      setLongPressInterest(name);
-    }, 500);
-  };
-
-  const handleLongPressEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
-
-  // Explore related interests — skips user echo, goes straight to breathing + fetch
   const handleExploreInterest = async (name: string) => {
     if (isStreaming) return;
-    setLongPressInterest(null);
-    setIsExploring(true);
-    setStage({ type: 'breathing' });
-
-    const msg = `(User wants to explore interests related to "${name}". Show a variety of related interests they can add. Present them with brief framing text and multiple [INTEREST: name] pills. Stay in interest exploration mode — don't pivot to a new conversation topic.)`;
+    const msg = `(User wants to explore interests related to "${name}". Show a variety of related interests they can add. Present them with brief framing text and multiple [INTEREST: name] pills.)`;
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
     setConversationHistory(newMessages);
-
     if (user) {
       try {
         await setDoc(doc(firestore, 'users', user.uid), {
@@ -356,76 +302,97 @@ export default function DiscoverPage() {
         }, { merge: true });
       } catch {}
     }
-
     await fetchResponse(newMessages);
   };
 
-  // Continue conversation — exit explore mode and ask BAE to resume naturally
-  const handleContinueConversation = async () => {
-    if (isStreaming) return;
-    setIsExploring(false);
-    setStage({ type: 'breathing' });
+  // Render message — no bubbles, flowing text with BIG glowing interest pills
+  const renderMessage = (content: string, msgIdx: number) => {
+    const parts = content.split(/(\[INTEREST:\s*[^\]]+\])/g);
+    return parts.map((part, i) => {
+      const match = part.match(/\[INTEREST:\s*([^\]]+)\]/);
+      if (match) {
+        const name = match[1].trim();
+        const suggested = suggestedInterests.find(
+          s => s.name.toLowerCase() === name.toLowerCase()
+        );
+        const isAdded = suggested?.added || interestNames(existingInterests).some(
+          n => n.toLowerCase() === name.toLowerCase()
+        );
 
-    const msg = `(User is done exploring interests and wants to continue the conversation. Pick up naturally — ask a new question or follow up on something interesting from earlier. Don't mention the interest exploration.)`;
-    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
-    setConversationHistory(newMessages);
+        return (
+          <span key={`${msgIdx}-interest-${i}`} className="inline-flex items-center mx-1 my-2">
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5, y: 12 }}
+              animate={isAdded
+                ? { opacity: 1, scale: [1.2, 1], y: 0 }
+                : { opacity: 1, scale: 1, y: 0 }
+              }
+              transition={{ type: 'spring', stiffness: 350, damping: 18, delay: 0.1 * i }}
+              whileTap={!isAdded ? { scale: 0.92 } : {}}
+              whileHover={!isAdded ? { scale: 1.08, y: -3 } : {}}
+              onClick={() => {
+                if (!isAdded && suggested) handleAddInterest(suggested);
+              }}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-base font-black transition-all select-none ${
+                isAdded
+                  ? 'text-emerald-300 bg-emerald-400/15 border-2 border-emerald-400/25'
+                  : 'text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 cursor-pointer'
+              }`}
+              style={!isAdded ? {
+                boxShadow: '0 0 25px rgba(253,224,71,0.5), 0 0 50px rgba(253,224,71,0.2)',
+              } : {
+                boxShadow: '0 0 15px rgba(52,211,153,0.2)',
+              }}
+            >
+              {isAdded ? (
+                <motion.span
+                  initial={{ rotate: -180, scale: 0 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400 }}
+                >
+                  ✓
+                </motion.span>
+              ) : (
+                <span className="text-black/50">+</span>
+              )}
+              <span>{name}</span>
+            </motion.button>
 
-    if (user) {
-      try {
-        await setDoc(doc(firestore, 'users', user.uid), {
-          discoverConversation: newMessages,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true });
-      } catch {}
-    }
-
-    await fetchResponse(newMessages);
+            {/* Explore icon for added interests */}
+            {isAdded && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, type: 'spring' }}
+                onClick={() => handleExploreInterest(name)}
+                className="ml-1 w-8 h-8 rounded-full bg-violet-500/20 border border-violet-400/25 flex items-center justify-center text-violet-300 hover:bg-violet-500/30 hover:scale-110 transition-all"
+                title={`Explore ${name}`}
+              >
+                <Search size={13} />
+              </motion.button>
+            )}
+          </span>
+        );
+      }
+      return <span key={`${msgIdx}-text-${i}`}>{part}</span>;
+    });
   };
 
-  const handleGoDeeper = (name: string) => {
-    setLongPressInterest(null);
-    handleExploreInterest(name);
-  };
-
-  const handleTalkAbout = (name: string) => {
-    setLongPressInterest(null);
-    setIsExploring(false);
-    handleSend(`Let's talk more about ${name}`);
-  };
+  const addedCount = collectedInterests.length;
 
   // ====== LOADING ======
   if (!authReady) {
     return (
-      <main className="min-h-screen w-full bg-[#0a0711] text-white flex items-center justify-center">
-        <motion.div
-          animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 2.5, repeat: Infinity }}
-          className="w-10 h-10 rounded-full bg-violet-500/20 border border-violet-500/30"
-        />
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center">
+        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-white/40 text-sm">Loading...</motion.div>
       </main>
     );
   }
 
-  // ====== INTRO SCREEN ======
+  // ====== INTRO ======
   if (!started && isFirstVisit) {
     return (
-      <main className="min-h-screen w-full bg-[#0a0711] text-white overflow-hidden">
-        {/* Ambient orbs */}
-        <div className="fixed inset-0 pointer-events-none">
-          <motion.div
-            className="absolute w-[500px] h-[500px] rounded-full top-[20%] left-[30%]"
-            style={{ background: 'rgba(139, 92, 246, 0.05)', filter: 'blur(80px)' }}
-            animate={{ x: [0, 30, -20, 0], y: [0, -20, 30, 0], scale: [1, 1.1, 0.95, 1] }}
-            transition={{ duration: 25, repeat: Infinity }}
-          />
-          <motion.div
-            className="absolute w-[400px] h-[400px] rounded-full top-[50%] right-[20%]"
-            style={{ background: 'rgba(212, 168, 67, 0.04)', filter: 'blur(80px)' }}
-            animate={{ x: [0, -20, 30, 0], y: [0, 30, -10, 0], scale: [1, 0.95, 1.1, 1] }}
-            transition={{ duration: 30, repeat: Infinity, delay: 8 }}
-          />
-        </div>
-
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-hidden">
         <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 sm:px-12">
           <div className="w-full max-w-3xl text-center">
 
@@ -441,7 +408,7 @@ export default function DiscoverPage() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ delay: 0.6, duration: 0.7 }}
               className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight mt-1"
             >
               <span className="text-white">And Make it </span>
@@ -466,23 +433,21 @@ export default function DiscoverPage() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.0, duration: 0.6 }}
-              className="text-lg sm:text-xl text-white/30 max-w-xl mx-auto leading-relaxed mt-8 mb-14 font-light tracking-wide"
+              transition={{ delay: 1.0 }}
+              className="text-lg sm:text-xl text-white/35 max-w-xl mx-auto leading-relaxed mt-8 mb-14"
             >
               A conversation that discovers who you are.
               <br />
-              <span className="text-white/15">Not a chatbot. Not a quiz. Something new.</span>
+              <span className="text-white/20">Not a chatbot. Not a quiz. Something new.</span>
             </motion.p>
 
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4, duration: 0.5 }}
+              transition={{ delay: 1.4 }}
             >
               {existingInterests.length > 0 && (
-                <p className="text-white/15 text-sm mb-5 font-medium tracking-wide">
-                  You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.
-                </p>
+                <p className="text-white/20 text-sm mb-5">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.</p>
               )}
               <motion.button
                 onClick={startConversation}
@@ -490,13 +455,13 @@ export default function DiscoverPage() {
                 whileTap={{ scale: 0.96 }}
                 animate={{
                   boxShadow: [
-                    '0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.06)',
-                    '0 0 50px rgba(253,224,71,0.35), 0 0 100px rgba(253,224,71,0.12)',
-                    '0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.06)',
+                    '0 0 30px rgba(253,224,71,0.25), 0 0 60px rgba(253,224,71,0.08)',
+                    '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(253,224,71,0.15)',
+                    '0 0 30px rgba(253,224,71,0.25), 0 0 60px rgba(253,224,71,0.08)',
                   ],
                 }}
                 transition={{ duration: 3, repeat: Infinity }}
-                className="px-16 py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/30"
+                className="px-16 py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40"
               >
                 Let's Go
               </motion.button>
@@ -507,61 +472,50 @@ export default function DiscoverPage() {
     );
   }
 
-  // ====== THE PRESENT-TENSE EXPERIENCE ======
+  // ====== CONVERSATION — BRIGHT, FUN, SCROLLING ======
   return (
-    <main className="h-screen w-full bg-[#0a0711] text-white flex flex-col overflow-hidden">
+    <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col">
 
-      {/* Ambient orbs */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <motion.div
-          className="absolute w-[500px] h-[500px] rounded-full top-[20%] left-[25%]"
-          style={{ background: 'rgba(139, 92, 246, 0.05)', filter: 'blur(80px)' }}
-          animate={{ x: [0, 30, -20, 0], y: [0, -20, 30, 0] }}
-          transition={{ duration: 25, repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute w-[400px] h-[400px] rounded-full bottom-[20%] right-[15%]"
-          style={{ background: 'rgba(212, 168, 67, 0.03)', filter: 'blur(80px)' }}
-          animate={{ x: [0, -20, 30, 0], y: [0, 30, -10, 0] }}
-          transition={{ duration: 30, repeat: Infinity, delay: 8 }}
-        />
-      </div>
-
-      {/* Minimal top bar */}
-      <div className="relative z-10 flex items-center justify-between px-5 py-3 flex-shrink-0">
+      {/* Top bar */}
+      <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 bg-black/20 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/profile')}
-            className="p-1.5 text-white/20 hover:text-white/50 transition-colors"
+            className="p-1.5 text-white/30 hover:text-white/60 transition-colors"
           >
             <ArrowLeft size={18} />
           </button>
-          <span className="text-xs font-medium text-white/20 tracking-widest uppercase">Talk</span>
+          <span className="text-sm font-bold text-white/50 tracking-wide">Talk</span>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Discovery counter — prominent */}
+          <motion.div
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-300/10 to-amber-300/10 border border-yellow-300/20"
+          >
+            <Sparkles size={16} className="text-yellow-300" />
+            <motion.span
+              key={addedCount}
+              initial={addedCount > 0 ? { scale: 1.5 } : {}}
+              animate={{ scale: 1 }}
+              className="text-yellow-300 font-black text-base"
+            >
+              {addedCount}
+            </motion.span>
+            <span className="text-yellow-300/50 text-xs font-bold">interests</span>
+          </motion.div>
+
+          {/* Sidebar toggle */}
           {collectedInterests.length > 0 && (
             <motion.button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-300/8 border border-yellow-300/12 hover:bg-yellow-300/12 transition-all"
               whileTap={{ scale: 0.95 }}
+              className="p-2 text-white/30 hover:text-white/60 transition-colors"
             >
-              <Sparkles size={12} className="text-yellow-300/70" />
-              <motion.span
-                key={collectedInterests.length}
-                initial={{ scale: 1.4 }}
-                animate={{ scale: 1 }}
-                className="text-yellow-300/80 font-black text-xs"
-              >
-                {collectedInterests.length}
-              </motion.span>
-              {sidebarOpen ? (
-                <ChevronDown size={12} className="text-yellow-300/40" />
-              ) : (
-                <ChevronUp size={12} className="text-yellow-300/40" />
-              )}
+              <ChevronRight size={18} className={`transition-transform ${sidebarOpen ? 'rotate-90' : ''}`} />
             </motion.button>
           )}
+
           <button
             onClick={async () => {
               if (!user) return;
@@ -571,336 +525,142 @@ export default function DiscoverPage() {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ uid: user.uid }),
                 });
+                setMessages([]);
                 setConversationHistory([]);
+                setSuggestedInterests([]);
                 setCollectedInterests([]);
-                setCurrentPillStates({});
                 setStarted(false);
                 setIsFirstVisit(true);
-                setStage({ type: 'welcome' });
               } catch {}
             }}
-            className="text-white/10 text-[11px] hover:text-white/30 transition-colors"
+            className="text-white/15 text-[11px] hover:text-white/40 transition-colors"
           >
             Start over
           </button>
         </div>
       </div>
 
-      {/* Collected interests sidebar/tray */}
+      {/* Collected interests tray */}
       <AnimatePresence>
         {sidebarOpen && collectedInterests.length > 0 && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-10 overflow-hidden border-b border-white/5"
+            transition={{ duration: 0.3 }}
+            className="flex-shrink-0 overflow-hidden border-b border-white/10 bg-black/10"
           >
-            <div className="px-5 py-3 flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
-              {collectedInterests.map((name, i) => (
-                <motion.button
-                  key={name}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  onPointerDown={() => handleLongPressStart(name)}
-                  onPointerUp={handleLongPressEnd}
-                  onPointerLeave={handleLongPressEnd}
-                  className="relative px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-300/60 bg-amber-300/8 border border-amber-300/10 hover:bg-amber-300/15 hover:text-amber-300/80 transition-all cursor-pointer select-none"
-                >
-                  {name}
-
-                  {/* Long-press menu */}
-                  <AnimatePresence>
-                    {longPressInterest === name && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 flex flex-col gap-1 p-1.5 rounded-xl bg-[#1a1025] border border-white/10 shadow-xl shadow-black/40 min-w-[160px]"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() => handleGoDeeper(name)}
-                          className="px-3 py-2 rounded-lg text-left text-xs font-medium text-violet-300 hover:bg-violet-500/15 transition-colors"
-                        >
-                          Go deeper
-                        </button>
-                        <button
-                          onClick={() => handleTalkAbout(name)}
-                          className="px-3 py-2 rounded-lg text-left text-xs font-medium text-amber-300 hover:bg-amber-500/15 transition-colors"
-                        >
-                          Talk about this
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-              ))}
+            <div className="px-5 py-3">
+              <div className="text-[10px] font-bold text-white/25 tracking-widest uppercase mb-2">Your Interests</div>
+              <div className="flex flex-wrap gap-2">
+                {collectedInterests.map((name, i) => (
+                  <motion.button
+                    key={name}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => handleExploreInterest(name)}
+                    className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-amber-300/70 bg-amber-300/10 border border-amber-300/15 hover:bg-amber-300/20 hover:text-amber-300 transition-all cursor-pointer"
+                  >
+                    {name}
+                    <Search size={10} className="text-amber-300/30 group-hover:text-amber-300/70 transition-colors" />
+                  </motion.button>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Close long-press menu when tapping elsewhere */}
-      {longPressInterest && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setLongPressInterest(null)}
-        />
-      )}
+      {/* Milestone celebration */}
+      <AnimatePresence>
+        {milestoneText && (
+          <motion.div
+            initial={{ opacity: 0, y: -30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black font-black text-lg shadow-[0_0_60px_rgba(253,224,71,0.5)]"
+          >
+            {milestoneText}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ====== CENTER STAGE ====== */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 sm:px-12">
-        <div className="w-full max-w-xl text-center">
-          <AnimatePresence mode="wait">
-
-            {/* WELCOME */}
-            {stage.type === 'welcome' && (
-              <motion.div
-                key="welcome"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <h2 className="text-3xl sm:text-4xl font-light text-white/90 tracking-tight leading-snug">
-                  Let's Talk. And <span className="text-amber-300 font-normal">Make it Interesting.</span>
-                </h2>
-                <p className="text-sm text-white/25 mt-4 font-light tracking-wide">
-                  Tell BAE anything — your day, an obsession, a question, whatever's alive in you.
-                </p>
-                <motion.p
-                  animate={{ opacity: [0.15, 0.35, 0.15] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="text-xs text-white/15 mt-8 tracking-widest"
-                >
-                  start typing _
-                </motion.p>
-              </motion.div>
-            )}
-
-            {/* USER ECHO — brief display of what they said */}
-            {stage.type === 'userEcho' && (
-              <motion.div
-                key="echo"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <p className="text-lg sm:text-xl text-white/40 font-light italic tracking-wide leading-relaxed">
-                  {stage.text}
-                </p>
-              </motion.div>
-            )}
-
-            {/* BREATHING — the thinking state */}
-            {stage.type === 'breathing' && (
-              <motion.div
-                key="breathing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="flex items-center justify-center"
-              >
-                <motion.div
-                  animate={{
-                    scale: [0.8, 1.3, 0.8],
-                    opacity: [0.2, 0.5, 0.2],
-                    boxShadow: [
-                      '0 0 20px rgba(139,92,246,0.2)',
-                      '0 0 40px rgba(139,92,246,0.4)',
-                      '0 0 20px rgba(139,92,246,0.2)',
-                    ],
-                  }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                  className="w-12 h-12 rounded-full bg-violet-500/15 border border-violet-500/20"
-                />
-              </motion.div>
-            )}
-
-            {/* BAE'S UTTERANCE — the present moment */}
-            {stage.type === 'utterance' && (
-              <motion.div
-                key={`utterance-${conversationHistory.length}`}
-                initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col items-center gap-8"
-              >
-                {/* BAE's text */}
-                <div className="flex items-start gap-3 justify-center">
-                  <motion.div
-                    animate={{
-                      boxShadow: [
-                        '0 0 8px rgba(139,92,246,0.3)',
-                        '0 0 16px rgba(139,92,246,0.5)',
-                        '0 0 8px rgba(139,92,246,0.3)',
-                      ],
-                    }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                    className="w-2 h-2 rounded-full bg-violet-400 mt-3 flex-shrink-0"
-                  />
-                  <p className="text-xl sm:text-2xl lg:text-[26px] font-light text-white/90 leading-[1.65] tracking-tight text-center">
-                    {stage.text}
+      {/* Conversation — scrolling, flowing, BIG text, no bubbles */}
+      <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-8">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {msg.role === 'assistant' && (
+                <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
+                  {renderMessage(msg.content, idx)}
+                </div>
+              )}
+              {msg.role === 'user' && (
+                <div className="pl-5 sm:pl-6 border-l-[3px] border-amber-400/40 my-6">
+                  <p className="text-lg sm:text-xl leading-[1.7] text-amber-200/60 font-light whitespace-pre-wrap italic">
+                    {msg.content}
                   </p>
                 </div>
+              )}
+            </motion.div>
+          ))}
 
-                {/* Interest pills */}
-                {stage.interests.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    className="flex flex-wrap justify-center gap-3"
-                  >
-                    {stage.interests.map((interest, i) => {
-                      const isAdded = currentPillStates[interest.name.toLowerCase()] || false;
-                      return (
-                        <motion.div
-                          key={interest.name}
-                          initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ delay: 0.4 + i * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
-                          className="flex items-center gap-1"
-                        >
-                          {/* The pill itself */}
-                          <motion.button
-                            whileHover={!isAdded ? { scale: 1.06, y: -2 } : {}}
-                            whileTap={!isAdded ? { scale: 0.95 } : {}}
-                            onClick={() => !isAdded && handleAddInterest(interest.name)}
-                            className={`relative px-5 py-2.5 rounded-full text-sm font-medium transition-all select-none ${
-                              isAdded
-                                ? 'text-amber-300/70 bg-amber-300/10 border border-amber-300/20'
-                                : 'text-white/90 bg-white/6 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-white/20'
-                            }`}
-                            style={isAdded ? {
-                              boxShadow: '0 0 20px rgba(212,168,67,0.25)',
-                            } : {}}
-                          >
-                            {isAdded && (
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 400 }}
-                                className="mr-1.5"
-                              >
-                                ✓
-                              </motion.span>
-                            )}
-                            {!isAdded && <span className="mr-1.5 text-white/30">+</span>}
-                            {interest.name}
-
-                            {/* Ripple on add */}
-                            {isAdded && (
-                              <motion.span
-                                initial={{ scale: 1, opacity: 0.5 }}
-                                animate={{ scale: 1.5, opacity: 0 }}
-                                transition={{ duration: 0.6 }}
-                                className="absolute inset-0 rounded-full border border-amber-300/50 pointer-events-none"
-                              />
-                            )}
-                          </motion.button>
-
-                          {/* Explore icon — appears after pill is added */}
-                          <AnimatePresence>
-                            {isAdded && (
-                              <motion.button
-                                initial={{ opacity: 0, scale: 0, width: 0 }}
-                                animate={{ opacity: 1, scale: 1, width: 'auto' }}
-                                exit={{ opacity: 0, scale: 0, width: 0 }}
-                                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                                onClick={() => handleExploreInterest(interest.name)}
-                                className="w-8 h-8 rounded-full bg-violet-500/15 border border-violet-400/20 flex items-center justify-center text-violet-300/70 hover:bg-violet-500/25 hover:text-violet-300 transition-all flex-shrink-0"
-                                title={`Explore interests related to ${interest.name}`}
-                              >
-                                <Search size={13} />
-                              </motion.button>
-                            )}
-                          </AnimatePresence>
-                        </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                )}
-
-                {/* Continue conversation button — visible when exploring or when pills have been added */}
-                {(isExploring || stage.interests.some(i => currentPillStates[i.name.toLowerCase()])) && !isStreaming && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6, duration: 0.4 }}
-                    onClick={handleContinueConversation}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white/40 bg-white/[0.04] border border-white/[0.08] hover:text-white/60 hover:bg-white/[0.07] transition-all mt-2"
-                  >
-                    <MessageCircle size={13} />
-                    Continue conversation
-                  </motion.button>
-                )}
-              </motion.div>
-            )}
-
-            {/* ERROR */}
-            {stage.type === 'error' && (
+          {/* Streaming */}
+          {isStreaming && messages[messages.length - 1]?.content === '' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-3 py-4"
+            >
               <motion.div
-                key="error"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <p className="text-base text-white/40 font-light">{stage.text}</p>
-              </motion.div>
-            )}
+                animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30"
+              />
+              <span className="text-white/20 text-sm font-medium">BAE is thinking...</span>
+            </motion.div>
+          )}
 
-          </AnimatePresence>
+          <div ref={scrollEndRef} />
         </div>
       </div>
 
       {/* Input */}
       <div
-        className="relative z-10 flex-shrink-0 px-6 sm:px-8 py-5"
-        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        className="flex-shrink-0 px-5 sm:px-8 py-4 bg-black/20 backdrop-blur-sm border-t border-white/10"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="max-w-xl mx-auto">
-          <div className="relative">
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder={isStreaming ? '' : 'Say something...'}
-              disabled={isStreaming}
-              className="w-full px-6 py-4 pr-14 rounded-full bg-white/[0.03] border border-white/[0.06] text-white text-base placeholder:text-white/15 outline-none focus:border-violet-500/25 focus:bg-white/[0.05] focus:shadow-[0_0_40px_rgba(139,92,246,0.06)] transition-all disabled:opacity-20 font-light tracking-wide"
-            />
-            <motion.button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isStreaming}
-              whileTap={{ scale: 0.9 }}
-              whileHover={input.trim() && !isStreaming ? { scale: 1.1 } : {}}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                input.trim() && !isStreaming
-                  ? 'text-violet-400 hover:text-violet-300'
-                  : 'text-white/10'
-              }`}
-            >
-              <Send size={16} />
-            </motion.button>
-          </div>
+        <div className="max-w-2xl mx-auto flex gap-3 items-center">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            placeholder={isStreaming ? '' : 'Say something...'}
+            disabled={isStreaming}
+            className="flex-1 px-6 py-4 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all disabled:opacity-30 font-medium"
+          />
+          <motion.button
+            onClick={() => handleSend()}
+            disabled={!input.trim() || isStreaming}
+            whileTap={{ scale: 0.9 }}
+            whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
+            className={`p-4 rounded-full transition-all ${
+              input.trim() && !isStreaming
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
+                : 'bg-white/5 text-white/15'
+            }`}
+          >
+            <Send size={18} />
+          </motion.button>
         </div>
       </div>
-
-      {/* Global keyframe for pill glow */}
-      <style jsx global>{`
-        @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 15px rgba(212,168,67,0.3); }
-          50% { box-shadow: 0 0 25px rgba(212,168,67,0.5); }
-        }
-      `}</style>
     </main>
   );
 }

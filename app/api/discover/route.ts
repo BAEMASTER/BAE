@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     const response = await getClient().messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 300,
+      max_tokens: 500,
       system: SYSTEM_PROMPT + contextMessage,
       messages: messages.map((m: any) => ({
         role: m.role,
