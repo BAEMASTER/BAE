@@ -538,41 +538,24 @@ export default function ProfilePage() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="text-center max-w-lg"
         >
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-lg text-white/40 mb-6 font-medium"
-          >
-            Here's how you build your interest profile on BAE...
-          </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.7 }}
-            className="text-5xl sm:text-7xl font-black leading-[1.05] mb-3"
+            transition={{ delay: 0.2, duration: 0.7 }}
+            className="text-4xl sm:text-5xl font-black leading-tight mb-10"
           >
-            Let's Talk.
-          </motion.h1>
-          <motion.h1
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.6 }}
-            className="text-5xl sm:text-7xl font-black leading-[1.05] mb-10"
-          >
-            <span className="text-white">And Make it </span>
-            <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-200 bg-clip-text text-transparent">Interesting.</span>
+            Here's how you build your interest profile on BAE...you Talk!
           </motion.h1>
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.5 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => router.push('/discover')}
             className="px-14 py-5 rounded-full font-black text-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40 shadow-[0_0_40px_rgba(253,224,71,0.3)]"
           >
-            Let's Go
+            Let's Talk. And Make it Interesting.
           </motion.button>
         </motion.div>
       </main>
