@@ -543,15 +543,15 @@ export default function ProfilePage() {
       if (!user) return;
       try {
         const dob = formatDOB(birthYear, birthMonth, birthDay);
-        const fullName = `${firstName.trim()} ${lastName.trim()}`;
+        const displayFmt = `${firstName.trim()} ${lastName.trim().charAt(0)}.`;
         await setDoc(doc(db, 'users', user.uid), {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          displayName: fullName,
+          displayName: displayFmt,
           city, state, country, birthDate: dob,
           interests: structuredInterests, updatedAt: new Date().toISOString()
         }, { merge: true });
-        setDisplayName(fullName);
+        setDisplayName(displayFmt);
         setSetupComplete(true);
         setNameLocationSetupError('');
       } catch (e) {
