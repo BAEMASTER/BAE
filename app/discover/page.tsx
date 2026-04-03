@@ -636,29 +636,42 @@ export default function DiscoverPage() {
         className="flex-shrink-0 px-5 sm:px-8 py-4 bg-black/20 backdrop-blur-sm border-t border-white/10"
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="max-w-2xl mx-auto flex gap-3 items-center">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={isStreaming ? '' : 'Say something...'}
-            disabled={isStreaming}
-            className="flex-1 px-6 py-4 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all disabled:opacity-30 font-medium"
-          />
-          <motion.button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isStreaming}
-            whileTap={{ scale: 0.9 }}
-            whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
-            className={`p-4 rounded-full transition-all ${
-              input.trim() && !isStreaming
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
-                : 'bg-white/5 text-white/15'
-            }`}
-          >
-            <Send size={18} />
-          </motion.button>
+        <div className="max-w-2xl mx-auto">
+          <div className="flex gap-3 items-center">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              placeholder={isStreaming ? '' : 'Say something...'}
+              disabled={isStreaming}
+              className="flex-1 px-6 py-4 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all disabled:opacity-30 font-medium"
+            />
+            <motion.button
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isStreaming}
+              whileTap={{ scale: 0.9 }}
+              whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
+              className={`p-4 rounded-full transition-all ${
+                input.trim() && !isStreaming
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
+                  : 'bg-white/5 text-white/15'
+              }`}
+            >
+              <Send size={18} />
+            </motion.button>
+          </div>
+          {/* Switch topic */}
+          {messages.length > 2 && !isStreaming && (
+            <div className="flex justify-center mt-2">
+              <button
+                onClick={() => handleSend('(User wants to switch to a completely new topic. Pivot to something totally different about their life — new area, new energy. Make it fun.)')}
+                className="text-xs font-bold text-white/25 hover:text-white/50 transition-colors py-1 px-3"
+              >
+                Switch topic
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </main>
