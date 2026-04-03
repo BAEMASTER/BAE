@@ -358,17 +358,17 @@ export default function DiscoverPage() {
               <span>{name}</span>
             </motion.button>
 
-            {/* Explore icon for added interests */}
+            {/* Explore related interests button */}
             {isAdded && (
               <motion.button
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, type: 'spring' }}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, type: 'spring', stiffness: 300 }}
                 onClick={() => handleExploreInterest(name)}
-                className="ml-1 w-8 h-8 rounded-full bg-violet-500/20 border border-violet-400/25 flex items-center justify-center text-violet-300 hover:bg-violet-500/30 hover:scale-110 transition-all"
-                title={`Explore ${name}`}
+                className="ml-2 flex items-center gap-1.5 px-3 py-2 rounded-full bg-violet-500/25 border border-violet-400/30 text-violet-200 hover:bg-violet-500/40 hover:text-white hover:scale-105 transition-all text-xs font-bold"
               >
-                <Search size={13} />
+                <Search size={12} />
+                <span>Explore</span>
               </motion.button>
             )}
           </span>
