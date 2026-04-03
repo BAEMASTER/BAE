@@ -539,21 +539,29 @@ export default function ProfilePage() {
           className="text-center max-w-lg"
         >
           <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.1] mb-4"
+          >
+            Here's how you build your interest profile on BAE...
+          </motion.h1>
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.7 }}
-            className="text-4xl sm:text-5xl font-black leading-tight mb-10"
+            transition={{ delay: 0.8, duration: 0.7 }}
+            className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.1] mb-14"
           >
-            Here's how you build your interest profile on BAE...you Talk!
+            <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-200 bg-clip-text text-transparent">you Talk!</span>
           </motion.h1>
           <motion.button
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
+            transition={{ delay: 1.3, duration: 0.5 }}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => router.push('/discover')}
-            className="px-14 py-5 rounded-full font-black text-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40 shadow-[0_0_40px_rgba(253,224,71,0.3)]"
+            className="px-16 py-6 rounded-full font-black text-2xl sm:text-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40 shadow-[0_0_50px_rgba(253,224,71,0.4)]"
           >
             Let's Talk. And Make it Interesting.
           </motion.button>
