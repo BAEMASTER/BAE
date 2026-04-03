@@ -222,7 +222,7 @@ export default function DiscoverPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: currentMessages.length === 0
-            ? [{ role: 'user', content: `(The guest just sat down. Their first name is ${userName || 'there'}. Start the conversation.)` }]
+            ? [{ role: 'user', content: `(New conversation. Guest's first name: ${userName || 'there'}. Pick a DIFFERENT opening question than last time — surprise them. Keep it light and easy.)` }]
             : currentMessages,
           existingInterests: interestNames(existingInterests),
         }),
@@ -294,7 +294,7 @@ export default function DiscoverPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: currentMessages.length === 0
-              ? [{ role: 'user', content: `(The guest just sat down. Their first name is ${userName || 'there'}. Start the conversation.)` }]
+              ? [{ role: 'user', content: `(New conversation. Guest's first name: ${userName || 'there'}. Pick a DIFFERENT opening question than last time — surprise them. Keep it light and easy.)` }]
               : currentMessages,
             existingInterests: interestNames(existingInterests),
           }),
