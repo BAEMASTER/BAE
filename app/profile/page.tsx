@@ -597,34 +597,33 @@ export default function ProfilePage() {
       }
       if (!user) return;
       try {
-        // Check if username is taken (skip check if user already owns it)
-        const usernameDoc = await getDoc(doc(db, 'usernames', usernameVal));
-        if (usernameDoc.exists() && usernameDoc.data()?.uid !== user.uid) {
-          setNameLocationSetupError('That room name is taken — try another');
-          setTimeout(() => setNameLocationSetupError(''), 3000);
+        const dob = formatDOB(birthYear, birthMonth, birthDay);
+        const res = await fetch('/api/setup-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: user.uid,
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            username: usernameVal,
+            city, state, country, birthDate: dob,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setNameLocationSetupError(data.error || 'Something went wrong');
+          setTimeout(() => setNameLocationSetupError(''), 4000);
           return;
         }
-
-        const dob = formatDOB(birthYear, birthMonth, birthDay);
-        const displayFmt = `${firstName.trim()} ${lastName.trim().charAt(0)}.`;
-        // Save user profile
-        await setDoc(doc(db, 'users', user.uid), {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          displayName: displayFmt,
-          username: usernameVal,
-          city, state, country, birthDate: dob,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-        // Reserve the username
-        await setDoc(doc(db, 'usernames', usernameVal), { uid: user.uid });
-        setUsername(usernameVal);
-        setDisplayName(displayFmt);
+        setUsername(data.username);
+        setDisplayName(data.displayName);
         setSetupComplete(true);
         setNameLocationSetupError('');
         setShowTalkTransition(true);
-      } catch (e) {
+      } catch (e: any) {
         console.error('Setup save failed', e);
+        setNameLocationSetupError('Something went wrong. Try again.');
+        setTimeout(() => setNameLocationSetupError(''), 4000);
       }
     };
 
