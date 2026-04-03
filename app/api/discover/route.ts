@@ -115,14 +115,22 @@ export async function POST(req: NextRequest) {
       ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
       : '';
 
+    // Keep only the last 20 messages to avoid token limits on long conversations
+    const trimmedMessages = messages.slice(-20).map((m: any) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    // Ensure first message is from user (API requirement)
+    if (trimmedMessages.length > 0 && trimmedMessages[0].role === 'assistant') {
+      trimmedMessages.shift();
+    }
+
     const response = await getClient().messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 500,
       system: SYSTEM_PROMPT + contextMessage,
-      messages: messages.map((m: any) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: trimmedMessages,
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
