@@ -698,7 +698,7 @@ export default function DiscoverPage() {
                       exit={{ opacity: 0, y: -50, scale: 0.6 }}
                       transition={{ type: 'spring', stiffness: 250, damping: 22 }}
                       onClick={() => handleExploreInterest(name)}
-                      className="pointer-events-auto group flex items-center gap-2 px-5 py-3.5 rounded-full text-base font-black text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 hover:brightness-110 transition-all cursor-pointer truncate"
+                      className="pointer-events-auto group flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-black text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 hover:brightness-110 transition-all cursor-pointer truncate"
                       style={{
                         opacity: Math.max(0.35, 1 - i * 0.04),
                         boxShadow: i < 6
@@ -786,7 +786,7 @@ export default function DiscoverPage() {
                     opacity: Math.max(0.6, 1 - (topicHistory.length - 1 - i) * 0.06),
                   }}
                 >
-                  <span className="text-5xl select-none transition-all"
+                  <span className="text-7xl select-none transition-all"
                     style={isLatest ? {
                       filter: 'drop-shadow(0 0 20px rgba(253,224,71,0.5)) drop-shadow(0 0 40px rgba(253,224,71,0.2))',
                     } : {
