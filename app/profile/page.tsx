@@ -205,6 +205,7 @@ export default function ProfilePage() {
   const [setupComplete, setSetupComplete] = useState(false); // only true after Firestore confirms name+city+country
   const [exampleIdx, setExampleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
+  const [showTalkTransition, setShowTalkTransition] = useState(false);
 
   // --- Username state ---
   const [username, setUsername] = useState('');
@@ -527,6 +528,48 @@ export default function ProfilePage() {
     );
   }
 
+  // TRANSITION TO TALK — shows after setup, before redirecting to Talk
+  if (showTalkTransition) {
+    return (
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-lg"
+        >
+          <motion.h1
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-4xl sm:text-5xl font-black leading-tight mb-6"
+          >
+            Here's how you build your interest profile on BAE...
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="text-5xl sm:text-6xl font-black mb-10"
+          >
+            <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-200 bg-clip-text text-transparent">you Talk!</span>
+          </motion.p>
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.0, duration: 0.5 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => router.push('/discover')}
+            className="px-14 py-5 rounded-full font-black text-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40 shadow-[0_0_40px_rgba(253,224,71,0.3)]"
+          >
+            Let's Go
+          </motion.button>
+        </motion.div>
+      </main>
+    );
+  }
+
   // NAME + LOCATION SETUP — shows if age verified but name/location missing
   if (isSetupIncomplete) {
     const handleSetupSave = async () => {
@@ -554,8 +597,8 @@ export default function ProfilePage() {
         setDisplayName(displayFmt);
         setSetupComplete(true);
         setNameLocationSetupError('');
-        // Send new users straight to Talk for interest discovery
-        router.push('/discover');
+        // Show transition screen before Talk
+        setShowTalkTransition(true);
       } catch (e) {
         console.error('Setup save failed', e);
       }
