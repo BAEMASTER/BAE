@@ -666,7 +666,7 @@ export default function DiscoverPage() {
               animate={{ opacity: 1, scale: 1 }}
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.03 }}
-              onClick={() => handleSend('(User wants to switch to a completely new topic. Pivot to something totally different about their life — new area, new energy. Make it fun.)')}
+              onClick={() => handleSend('(User wants to switch to a completely new topic. Ask about a totally different area of their real, everyday life — not a hypothetical. Keep it grounded, easy to answer, fun.)')}
               className="px-5 py-4 rounded-full bg-violet-500/20 border border-violet-400/25 text-violet-200 text-sm font-bold hover:bg-violet-500/30 transition-all flex-shrink-0 whitespace-nowrap"
             >
               New topic
