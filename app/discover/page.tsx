@@ -106,6 +106,8 @@ export default function DiscoverPage() {
 
   const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
+  const [topicIcon, setTopicIcon] = useState<string | null>(null);
+  const [topicHistory, setTopicHistory] = useState<{ icon: string; label: string; msgIdx: number }[]>([]);
   // Track interests selected since last AI response — for dynamic follow-up
   const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
   const [showContinue, setShowContinue] = useState(false);
@@ -113,6 +115,42 @@ export default function DiscoverPage() {
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Map interests/text to topic icons
+  const detectTopicIcon = (text: string, interests: string[]): string => {
+    const all = (text + ' ' + interests.join(' ')).toLowerCase();
+    const map: [string[], string][] = [
+      [['music', 'singing', 'guitar', 'piano', 'jazz', 'hip hop', 'rap', 'concert', 'band', 'instrument', 'song', 'dj', 'producer', 'vinyl', 'playlist', 'kirtan', 'mantra', 'chanting'], '🎵'],
+      [['cook', 'food', 'recipe', 'restaurant', 'chef', 'cuisine', 'dinner', 'meal', 'raw food', 'nutrition', 'eating', 'vegan', 'plant-based'], '🍳'],
+      [['fitness', 'gym', 'workout', 'running', 'exercise', 'lift', 'crossfit', 'training', 'marathon', 'strength'], '💪'],
+      [['yoga', 'meditation', 'mindful', 'breathwork', 'spiritual', 'consciousness', 'awakening', 'presence', 'zen', 'buddhis', 'hindu', 'sai baba', 'kundalini', 'chakra', 'energy healing'], '🧘'],
+      [['travel', 'trip', 'country', 'city', 'flight', 'explore', 'backpack', 'adventure', 'destination', 'abroad'], '✈️'],
+      [['tech', 'coding', 'software', 'ai', 'artificial intelligence', 'programming', 'startup', 'app', 'build', 'engineer', 'claude', 'machine learning'], '💻'],
+      [['business', 'entrepreneur', 'sales', 'hustle', 'revenue', 'company', 'startup', 'insurance', 'financial', 'invest', 'wealth', 'estate planning', 'money'], '📈'],
+      [['family', 'kids', 'parent', 'father', 'mother', 'son', 'daughter', 'child', 'raising'], '👨‍👩‍👧‍👦'],
+      [['film', 'movie', 'cinema', 'director', 'watch', 'tv', 'show', 'series', 'netflix', 'documentary'], '🎬'],
+      [['book', 'reading', 'author', 'novel', 'literature', 'writing', 'poetry', 'poet', 'journal'], '📚'],
+      [['art', 'paint', 'drawing', 'creative', 'design', 'gallery', 'museum', 'sculpture', 'photograph'], '🎨'],
+      [['sport', 'basketball', 'football', 'soccer', 'tennis', 'baseball', 'golf', 'surf', 'ski', 'snowboard', 'swim', 'climb'], '⚽'],
+      [['comedy', 'stand-up', 'funny', 'humor', 'laugh', 'improv', 'joke'], '😂'],
+      [['nature', 'hiking', 'outdoor', 'mountain', 'ocean', 'beach', 'camping', 'garden', 'forest', 'trail'], '🌿'],
+      [['love', 'relationship', 'dating', 'romance', 'intimacy', 'partner', 'marriage', 'tantra', 'sacred sexuality', 'polarity', 'attraction'], '❤️'],
+      [['psychology', 'therapy', 'mental health', 'growth', 'personal development', 'self-improvement', 'coaching', 'sobriety'], '🧠'],
+      [['fashion', 'style', 'clothing', 'sneaker', 'outfit', 'design'], '👔'],
+      [['science', 'physics', 'biology', 'chemistry', 'space', 'astronomy', 'quantum', 'research'], '🔬'],
+      [['dog', 'cat', 'pet', 'animal'], '🐕'],
+      [['game', 'gaming', 'video game', 'board game', 'chess', 'poker'], '🎮'],
+      [['coffee', 'tea', 'cafe', 'espresso'], '☕'],
+      [['wine', 'beer', 'cocktail', 'drink', 'bar', 'whiskey'], '🍷'],
+      [['dance', 'dancing', 'salsa', 'house music', 'electronic', 'rave', 'festival'], '💃'],
+      [['philosophy', 'meaning', 'existence', 'purpose', 'stoic', 'wisdom', 'truth'], '💡'],
+    ];
+    for (const [keywords, icon] of map) {
+      if (keywords.some(k => all.includes(k))) return icon;
+    }
+    return '✦';
+  };
 
   // Auto-scroll
   useEffect(() => {
@@ -220,6 +258,20 @@ export default function DiscoverPage() {
         continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
       }
       setRecentlySelected([]);
+
+      // Detect topic icon from response
+      const interestNamesFromResponse = [...fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g)].map(m => m[1].trim());
+      const icon = detectTopicIcon(fullText, interestNamesFromResponse);
+      setTopicIcon(icon);
+      // Add to topic history if it's a new icon (avoid duplicates in a row)
+      setTopicHistory(prev => {
+        const lastIcon = prev.length > 0 ? prev[prev.length - 1].icon : null;
+        if (icon !== lastIcon) {
+          const label = interestNamesFromResponse[0] || 'Chat';
+          return [...prev, { icon, label, msgIdx: assistantIdx }];
+        }
+        return prev;
+      });
 
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
       setConversationHistory(finalMessages);
@@ -631,12 +683,68 @@ export default function DiscoverPage() {
         )}
       </AnimatePresence>
 
+      {/* Topic icon tower — left panel (desktop only) */}
+      <div className="hidden md:flex fixed left-0 top-[60px] bottom-[80px] w-48 flex-col z-20">
+        <div className="flex-1 flex flex-col justify-end overflow-y-auto py-4 pl-5 gap-2" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(139,92,246,0.2) transparent' }}>
+          <AnimatePresence initial={false}>
+            {topicHistory.map((topic, i) => {
+              const isLatest = i === topicHistory.length - 1;
+              return (
+                <motion.button
+                  key={`${topic.icon}-${topic.msgIdx}`}
+                  layout
+                  initial={{ opacity: 0, x: -40, scale: 0.7 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 250, damping: 22 }}
+                  onClick={() => {
+                    // Scroll to the message at this index
+                    const msgElements = messagesContainerRef.current?.querySelectorAll('[data-msg-idx]');
+                    if (msgElements) {
+                      for (const el of msgElements) {
+                        if (el.getAttribute('data-msg-idx') === String(topic.msgIdx)) {
+                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          break;
+                        }
+                      }
+                    }
+                  }}
+                  className={`group flex items-center gap-3 px-3 py-2 rounded-2xl transition-all cursor-pointer ${
+                    isLatest
+                      ? 'bg-violet-500/15 border border-violet-400/20'
+                      : 'hover:bg-white/5'
+                  }`}
+                  style={isLatest ? {
+                    boxShadow: '0 0 20px rgba(139,92,246,0.15)',
+                  } : {
+                    opacity: Math.max(0.35, 1 - (topicHistory.length - 1 - i) * 0.1),
+                  }}
+                >
+                  <span className={`text-3xl select-none transition-all ${isLatest ? '' : 'grayscale-[30%]'}`}
+                    style={isLatest ? {
+                      filter: 'drop-shadow(0 0 12px rgba(253,224,71,0.4))',
+                    } : {}}
+                  >
+                    {topic.icon}
+                  </span>
+                  <span className={`text-[11px] font-bold truncate transition-colors ${
+                    isLatest ? 'text-white/70' : 'text-white/25 group-hover:text-white/50'
+                  }`}>
+                    {topic.label}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      </div>
+
       {/* Conversation — scrolling, flowing, BIG text, no bubbles */}
-      <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-8">
+      <div className="flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:ml-48 md:mr-56" ref={messagesContainerRef}>
         <div className="max-w-2xl mx-auto space-y-8">
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
             <motion.div
               key={idx}
+              data-msg-idx={idx}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
