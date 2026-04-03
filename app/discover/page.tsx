@@ -287,9 +287,67 @@ export default function DiscoverPage() {
       }
     } catch (e) {
       console.error('Error:', e);
+      // Retry once before showing error
+      try {
+        const retry = await fetch('/api/discover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: currentMessages.length === 0
+              ? [{ role: 'user', content: `(The guest just sat down. Their first name is ${userName || 'there'}. Start the conversation.)` }]
+              : currentMessages,
+            existingInterests: interestNames(existingInterests),
+          }),
+        });
+        if (retry.ok) {
+          const retryData = await retry.json();
+          const retryText = retryData.text || '';
+          setMessages(prev => {
+            const updated = [...prev];
+            updated[assistantIdx] = { role: 'assistant', content: retryText };
+            return updated;
+          });
+          // Still need to extract interests and save — jump to success path
+          const retryInterests = [...retryText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g)];
+          const newRetry: SuggestedInterest[] = [];
+          const existNames = interestNames(existingInterests).map(n => n.toLowerCase());
+          for (const m of retryInterests) {
+            const name = m[1].trim();
+            if (!existNames.includes(name.toLowerCase())) {
+              newRetry.push({ name, added: false, messageIdx: assistantIdx });
+            }
+          }
+          if (newRetry.length > 0) {
+            setSuggestedInterests(prev => [...prev, ...newRetry]);
+            playDiscoverSound();
+            if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+            setShowContinue(false);
+            continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
+          }
+          setRecentlySelected([]);
+          const retryNamesFromResponse = retryInterests.map(m => m[1].trim());
+          const retryIcon = detectTopicIcon(retryText, retryNamesFromResponse);
+          setTopicIcon(retryIcon);
+          setTopicHistory(prev => {
+            const lastIcon = prev.length > 0 ? prev[prev.length - 1].icon : null;
+            if (retryIcon !== lastIcon) {
+              return [...prev, { icon: retryIcon, label: retryNamesFromResponse[0] || 'Chat', msgIdx: assistantIdx }];
+            }
+            return prev;
+          });
+          const retryFinal = [...currentMessages, { role: 'assistant' as const, content: retryText }];
+          setConversationHistory(retryFinal);
+          if (user) {
+            try { await setDoc(doc(firestore, 'users', user.uid), { discoverConversation: retryFinal, updatedAt: new Date().toISOString() }, { merge: true }); } catch {}
+          }
+          setIsStreaming(false);
+          setTimeout(() => inputRef.current?.focus(), 100);
+          return;
+        }
+      } catch {}
       setMessages(prev => {
         const updated = [...prev];
-        updated[assistantIdx] = { role: 'assistant', content: 'Something went wrong. Try again.' };
+        updated[assistantIdx] = { role: 'assistant', content: 'Hmm, hit a snag. Try sending that again.' };
         return updated;
       });
     }
