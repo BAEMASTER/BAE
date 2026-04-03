@@ -119,32 +119,14 @@ export async function POST(req: NextRequest) {
       ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
       : '';
 
-    // Keep first message (identity context) + last 14 messages to avoid token limits
-    const allMessages = messages.map((m: any) => ({
-      role: m.role,
-      content: m.role === 'user' && m.content.startsWith('(')
-        ? m.content.slice(0, 200)
-        : m.content,
-    }));
-
-    let trimmedMessages;
-    if (allMessages.length <= 16) {
-      trimmedMessages = allMessages;
-    } else {
-      // Always keep first message (has user name + context) + recent messages
-      trimmedMessages = [allMessages[0], ...allMessages.slice(-14)];
-    }
-
-    // Ensure first message is from user (API requirement)
-    if (trimmedMessages.length > 0 && trimmedMessages[0].role === 'assistant') {
-      trimmedMessages.shift();
-    }
-
     const response = await getClient().messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 500,
       system: SYSTEM_PROMPT + contextMessage,
-      messages: trimmedMessages,
+      messages: messages.map((m: any) => ({
+        role: m.role,
+        content: m.content,
+      })),
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
