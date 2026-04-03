@@ -581,14 +581,14 @@ export default function DiscoverPage() {
                       exit={{ opacity: 0, y: -50, scale: 0.6 }}
                       transition={{ type: 'spring', stiffness: 250, damping: 22 }}
                       onClick={() => handleExploreInterest(name)}
-                      className="pointer-events-auto group flex items-center gap-2 px-4 py-3 rounded-full text-sm font-black text-amber-200 bg-gradient-to-r from-amber-400/15 to-yellow-400/10 border border-amber-300/20 hover:from-amber-400/25 hover:to-yellow-400/20 hover:text-amber-100 transition-all cursor-pointer backdrop-blur-sm truncate"
+                      className="pointer-events-auto group flex items-center gap-2 px-4 py-3 rounded-full text-sm font-black text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 hover:brightness-110 transition-all cursor-pointer truncate"
                       style={{
-                        opacity: Math.max(0.2, 1 - i * 0.06),
-                        boxShadow: i < 3 ? '0 0 15px rgba(253,224,71,0.15), 0 0 30px rgba(253,224,71,0.05)' : 'none',
+                        opacity: Math.max(0.25, 1 - i * 0.06),
+                        boxShadow: i < 3 ? '0 0 20px rgba(253,224,71,0.4), 0 0 40px rgba(253,224,71,0.15)' : '0 0 10px rgba(253,224,71,0.2)',
                       }}
                     >
                       <span className="truncate">{name}</span>
-                      <Search size={12} className="text-amber-300/30 group-hover:text-amber-300/80 transition-colors flex-shrink-0" />
+                      <Search size={12} className="text-black/30 group-hover:text-black/60 transition-colors flex-shrink-0" />
                     </motion.button>
                   ))}
                 </AnimatePresence>
@@ -604,10 +604,11 @@ export default function DiscoverPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     onClick={() => handleExploreInterest(name)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-300/70 bg-amber-300/8 border border-amber-300/12 hover:bg-amber-300/15 transition-all whitespace-nowrap"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-black text-black bg-gradient-to-r from-yellow-300 to-amber-300 border border-yellow-200 whitespace-nowrap"
+                    style={{ boxShadow: '0 0 10px rgba(253,224,71,0.3)' }}
                   >
                     {name}
-                    <Search size={9} className="text-amber-300/30" />
+                    <Search size={9} className="text-black/30" />
                   </motion.button>
                 ))}
               </div>
