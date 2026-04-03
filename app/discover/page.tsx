@@ -127,7 +127,10 @@ export default function DiscoverPage() {
           const data = snap.data();
           const interests = parseInterests(data.interests);
           setExistingInterests(interests);
-          if (data.displayName) setUserName(data.displayName.split(' ')[0]);
+          // Use Firebase Auth name (same as header), fall back to Firestore
+          const authName = u.displayName?.split(' ')[0];
+          const firestoreName = data.displayName?.split(' ')[0];
+          setUserName(authName || firestoreName || '');
 
           if (data.discoverConversation?.length) {
             setMessages(data.discoverConversation);
