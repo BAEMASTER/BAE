@@ -763,8 +763,8 @@ export default function DiscoverPage() {
         {collectedInterests.length > 0 && (
           <>
             {/* Desktop: fixed right sidebar — big glowing pills */}
-            <div className="hidden md:flex fixed right-0 top-[60px] bottom-[80px] w-64 flex-col z-20 pointer-events-none">
-              <div className="flex-1 flex flex-col justify-end overflow-y-auto py-4 pr-5 gap-3 pointer-events-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
+            <div className="hidden md:block fixed right-0 top-[60px] bottom-[80px] w-64 z-20 overflow-hidden">
+              <div className="h-full overflow-y-auto flex flex-col justify-end py-4 pr-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
                     <motion.button
