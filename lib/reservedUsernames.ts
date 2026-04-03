@@ -29,7 +29,7 @@ export function validateUsername(username: string): { valid: boolean; error?: st
     return { valid: false, error: 'Username must be 30 characters or less' };
   }
   if (!USERNAME_REGEX.test(lower)) {
-    return { valid: false, error: 'Letters, numbers, and hyphens only (no leading/trailing hyphens)' };
+    return { valid: false, error: 'No spaces or periods — just letters, numbers, or hyphens' };
   }
   if (RESERVED_USERNAMES.has(lower)) {
     return { valid: false, error: 'This username is reserved' };

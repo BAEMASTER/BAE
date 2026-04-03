@@ -184,6 +184,8 @@ export default function ProfilePage() {
   const [authReady, setAuthReady] = useState(false);
 
   const [displayName, setDisplayName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
@@ -228,8 +230,9 @@ export default function ProfilePage() {
         const snap = await getDoc(doc(db, 'users', u.uid));
         const data = snap.exists() ? snap.data() as any : null;
         if (data) {
-          // Pre-fill display name from Firestore only — use Google auth as hint for setup screen
           setDisplayName(data.displayName || '');
+          setFirstName(data.firstName || '');
+          setLastName(data.lastName || '');
           setCity(data.city || '');
           setState(data.state || '');
           setCountry(data.country || '');
@@ -527,8 +530,8 @@ export default function ProfilePage() {
   // NAME + LOCATION SETUP — shows if age verified but name/location missing
   if (isSetupIncomplete) {
     const handleSetupSave = async () => {
-      if (!displayName.trim()) {
-        setNameLocationSetupError('Please enter your display name');
+      if (!firstName.trim() || !lastName.trim()) {
+        setNameLocationSetupError('Please enter your first and last name');
         setTimeout(() => setNameLocationSetupError(''), 3000);
         return;
       }
@@ -540,10 +543,15 @@ export default function ProfilePage() {
       if (!user) return;
       try {
         const dob = formatDOB(birthYear, birthMonth, birthDay);
+        const fullName = `${firstName.trim()} ${lastName.trim()}`;
         await setDoc(doc(db, 'users', user.uid), {
-          displayName, city, state, country, birthDate: dob,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          displayName: fullName,
+          city, state, country, birthDate: dob,
           interests: structuredInterests, updatedAt: new Date().toISOString()
         }, { merge: true });
+        setDisplayName(fullName);
         setSetupComplete(true);
         setNameLocationSetupError('');
       } catch (e) {
@@ -567,14 +575,25 @@ export default function ProfilePage() {
           </p>
 
           <div className="space-y-4 text-left">
-            <div>
-              <label className="block text-sm font-semibold mb-1.5 text-white/70">Display Name *</label>
-              <input
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                placeholder="What should people call you?"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold mb-1.5 text-white/70">First Name *</label>
+                <input
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold mb-1.5 text-white/70">Last Name *</label>
+                <input
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  placeholder="Last name"
+                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
