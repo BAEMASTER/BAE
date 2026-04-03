@@ -6,7 +6,7 @@ import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, ChevronUp, ChevronDown, Search, MessageCircle } from 'lucide-react';
 import {
   StructuredInterest,
   parseInterests,
@@ -27,13 +27,36 @@ type SuggestedInterest = {
   messageIdx: number;
 };
 
-const SAMPLE_QUESTIONS = [
-  "What could you give a TED talk on with zero prep?",
-  "If I looked at your YouTube history, what would I find?",
-  "What's a strong opinion you have that most people disagree with?",
-  "What's the most random rabbit hole you've gone down?",
-  "When you were a kid, what did you think you'd be doing now?",
-];
+// What's on the center stage right now
+type StageState =
+  | { type: 'welcome' }
+  | { type: 'userEcho'; text: string }
+  | { type: 'breathing' }
+  | { type: 'utterance'; text: string; interests: { name: string; added: boolean }[] }
+  | { type: 'error'; text: string };
+
+const playDiscoverSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    const gain2 = audioCtx.createGain();
+    osc1.connect(gain1); gain1.connect(audioCtx.destination);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc1.frequency.setValueAtTime(523, audioCtx.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(784, audioCtx.currentTime + 0.08);
+    gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+    osc1.start(); osc1.stop(audioCtx.currentTime + 0.12);
+    osc2.frequency.setValueAtTime(784, audioCtx.currentTime + 0.06);
+    osc2.frequency.exponentialRampToValueAtTime(1047, audioCtx.currentTime + 0.14);
+    gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain2.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.06);
+    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+    osc2.start(); osc2.stop(audioCtx.currentTime + 0.18);
+  } catch {}
+};
 
 const playAddSound = () => {
   try {
@@ -42,13 +65,23 @@ const playAddSound = () => {
     const gain = audioCtx.createGain();
     osc.connect(gain);
     gain.connect(audioCtx.destination);
-    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
   } catch {}
 };
+
+// Parse BAE's message into text parts and interest names
+function parseUtterance(content: string): { text: string; interests: string[] } {
+  const interests: string[] = [];
+  const text = content.replace(/\[INTEREST:\s*([^\]]+)\]/g, (_, name) => {
+    interests.push(name.trim());
+    return '';
+  }).trim();
+  return { text, interests };
+}
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -62,33 +95,29 @@ export default function DiscoverPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [suggestedInterests, setSuggestedInterests] = useState<SuggestedInterest[]>([]);
   const [existingInterests, setExistingInterests] = useState<StructuredInterest[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ChatMessage[]>([]);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [started, setStarted] = useState(false);
   const [userName, setUserName] = useState('');
 
-  const [lastAddedInterest, setLastAddedInterest] = useState<string | null>(null);
-  const [recentlyAdded, setRecentlyAdded] = useState<string[]>([]);
-  const autoFollowUpRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Session-collected interests for the sidebar
+  const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [longPressInterest, setLongPressInterest] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  // Exploring mode — user is browsing related interests, not in normal conversation
+  const [isExploring, setIsExploring] = useState(false);
+
+  // The center stage — only shows the CURRENT moment
+  const [stage, setStage] = useState<StageState>({ type: 'welcome' });
+  // Track which interests in the current utterance have been added
+  const [currentPillStates, setCurrentPillStates] = useState<Record<string, boolean>>({});
+
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Pick 3 random sample questions
-  const [sampleQuestions] = useState(() => {
-    const shuffled = [...SAMPLE_QUESTIONS].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
-  });
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, suggestedInterests]);
 
   // Auth + load existing data
   useEffect(() => {
@@ -107,30 +136,43 @@ export default function DiscoverPage() {
           setExistingInterests(interests);
           if (data.displayName) setUserName(data.displayName.split(' ')[0]);
 
-          // Returning user — skip intro, load conversation
+          // Returning user — show last BAE message on stage
           if (data.discoverConversation?.length) {
-            setMessages(data.discoverConversation);
-            setConversationHistory(data.discoverConversation);
+            const msgs: ChatMessage[] = data.discoverConversation;
+            setConversationHistory(msgs);
             setStarted(true);
             setIsFirstVisit(false);
 
-            // Re-extract suggested interests from history
-            const suggested: SuggestedInterest[] = [];
+            // Find last assistant message and show it on stage
+            const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant');
+            if (lastAssistant) {
+              const { text, interests: foundInterests } = parseUtterance(lastAssistant.content);
+              const existingNames = interestNames(interests).map(n => n.toLowerCase());
+              const pillStates: Record<string, boolean> = {};
+              const interestData = foundInterests.map(name => {
+                const isAdded = existingNames.includes(name.toLowerCase());
+                pillStates[name.toLowerCase()] = isAdded;
+                return { name, added: isAdded };
+              });
+              setCurrentPillStates(pillStates);
+              setStage({ type: 'utterance', text, interests: interestData });
+            }
+
+            // Rebuild collected interests from history
+            const collected: string[] = [];
             const existingNames = interestNames(interests).map(n => n.toLowerCase());
-            data.discoverConversation.forEach((msg: ChatMessage, idx: number) => {
+            msgs.forEach((msg: ChatMessage) => {
               if (msg.role === 'assistant') {
                 const matches = msg.content.matchAll(/\[INTEREST:\s*([^\]]+)\]/g);
                 for (const match of matches) {
                   const name = match[1].trim();
-                  suggested.push({
-                    name,
-                    added: existingNames.includes(name.toLowerCase()),
-                    messageIdx: idx,
-                  });
+                  if (existingNames.includes(name.toLowerCase()) && !collected.includes(name)) {
+                    collected.push(name);
+                  }
                 }
               }
             });
-            setSuggestedInterests(suggested);
+            setCollectedInterests(collected);
           }
         }
       } catch (e) {
@@ -141,17 +183,14 @@ export default function DiscoverPage() {
     return () => unsub();
   }, []);
 
-  const startInterview = async () => {
+  const startConversation = async () => {
     setStarted(true);
+    setStage({ type: 'breathing' });
     await fetchResponse([]);
   };
 
   const fetchResponse = async (currentMessages: ChatMessage[]) => {
     setIsStreaming(true);
-    setLastAddedInterest(null);
-
-    const assistantIdx = currentMessages.length;
-    setMessages([...currentMessages, { role: 'assistant', content: '' }]);
 
     try {
       const res = await fetch('/api/discover', {
@@ -159,7 +198,7 @@ export default function DiscoverPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: currentMessages.length === 0
-            ? [{ role: 'user', content: `(The guest just sat down. Their first name is ${userName || 'there'}. Start the interview.)` }]
+            ? [{ role: 'user', content: `(The guest just sat down. Their first name is ${userName || 'there'}. Start the conversation.)` }]
             : currentMessages,
           existingInterests: interestNames(existingInterests),
         }),
@@ -167,34 +206,27 @@ export default function DiscoverPage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        console.error('API error:', res.status, errData);
-        throw new Error(errData.error || 'Interview failed');
+        throw new Error(errData.error || 'Something went wrong');
       }
 
       const data = await res.json();
       const fullText = data.text || '';
 
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[assistantIdx] = { role: 'assistant', content: fullText };
-        return updated;
-      });
-
-      // Extract interests from response
-      const interestMatches = fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g);
-      const newSuggested: SuggestedInterest[] = [];
+      // Parse into text + interests
+      const { text, interests } = parseUtterance(fullText);
       const existingNames = interestNames(existingInterests).map(n => n.toLowerCase());
+      const pillStates: Record<string, boolean> = {};
+      const interestData = interests.map(name => {
+        const isAdded = existingNames.includes(name.toLowerCase());
+        pillStates[name.toLowerCase()] = isAdded;
+        return { name, added: isAdded };
+      });
+      setCurrentPillStates(pillStates);
 
-      for (const match of interestMatches) {
-        const name = match[1].trim();
-        if (!existingNames.includes(name.toLowerCase())) {
-          newSuggested.push({ name, added: false, messageIdx: assistantIdx });
-        }
-      }
+      if (interests.length > 0) playDiscoverSound();
 
-      if (newSuggested.length > 0) {
-        setSuggestedInterests(prev => [...prev, ...newSuggested]);
-      }
+      // Show on stage
+      setStage({ type: 'utterance', text, interests: interestData });
 
       // Save conversation
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
@@ -208,28 +240,112 @@ export default function DiscoverPage() {
         } catch {}
       }
     } catch (e) {
-      console.error('Interview error:', e);
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[assistantIdx] = { role: 'assistant', content: 'Hmm, something went wrong. Try again in a moment.' };
-        return updated;
-      });
+      console.error('Error:', e);
+      setStage({ type: 'error', text: 'Something went wrong. Try again.' });
     }
 
     setIsStreaming(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (textOverride?: string) => {
+    const text = textOverride || input.trim();
     if (!text || isStreaming) return;
 
-    // User is typing — cancel any auto-follow-up
-    if (autoFollowUpRef.current) clearTimeout(autoFollowUpRef.current);
-    setRecentlyAdded([]);
+    if (!textOverride) setInput('');
+    setLongPressInterest(null);
 
-    setInput('');
+    // Show user echo briefly, then breathing, then fetch
+    setStage({ type: 'userEcho', text });
+
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
-    setMessages(newMessages);
+    setConversationHistory(newMessages);
+
+    if (user) {
+      try {
+        await setDoc(doc(firestore, 'users', user.uid), {
+          discoverConversation: newMessages,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      } catch {}
+    }
+
+    // User echo → breathing → fetch
+    setTimeout(() => {
+      setStage({ type: 'breathing' });
+      setTimeout(() => {
+        fetchResponse(newMessages);
+      }, 800);
+    }, 1200);
+  };
+
+  const handleAddInterest = async (interestName: string) => {
+    if (!user) return;
+    if (isBlockedInterest(interestName)) return;
+    if (currentPillStates[interestName.toLowerCase()]) return;
+
+    const newInterest = createInterest(interestName, 'profile');
+    const updated = addStructuredInterests(existingInterests, [newInterest]);
+    setExistingInterests(updated);
+    playAddSound();
+
+    // Mark as added in current pills
+    setCurrentPillStates(prev => ({ ...prev, [interestName.toLowerCase()]: true }));
+
+    // Add to sidebar collection
+    setCollectedInterests(prev =>
+      prev.includes(interestName) ? prev : [...prev, interestName]
+    );
+
+    // Auto-open sidebar when first interest is collected
+    if (collectedInterests.length === 0) setSidebarOpen(true);
+
+    // Update stage interests
+    setStage(prev => {
+      if (prev.type !== 'utterance') return prev;
+      return {
+        ...prev,
+        interests: prev.interests.map(i =>
+          i.name.toLowerCase() === interestName.toLowerCase()
+            ? { ...i, added: true }
+            : i
+        ),
+      };
+    });
+
+    try {
+      await setDoc(doc(firestore, 'users', user.uid), {
+        interests: updated,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch (e) {
+      console.error('Failed to add interest:', e);
+    }
+  };
+
+  // Long press handlers for sidebar interests
+  const handleLongPressStart = (name: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setLongPressInterest(name);
+    }, 500);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // Explore related interests — skips user echo, goes straight to breathing + fetch
+  const handleExploreInterest = async (name: string) => {
+    if (isStreaming) return;
+    setLongPressInterest(null);
+    setIsExploring(true);
+    setStage({ type: 'breathing' });
+
+    const msg = `(User wants to explore interests related to "${name}". Show a variety of related interests they can add. Present them with brief framing text and multiple [INTEREST: name] pills. Stay in interest exploration mode — don't pivot to a new conversation topic.)`;
+    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
     setConversationHistory(newMessages);
 
     if (user) {
@@ -244,240 +360,146 @@ export default function DiscoverPage() {
     await fetchResponse(newMessages);
   };
 
-  const handleAddInterest = async (interest: SuggestedInterest) => {
-    if (interest.added || !user) return;
-    if (isBlockedInterest(interest.name)) return;
+  // Continue conversation — exit explore mode and ask BAE to resume naturally
+  const handleContinueConversation = async () => {
+    if (isStreaming) return;
+    setIsExploring(false);
+    setStage({ type: 'breathing' });
 
-    const newInterest = createInterest(interest.name, 'profile');
-    const updated = addStructuredInterests(existingInterests, [newInterest]);
-    setExistingInterests(updated);
-    playAddSound();
-    setLastAddedInterest(interest.name);
-    setRecentlyAdded(prev => [...prev, interest.name]);
+    const msg = `(User is done exploring interests and wants to continue the conversation. Pick up naturally — ask a new question or follow up on something interesting from earlier. Don't mention the interest exploration.)`;
+    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
+    setConversationHistory(newMessages);
 
-    setSuggestedInterests(prev =>
-      prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
-    );
-
-    try {
-      await setDoc(doc(firestore, 'users', user.uid), {
-        interests: updated,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-    } catch (e) {
-      console.error('Failed to add interest:', e);
+    if (user) {
+      try {
+        await setDoc(doc(firestore, 'users', user.uid), {
+          discoverConversation: newMessages,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      } catch {}
     }
 
-    // Auto-follow-up: wait 3 seconds after last tap, then AI continues
-    if (autoFollowUpRef.current) clearTimeout(autoFollowUpRef.current);
-    autoFollowUpRef.current = setTimeout(() => {
-      if (!isStreaming) {
-        const added = [...recentlyAdded, interest.name];
-        setRecentlyAdded([]);
-        const systemMsg = added.length === 1
-          ? `(User tapped and added "${added[0]}" to their profile. React naturally — like "nice one" or "good pick" — then ask if there's anything else on their mind about this topic, or if they want to move on to something new. Keep it warm and casual, like a friend. If they seem done with this area, pivot to something totally different about their life.)`
-          : `(User tapped and added these interests: ${added.join(', ')}. React naturally and briefly. Then ask if anything else comes to mind on this topic or if they want to switch gears. Keep it casual and warm.)`;
-        const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: systemMsg }];
-        fetchResponse(newMessages);
-      }
-    }, 3000);
+    await fetchResponse(newMessages);
   };
 
-  // Render message text, replacing [INTEREST: x] with inline pills
-  const renderMessage = (content: string, msgIdx: number) => {
-    const parts = content.split(/(\[INTEREST:\s*[^\]]+\])/g);
-    return parts.map((part, i) => {
-      const match = part.match(/\[INTEREST:\s*([^\]]+)\]/);
-      if (match) {
-        const name = match[1].trim();
-        const suggested = suggestedInterests.find(
-          s => s.name.toLowerCase() === name.toLowerCase()
-        );
-        const isAdded = suggested?.added || interestNames(existingInterests).some(
-          n => n.toLowerCase() === name.toLowerCase()
-        );
-
-        return (
-          <motion.button
-            key={`${msgIdx}-interest-${i}`}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={isAdded
-              ? { opacity: 1, scale: [1.2, 1] }
-              : { opacity: 1, scale: 1 }
-            }
-            whileTap={!isAdded ? { scale: 0.95 } : {}}
-            onClick={() => {
-              if (!isAdded && suggested) handleAddInterest(suggested);
-            }}
-            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold mx-1 my-1 transition-all ${
-              isAdded
-                ? 'bg-green-400/20 text-green-300 border border-green-400/30'
-                : 'text-black bg-yellow-300 border border-yellow-200 ring-2 ring-yellow-200/40 cursor-pointer hover:scale-105'
-            }`}
-            style={!isAdded ? { boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' } : {}}
-          >
-            {isAdded ? '✓' : '+'}
-            <span className="ml-0.5">{name}</span>
-          </motion.button>
-        );
-      }
-      return <span key={`${msgIdx}-text-${i}`}>{part}</span>;
-    });
+  const handleGoDeeper = (name: string) => {
+    setLongPressInterest(null);
+    handleExploreInterest(name);
   };
 
+  const handleTalkAbout = (name: string) => {
+    setLongPressInterest(null);
+    setIsExploring(false);
+    handleSend(`Let's talk more about ${name}`);
+  };
+
+  // ====== LOADING ======
   if (!authReady) {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center">
-        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-white/50 text-sm">
-          Loading...
-        </motion.div>
+      <main className="min-h-screen w-full bg-[#0a0711] text-white flex items-center justify-center">
+        <motion.div
+          animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 2.5, repeat: Infinity }}
+          className="w-10 h-10 rounded-full bg-violet-500/20 border border-violet-500/30"
+        />
       </main>
     );
   }
 
-  // ====== INTRO SCREEN (first-time visitors only) ======
+  // ====== INTRO SCREEN ======
   if (!started && isFirstVisit) {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-hidden">
+      <main className="min-h-screen w-full bg-[#0a0711] text-white overflow-hidden">
+        {/* Ambient orbs */}
+        <div className="fixed inset-0 pointer-events-none">
+          <motion.div
+            className="absolute w-[500px] h-[500px] rounded-full top-[20%] left-[30%]"
+            style={{ background: 'rgba(139, 92, 246, 0.05)', filter: 'blur(80px)' }}
+            animate={{ x: [0, 30, -20, 0], y: [0, -20, 30, 0], scale: [1, 1.1, 0.95, 1] }}
+            transition={{ duration: 25, repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute w-[400px] h-[400px] rounded-full top-[50%] right-[20%]"
+            style={{ background: 'rgba(212, 168, 67, 0.04)', filter: 'blur(80px)' }}
+            animate={{ x: [0, -20, 30, 0], y: [0, 30, -10, 0], scale: [1, 0.95, 1.1, 1] }}
+            transition={{ duration: 30, repeat: Infinity, delay: 8 }}
+          />
+        </div>
 
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 sm:px-12 lg:px-20">
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 sm:px-12">
+          <div className="w-full max-w-3xl text-center">
 
-          <div className="w-full max-w-5xl">
-
-            {/* BAE AI badge */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="flex justify-center mb-8"
+              transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight"
             >
-              <div className="flex items-center gap-2 px-5 py-2 rounded-full border border-amber-400/20 bg-amber-400/5">
-                <motion.div
-                  animate={{
-                    boxShadow: [
-                      '0 0 8px rgba(251,191,36,0.4)',
-                      '0 0 16px rgba(251,191,36,0.7)',
-                      '0 0 8px rgba(251,191,36,0.4)',
-                    ],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="w-2.5 h-2.5 rounded-full bg-amber-400"
-                />
-                <span className="text-amber-300 text-sm font-bold tracking-wider">BAE AI</span>
-              </div>
-            </motion.div>
+              Let's Talk.
+            </motion.h1>
 
-            {/* Main headline */}
-            <motion.div
-              initial={{ opacity: 0, y: 25 }}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.7 }}
-              className="text-center mb-5"
+              transition={{ delay: 0.6, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight mt-1"
             >
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.1] mb-5">
-                <span className="text-white">The Best Conversation</span>
-                <br />
-                <span className="text-white">You've Never Had.</span>
-              </h1>
-              <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <span className="text-white">And Make it </span>
+              <span className="relative">
                 <motion.span
-                  animate={{
-                    boxShadow: ['0 0 15px rgba(253,224,71,0.6)', '0 0 25px rgba(253,224,71,0.9)', '0 0 15px rgba(253,224,71,0.6)']
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="px-5 py-2 sm:px-8 sm:py-3 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-2xl sm:text-4xl lg:text-5xl"
+                  className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-200 bg-clip-text text-transparent"
+                  animate={{ filter: ['brightness(1)', 'brightness(1.3)', 'brightness(1)'] }}
+                  transition={{ duration: 3, repeat: Infinity }}
                 >
-                  Until Now
+                  Interesting
                 </motion.span>
-              </div>
-            </motion.div>
+                <motion.span
+                  className="absolute -bottom-1 left-0 right-0 h-[3px] bg-gradient-to-r from-yellow-300/0 via-yellow-300/80 to-yellow-300/0"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: 1.2, duration: 0.8 }}
+                />
+              </span>
+              <span className="text-white">.</span>
+            </motion.h1>
 
-            {/* Purpose line */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-              className="text-center text-base sm:text-lg text-white/45 max-w-2xl mx-auto leading-relaxed mb-10"
+              transition={{ delay: 1.0, duration: 0.6 }}
+              className="text-lg sm:text-xl text-white/30 max-w-xl mx-auto leading-relaxed mt-8 mb-14 font-light tracking-wide"
             >
-              BAE AI talks with you to uncover your real, authentic interests — making every connection on BAE deeper, and teaching you something about yourself along the way.
+              A conversation that discovers who you are.
+              <br />
+              <span className="text-white/15">Not a chatbot. Not a quiz. Something new.</span>
             </motion.p>
 
-            {/* Three cards — Talk / Discover / Fun */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0, duration: 0.6 }}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-10 max-w-4xl mx-auto"
-            >
-              <motion.div
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="rounded-2xl p-6 sm:p-8 text-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.05))',
-                  border: '1px solid rgba(139,92,246,0.2)',
-                }}
-              >
-                <div className="text-3xl mb-3">✦</div>
-                <h3 className="text-lg font-black text-white mb-2">Talk with BAE</h3>
-                <p className="text-white/35 text-sm leading-relaxed">Smart, curious questions about your life. You talk, BAE listens and picks up on what matters.</p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="rounded-2xl p-6 sm:p-8 text-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.05))',
-                  border: '1px solid rgba(251,191,36,0.2)',
-                }}
-              >
-                <div className="text-3xl mb-3">+</div>
-                <h3 className="text-lg font-black text-white mb-2">Discover Your Interests</h3>
-                <p className="text-white/35 text-sm leading-relaxed">Golden pills appear as you talk. Tap the ones that feel like you. Your profile builds itself.</p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -4, scale: 1.02 }}
-                className="rounded-2xl p-6 sm:p-8 text-center"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(52,211,153,0.1), rgba(16,185,129,0.05))',
-                  border: '1px solid rgba(52,211,153,0.15)',
-                }}
-              >
-                <div className="text-3xl mb-3">✨</div>
-                <h3 className="text-lg font-black text-white mb-2">Have Fun</h3>
-                <p className="text-white/35 text-sm leading-relaxed">Not a quiz. Not a form. Just a real conversation where you discover things you didn't know you'd say.</p>
-              </motion.div>
-            </motion.div>
-
-            {/* CTA */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.3, duration: 0.5 }}
-              className="text-center"
+              transition={{ delay: 1.4, duration: 0.5 }}
             >
               {existingInterests.length > 0 && (
-                <p className="text-white/25 text-sm mb-4">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.</p>
+                <p className="text-white/15 text-sm mb-5 font-medium tracking-wide">
+                  You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.
+                </p>
               )}
               <motion.button
-                onClick={startInterview}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                onClick={startConversation}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
                 animate={{
                   boxShadow: [
-                    '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
-                    '0 0 60px rgba(251,191,36,0.5), 0 0 120px rgba(245,158,11,0.2)',
-                    '0 0 40px rgba(251,191,36,0.3), 0 0 80px rgba(245,158,11,0.1)',
+                    '0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.06)',
+                    '0 0 50px rgba(253,224,71,0.35), 0 0 100px rgba(253,224,71,0.12)',
+                    '0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.06)',
                   ],
                 }}
-                transition={{ duration: 2.5, repeat: Infinity }}
-                className="px-20 py-7 rounded-full font-black text-2xl sm:text-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/50"
+                transition={{ duration: 3, repeat: Infinity }}
+                className="px-16 py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/30"
               >
-                Begin
+                Let's Go
               </motion.button>
-              <p className="text-white/15 text-xs mt-4 italic">
-                First question might be: "{sampleQuestions[0]}"
-              </p>
             </motion.div>
           </div>
         </div>
@@ -485,180 +507,400 @@ export default function DiscoverPage() {
     );
   }
 
-  // ====== CONVERSATION ======
-  const addedCount = suggestedInterests.filter(s => s.added).length;
-
+  // ====== THE PRESENT-TENSE EXPERIENCE ======
   return (
-    <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-black/30 backdrop-blur-sm">
-        <button
-          onClick={() => router.push('/profile')}
-          className="p-2 text-white/40 hover:text-white/70 transition-colors"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1 flex items-center gap-3">
-          <motion.div
-            animate={{
-              boxShadow: [
-                '0 0 12px rgba(139,92,246,0.4)',
-                '0 0 24px rgba(139,92,246,0.6)',
-                '0 0 12px rgba(139,92,246,0.4)',
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 border border-violet-400/40 flex items-center justify-center flex-shrink-0"
-          >
-            <span className="text-sm font-bold">✦</span>
-          </motion.div>
-          <h1 className="text-base font-black text-white">BAE AI</h1>
-        </div>
-        {/* Interest score */}
-        {addedCount > 0 && (
-          <motion.div
-            key={addedCount}
-            initial={{ scale: 1.3 }}
-            animate={{ scale: 1 }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-300/10 border border-yellow-300/20"
-          >
-            <span className="text-yellow-300 font-black text-sm">+{addedCount}</span>
-            <span className="text-yellow-300/50 text-[10px] font-semibold">new</span>
-          </motion.div>
-        )}
-        <button
-          onClick={async () => {
-            if (!user) return;
-            try {
-              await fetch('/api/clear-interview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: user.uid }),
-              });
-              setMessages([]);
-              setConversationHistory([]);
-              setSuggestedInterests([]);
-              setStarted(false);
-              setIsFirstVisit(true);
-            } catch {}
-          }}
-          className="text-white/20 text-[11px] hover:text-white/50 transition-colors"
-        >
-          Start over
-        </button>
+    <main className="h-screen w-full bg-[#0a0711] text-white flex flex-col overflow-hidden">
+
+      {/* Ambient orbs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <motion.div
+          className="absolute w-[500px] h-[500px] rounded-full top-[20%] left-[25%]"
+          style={{ background: 'rgba(139, 92, 246, 0.05)', filter: 'blur(80px)' }}
+          animate={{ x: [0, 30, -20, 0], y: [0, -20, 30, 0] }}
+          transition={{ duration: 25, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute w-[400px] h-[400px] rounded-full bottom-[20%] right-[15%]"
+          style={{ background: 'rgba(212, 168, 67, 0.03)', filter: 'blur(80px)' }}
+          animate={{ x: [0, -20, 30, 0], y: [0, 30, -10, 0] }}
+          transition={{ duration: 30, repeat: Infinity, delay: 8 }}
+        />
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-        {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, type: 'spring', stiffness: 200 }}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+      {/* Minimal top bar */}
+      <div className="relative z-10 flex items-center justify-between px-5 py-3 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/profile')}
+            className="p-1.5 text-white/20 hover:text-white/50 transition-colors"
           >
-            {msg.role === 'assistant' && (
-              <div
-                className="max-w-[88%] px-5 py-4 rounded-2xl text-base leading-relaxed whitespace-pre-wrap"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.12))',
-                  border: '1px solid rgba(139,92,246,0.25)',
-                }}
-              >
-                <div className="text-white/90 font-medium">
-                  {renderMessage(msg.content, idx)}
-                </div>
-              </div>
-            )}
-            {msg.role === 'user' && (
-              <div className="max-w-[80%] px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/15 border border-amber-400/20 text-base text-white font-medium leading-relaxed whitespace-pre-wrap">
-                {msg.content}
-              </div>
-            )}
-          </motion.div>
-        ))}
+            <ArrowLeft size={18} />
+          </button>
+          <span className="text-xs font-medium text-white/20 tracking-widest uppercase">Talk</span>
+        </div>
 
-        {isStreaming && messages[messages.length - 1]?.content === '' && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-start"
-          >
-            <div
-              className="px-5 py-4 rounded-2xl"
-              style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.12))',
-                border: '1px solid rgba(139,92,246,0.25)',
-              }}
+        <div className="flex items-center gap-3">
+          {collectedInterests.length > 0 && (
+            <motion.button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-300/8 border border-yellow-300/12 hover:bg-yellow-300/12 transition-all"
+              whileTap={{ scale: 0.95 }}
             >
-              <motion.div
-                animate={{ opacity: [0.3, 0.8, 0.3] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
-                className="text-violet-300/60 text-base font-medium"
+              <Sparkles size={12} className="text-yellow-300/70" />
+              <motion.span
+                key={collectedInterests.length}
+                initial={{ scale: 1.4 }}
+                animate={{ scale: 1 }}
+                className="text-yellow-300/80 font-black text-xs"
               >
-                ✦ ✦ ✦
-              </motion.div>
+                {collectedInterests.length}
+              </motion.span>
+              {sidebarOpen ? (
+                <ChevronDown size={12} className="text-yellow-300/40" />
+              ) : (
+                <ChevronUp size={12} className="text-yellow-300/40" />
+              )}
+            </motion.button>
+          )}
+          <button
+            onClick={async () => {
+              if (!user) return;
+              try {
+                await fetch('/api/clear-interview', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ uid: user.uid }),
+                });
+                setConversationHistory([]);
+                setCollectedInterests([]);
+                setCurrentPillStates({});
+                setStarted(false);
+                setIsFirstVisit(true);
+                setStage({ type: 'welcome' });
+              } catch {}
+            }}
+            className="text-white/10 text-[11px] hover:text-white/30 transition-colors"
+          >
+            Start over
+          </button>
+        </div>
+      </div>
+
+      {/* Collected interests sidebar/tray */}
+      <AnimatePresence>
+        {sidebarOpen && collectedInterests.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 overflow-hidden border-b border-white/5"
+          >
+            <div className="px-5 py-3 flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
+              {collectedInterests.map((name, i) => (
+                <motion.button
+                  key={name}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.03 }}
+                  onPointerDown={() => handleLongPressStart(name)}
+                  onPointerUp={handleLongPressEnd}
+                  onPointerLeave={handleLongPressEnd}
+                  className="relative px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-300/60 bg-amber-300/8 border border-amber-300/10 hover:bg-amber-300/15 hover:text-amber-300/80 transition-all cursor-pointer select-none"
+                >
+                  {name}
+
+                  {/* Long-press menu */}
+                  <AnimatePresence>
+                    {longPressInterest === name && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 flex flex-col gap-1 p-1.5 rounded-xl bg-[#1a1025] border border-white/10 shadow-xl shadow-black/40 min-w-[160px]"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => handleGoDeeper(name)}
+                          className="px-3 py-2 rounded-lg text-left text-xs font-medium text-violet-300 hover:bg-violet-500/15 transition-colors"
+                        >
+                          Go deeper
+                        </button>
+                        <button
+                          onClick={() => handleTalkAbout(name)}
+                          className="px-3 py-2 rounded-lg text-left text-xs font-medium text-amber-300 hover:bg-amber-500/15 transition-colors"
+                        >
+                          Talk about this
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              ))}
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* Show me related button */}
-        {lastAddedInterest && !isStreaming && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center pt-2"
-          >
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={async () => {
-                const msg = `Show me more interests related to ${lastAddedInterest}`;
-                setLastAddedInterest(null);
-                const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
-                setMessages(prev => [...prev]);
-                await fetchResponse(newMessages);
-              }}
-              className="px-4 py-2 rounded-full text-xs font-bold bg-violet-500/20 border border-violet-400/20 text-violet-300 hover:bg-violet-500/30 transition-all"
-            >
-              Show me related interests
-            </motion.button>
-          </motion.div>
-        )}
+      {/* Close long-press menu when tapping elsewhere */}
+      {longPressInterest && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setLongPressInterest(null)}
+        />
+      )}
 
-        <div ref={chatEndRef} />
+      {/* ====== CENTER STAGE ====== */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 sm:px-12">
+        <div className="w-full max-w-xl text-center">
+          <AnimatePresence mode="wait">
+
+            {/* WELCOME */}
+            {stage.type === 'welcome' && (
+              <motion.div
+                key="welcome"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <h2 className="text-3xl sm:text-4xl font-light text-white/90 tracking-tight leading-snug">
+                  Let's Talk. And <span className="text-amber-300 font-normal">Make it Interesting.</span>
+                </h2>
+                <p className="text-sm text-white/25 mt-4 font-light tracking-wide">
+                  Tell BAE anything — your day, an obsession, a question, whatever's alive in you.
+                </p>
+                <motion.p
+                  animate={{ opacity: [0.15, 0.35, 0.15] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-xs text-white/15 mt-8 tracking-widest"
+                >
+                  start typing _
+                </motion.p>
+              </motion.div>
+            )}
+
+            {/* USER ECHO — brief display of what they said */}
+            {stage.type === 'userEcho' && (
+              <motion.div
+                key="echo"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <p className="text-lg sm:text-xl text-white/40 font-light italic tracking-wide leading-relaxed">
+                  {stage.text}
+                </p>
+              </motion.div>
+            )}
+
+            {/* BREATHING — the thinking state */}
+            {stage.type === 'breathing' && (
+              <motion.div
+                key="breathing"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center justify-center"
+              >
+                <motion.div
+                  animate={{
+                    scale: [0.8, 1.3, 0.8],
+                    opacity: [0.2, 0.5, 0.2],
+                    boxShadow: [
+                      '0 0 20px rgba(139,92,246,0.2)',
+                      '0 0 40px rgba(139,92,246,0.4)',
+                      '0 0 20px rgba(139,92,246,0.2)',
+                    ],
+                  }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="w-12 h-12 rounded-full bg-violet-500/15 border border-violet-500/20"
+                />
+              </motion.div>
+            )}
+
+            {/* BAE'S UTTERANCE — the present moment */}
+            {stage.type === 'utterance' && (
+              <motion.div
+                key={`utterance-${conversationHistory.length}`}
+                initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col items-center gap-8"
+              >
+                {/* BAE's text */}
+                <div className="flex items-start gap-3 justify-center">
+                  <motion.div
+                    animate={{
+                      boxShadow: [
+                        '0 0 8px rgba(139,92,246,0.3)',
+                        '0 0 16px rgba(139,92,246,0.5)',
+                        '0 0 8px rgba(139,92,246,0.3)',
+                      ],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className="w-2 h-2 rounded-full bg-violet-400 mt-3 flex-shrink-0"
+                  />
+                  <p className="text-xl sm:text-2xl lg:text-[26px] font-light text-white/90 leading-[1.65] tracking-tight text-center">
+                    {stage.text}
+                  </p>
+                </div>
+
+                {/* Interest pills */}
+                {stage.interests.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                    className="flex flex-wrap justify-center gap-3"
+                  >
+                    {stage.interests.map((interest, i) => {
+                      const isAdded = currentPillStates[interest.name.toLowerCase()] || false;
+                      return (
+                        <motion.div
+                          key={interest.name}
+                          initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ delay: 0.4 + i * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+                          className="flex items-center gap-1"
+                        >
+                          {/* The pill itself */}
+                          <motion.button
+                            whileHover={!isAdded ? { scale: 1.06, y: -2 } : {}}
+                            whileTap={!isAdded ? { scale: 0.95 } : {}}
+                            onClick={() => !isAdded && handleAddInterest(interest.name)}
+                            className={`relative px-5 py-2.5 rounded-full text-sm font-medium transition-all select-none ${
+                              isAdded
+                                ? 'text-amber-300/70 bg-amber-300/10 border border-amber-300/20'
+                                : 'text-white/90 bg-white/6 border border-white/10 cursor-pointer hover:bg-white/10 hover:border-white/20'
+                            }`}
+                            style={isAdded ? {
+                              boxShadow: '0 0 20px rgba(212,168,67,0.25)',
+                            } : {}}
+                          >
+                            {isAdded && (
+                              <motion.span
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 400 }}
+                                className="mr-1.5"
+                              >
+                                ✓
+                              </motion.span>
+                            )}
+                            {!isAdded && <span className="mr-1.5 text-white/30">+</span>}
+                            {interest.name}
+
+                            {/* Ripple on add */}
+                            {isAdded && (
+                              <motion.span
+                                initial={{ scale: 1, opacity: 0.5 }}
+                                animate={{ scale: 1.5, opacity: 0 }}
+                                transition={{ duration: 0.6 }}
+                                className="absolute inset-0 rounded-full border border-amber-300/50 pointer-events-none"
+                              />
+                            )}
+                          </motion.button>
+
+                          {/* Explore icon — appears after pill is added */}
+                          <AnimatePresence>
+                            {isAdded && (
+                              <motion.button
+                                initial={{ opacity: 0, scale: 0, width: 0 }}
+                                animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                                exit={{ opacity: 0, scale: 0, width: 0 }}
+                                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                                onClick={() => handleExploreInterest(interest.name)}
+                                className="w-8 h-8 rounded-full bg-violet-500/15 border border-violet-400/20 flex items-center justify-center text-violet-300/70 hover:bg-violet-500/25 hover:text-violet-300 transition-all flex-shrink-0"
+                                title={`Explore interests related to ${interest.name}`}
+                              >
+                                <Search size={13} />
+                              </motion.button>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                )}
+
+                {/* Continue conversation button — visible when exploring or when pills have been added */}
+                {(isExploring || stage.interests.some(i => currentPillStates[i.name.toLowerCase()])) && !isStreaming && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6, duration: 0.4 }}
+                    onClick={handleContinueConversation}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold text-white/40 bg-white/[0.04] border border-white/[0.08] hover:text-white/60 hover:bg-white/[0.07] transition-all mt-2"
+                  >
+                    <MessageCircle size={13} />
+                    Continue conversation
+                  </motion.button>
+                )}
+              </motion.div>
+            )}
+
+            {/* ERROR */}
+            {stage.type === 'error' && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <p className="text-base text-white/40 font-light">{stage.text}</p>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Input */}
       <div
-        className="flex-shrink-0 px-4 py-4 bg-black/30 backdrop-blur-sm border-t border-white/10"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        className="relative z-10 flex-shrink-0 px-6 sm:px-8 py-5"
+        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="flex gap-3 items-center">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={isStreaming ? "" : "Tell BAE anything..."}
-            disabled={isStreaming}
-            className="flex-1 px-5 py-4 rounded-2xl bg-white/8 border border-white/15 text-white text-base placeholder:text-white/25 outline-none focus:border-violet-400/40 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all disabled:opacity-40"
-          />
-          <motion.button
-            onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
-            whileTap={{ scale: 0.9 }}
-            whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
-            className={`p-4 rounded-2xl transition-all ${
-              input.trim() && !isStreaming
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25'
-                : 'bg-white/5 text-white/15'
-            }`}
-          >
-            <Send size={20} />
-          </motion.button>
+        <div className="max-w-xl mx-auto">
+          <div className="relative">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              placeholder={isStreaming ? '' : 'Say something...'}
+              disabled={isStreaming}
+              className="w-full px-6 py-4 pr-14 rounded-full bg-white/[0.03] border border-white/[0.06] text-white text-base placeholder:text-white/15 outline-none focus:border-violet-500/25 focus:bg-white/[0.05] focus:shadow-[0_0_40px_rgba(139,92,246,0.06)] transition-all disabled:opacity-20 font-light tracking-wide"
+            />
+            <motion.button
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isStreaming}
+              whileTap={{ scale: 0.9 }}
+              whileHover={input.trim() && !isStreaming ? { scale: 1.1 } : {}}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                input.trim() && !isStreaming
+                  ? 'text-violet-400 hover:text-violet-300'
+                  : 'text-white/10'
+              }`}
+            >
+              <Send size={16} />
+            </motion.button>
+          </div>
         </div>
       </div>
+
+      {/* Global keyframe for pill glow */}
+      <style jsx global>{`
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 15px rgba(212,168,67,0.3); }
+          50% { box-shadow: 0 0 25px rgba(212,168,67,0.5); }
+        }
+      `}</style>
     </main>
   );
 }
