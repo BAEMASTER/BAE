@@ -119,37 +119,40 @@ export default function DiscoverPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Map interests/text to topic icons
-  const detectTopicIcon = (text: string, interests: string[]): string => {
-    const all = (text + ' ' + interests.join(' ')).toLowerCase();
-    const map: [string[], string][] = [
-      [['music', 'singing', 'guitar', 'piano', 'jazz', 'hip hop', 'rap', 'concert', 'band', 'instrument', 'song', 'dj', 'producer', 'vinyl', 'playlist', 'kirtan', 'mantra', 'chanting'], '🎵'],
-      [['cook', 'food', 'recipe', 'restaurant', 'chef', 'cuisine', 'dinner', 'meal', 'raw food', 'nutrition', 'eating', 'vegan', 'plant-based'], '🍳'],
-      [['fitness', 'gym', 'workout', 'running', 'exercise', 'lift', 'crossfit', 'training', 'marathon', 'strength'], '💪'],
-      [['yoga', 'meditation', 'mindful', 'breathwork', 'spiritual', 'consciousness', 'awakening', 'presence', 'zen', 'buddhis', 'hindu', 'sai baba', 'kundalini', 'chakra', 'energy healing'], '🧘'],
-      [['travel', 'trip', 'country', 'city', 'flight', 'explore', 'backpack', 'adventure', 'destination', 'abroad'], '✈️'],
-      [['tech', 'coding', 'software', 'ai', 'artificial intelligence', 'programming', 'startup', 'app', 'build', 'engineer', 'claude', 'machine learning'], '💻'],
-      [['business', 'entrepreneur', 'sales', 'hustle', 'revenue', 'company', 'startup', 'insurance', 'financial', 'invest', 'wealth', 'estate planning', 'money'], '📈'],
-      [['family', 'kids', 'parent', 'father', 'mother', 'son', 'daughter', 'child', 'raising'], '👨‍👩‍👧‍👦'],
-      [['film', 'movie', 'cinema', 'director', 'watch', 'tv', 'show', 'series', 'netflix', 'documentary'], '🎬'],
-      [['book', 'reading', 'author', 'novel', 'literature', 'writing', 'poetry', 'poet', 'journal'], '📚'],
-      [['art', 'paint', 'drawing', 'creative', 'design', 'gallery', 'museum', 'sculpture', 'photograph'], '🎨'],
-      [['sport', 'basketball', 'football', 'soccer', 'tennis', 'baseball', 'golf', 'surf', 'ski', 'snowboard', 'swim', 'climb'], '⚽'],
-      [['comedy', 'stand-up', 'funny', 'humor', 'laugh', 'improv', 'joke'], '😂'],
-      [['nature', 'hiking', 'outdoor', 'mountain', 'ocean', 'beach', 'camping', 'garden', 'forest', 'trail'], '🌿'],
-      [['love', 'relationship', 'dating', 'romance', 'intimacy', 'partner', 'marriage', 'tantra', 'sacred sexuality', 'polarity', 'attraction'], '❤️'],
-      [['psychology', 'therapy', 'mental health', 'growth', 'personal development', 'self-improvement', 'coaching', 'sobriety'], '🧠'],
-      [['fashion', 'style', 'clothing', 'sneaker', 'outfit', 'design'], '👔'],
-      [['science', 'physics', 'biology', 'chemistry', 'space', 'astronomy', 'quantum', 'research'], '🔬'],
-      [['dog', 'cat', 'pet', 'animal'], '🐕'],
-      [['game', 'gaming', 'video game', 'board game', 'chess', 'poker'], '🎮'],
-      [['coffee', 'tea', 'cafe', 'espresso'], '☕'],
-      [['wine', 'beer', 'cocktail', 'drink', 'bar', 'whiskey'], '🍷'],
-      [['dance', 'dancing', 'salsa', 'house music', 'electronic', 'rave', 'festival'], '💃'],
-      [['philosophy', 'meaning', 'existence', 'purpose', 'stoic', 'wisdom', 'truth'], '💡'],
-    ];
-    for (const [keywords, icon] of map) {
-      if (keywords.some(k => all.includes(k))) return icon;
+  // Map interests to topic icons — checks each interest individually in order
+  const detectTopicIcon = (_text: string, interests: string[]): string => {
+    // Check each interest individually, return icon for the first match
+    for (const interest of interests) {
+      const single = interest.toLowerCase();
+      const map: [string[], string][] = [
+        [['music', 'singing', 'guitar', 'piano', 'jazz', 'hip hop', 'rap', 'concert', 'band', 'instrument', 'song', 'dj', 'producer', 'vinyl', 'playlist', 'kirtan', 'mantra', 'chanting'], '🎵'],
+        [['cook', 'food', 'recipe', 'restaurant', 'chef', 'cuisine', 'dinner', 'meal', 'raw food', 'nutrition', 'eating', 'vegan', 'plant-based'], '🍳'],
+        [['fitness', 'gym', 'workout', 'running', 'exercise', 'lift', 'crossfit', 'training', 'marathon', 'strength'], '💪'],
+        [['yoga', 'meditation', 'mindful', 'breathwork', 'spiritual', 'consciousness', 'awakening', 'presence', 'zen', 'buddhis', 'hindu', 'sai baba', 'kundalini', 'chakra', 'energy healing'], '🧘'],
+        [['travel', 'trip', 'country', 'city', 'flight', 'explore', 'backpack', 'adventure', 'destination', 'abroad'], '✈️'],
+        [['tech', 'coding', 'software', 'ai', 'artificial intelligence', 'programming', 'startup', 'app', 'build', 'engineer', 'claude', 'machine learning', 'vibe coding'], '💻'],
+        [['business', 'entrepreneur', 'sales', 'hustle', 'revenue', 'company', 'insurance', 'financial', 'invest', 'wealth', 'estate planning', 'money'], '📈'],
+        [['family', 'kids', 'parent', 'father', 'mother', 'son', 'daughter', 'child', 'raising'], '👨‍👩‍👧‍👦'],
+        [['film', 'movie', 'cinema', 'director', 'watch', 'tv', 'show', 'series', 'netflix', 'documentary', 'back to the future'], '🎬'],
+        [['book', 'reading', 'author', 'novel', 'literature', 'writing', 'poetry', 'poet', 'journal', 'comic'], '📚'],
+        [['art', 'paint', 'drawing', 'creative', 'design', 'gallery', 'museum', 'sculpture', 'photograph'], '🎨'],
+        [['soccer', 'football', 'basketball', 'tennis', 'baseball', 'golf', 'sport'], '⚽'],
+        [['surf', 'ski', 'snowboard', 'swim', 'climb', 'hiking', 'outdoor', 'nature', 'mountain', 'ocean', 'beach', 'camping', 'trail'], '🌿'],
+        [['comedy', 'stand-up', 'funny', 'humor', 'laugh', 'improv', 'joke'], '😂'],
+        [['love', 'relationship', 'dating', 'romance', 'intimacy', 'partner', 'marriage', 'tantra', 'sacred sexuality', 'polarity', 'attraction'], '❤️'],
+        [['psychology', 'therapy', 'mental health', 'growth', 'personal development', 'self-improvement', 'coaching', 'sobriety'], '🧠'],
+        [['fashion', 'style', 'clothing', 'sneaker', 'outfit'], '👔'],
+        [['science', 'physics', 'biology', 'chemistry', 'space', 'astronomy', 'quantum', 'research'], '🔬'],
+        [['dog', 'cat', 'pet', 'animal'], '🐕'],
+        [['game', 'gaming', 'video game', 'board game', 'chess', 'poker'], '🎮'],
+        [['coffee', 'tea', 'cafe', 'espresso'], '☕'],
+        [['wine', 'beer', 'cocktail', 'drink', 'bar', 'whiskey'], '🍷'],
+        [['dance', 'dancing', 'salsa', 'house music', 'electronic', 'rave', 'festival'], '💃'],
+        [['philosophy', 'meaning', 'existence', 'purpose', 'stoic', 'wisdom', 'truth'], '💡'],
+      ];
+      for (const [keywords, icon] of map) {
+        if (keywords.some(k => single.includes(k))) return icon;
+      }
     }
     return '✦';
   };
@@ -261,19 +264,22 @@ export default function DiscoverPage() {
       }
       setRecentlySelected([]);
 
-      // Detect topic icon from response
+      // Detect topic icon from interests in this response only (not full text to avoid false matches)
       const interestNamesFromResponse = [...fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g)].map(m => m[1].trim());
-      const icon = detectTopicIcon(fullText, interestNamesFromResponse);
-      setTopicIcon(icon);
-      // Add to topic history if it's a new icon (avoid duplicates in a row)
-      setTopicHistory(prev => {
-        const lastIcon = prev.length > 0 ? prev[prev.length - 1].icon : null;
-        if (icon !== lastIcon) {
-          const label = interestNamesFromResponse[0] || 'Chat';
-          return [...prev, { icon, label, msgIdx: assistantIdx }];
-        }
-        return prev;
-      });
+      if (interestNamesFromResponse.length > 0) {
+        // Use the first interest as the label, detect icon from interests only
+        const icon = detectTopicIcon('', interestNamesFromResponse);
+        setTopicIcon(icon);
+        setTopicHistory(prev => {
+          const lastLabel = prev.length > 0 ? prev[prev.length - 1].label : null;
+          const label = interestNamesFromResponse[0];
+          // Only add if the primary interest is different from last entry
+          if (label !== lastLabel) {
+            return [...prev, { icon, label, msgIdx: assistantIdx }];
+          }
+          return prev;
+        });
+      }
 
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
       setConversationHistory(finalMessages);
