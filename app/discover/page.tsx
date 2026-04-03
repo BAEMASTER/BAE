@@ -106,6 +106,10 @@ export default function DiscoverPage() {
 
   const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
+  // Track interests selected since last AI response — for dynamic follow-up
+  const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
+  const [showContinue, setShowContinue] = useState(false);
+  const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -210,7 +214,12 @@ export default function DiscoverPage() {
       if (newSuggested.length > 0) {
         setSuggestedInterests(prev => [...prev, ...newSuggested]);
         playDiscoverSound();
+        // Start 5-second timer for continue button
+        if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+        setShowContinue(false);
+        continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
       }
+      setRecentlySelected([]);
 
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
       setConversationHistory(finalMessages);
@@ -239,6 +248,8 @@ export default function DiscoverPage() {
     const text = textOverride || input.trim();
     if (!text || isStreaming) return;
     if (!textOverride) setInput('');
+    setShowContinue(false);
+    if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
 
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
     setMessages(newMessages);
@@ -268,6 +279,11 @@ export default function DiscoverPage() {
     setCollectedInterests(prev =>
       prev.includes(interest.name) ? prev : [...prev, interest.name]
     );
+    setRecentlySelected(prev => [...prev, interest.name]);
+    // Reset continue timer — user is still active
+    if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+    setShowContinue(false);
+    continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
 
     setSuggestedInterests(prev =>
       prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
@@ -289,6 +305,32 @@ export default function DiscoverPage() {
     } catch (e) {
       console.error('Failed to add interest:', e);
     }
+  };
+
+  const handleContinue = async () => {
+    if (isStreaming) return;
+    setShowContinue(false);
+    if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+
+    let contextMsg: string;
+    if (recentlySelected.length > 0) {
+      contextMsg = `(User selected these interests: ${recentlySelected.join(', ')}. Continue the conversation based on what they picked — ask a follow-up that connects to the specific interests they chose. Be dynamic — if they picked something surprising, go there.)`;
+    } else {
+      contextMsg = `(User didn't select any of the suggested interests — they didn't resonate. Ask a fresh question about a different area of their life. Keep it grounded and real.)`;
+    }
+
+    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
+    setConversationHistory(newMessages);
+    setRecentlySelected([]);
+    if (user) {
+      try {
+        await setDoc(doc(firestore, 'users', user.uid), {
+          discoverConversation: newMessages,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      } catch {}
+    }
+    await fetchResponse(newMessages);
   };
 
   const handleExploreInterest = async (name: string) => {
@@ -526,26 +568,27 @@ export default function DiscoverPage() {
       <AnimatePresence>
         {collectedInterests.length > 0 && (
           <>
-            {/* Desktop: fixed right sidebar */}
-            <div className="hidden md:flex fixed right-0 top-[60px] bottom-0 w-48 flex-col z-20 pointer-events-none">
-              <div className="flex-1 flex flex-col justify-end overflow-hidden py-4 pr-4">
+            {/* Desktop: fixed right sidebar — big glowing pills */}
+            <div className="hidden md:flex fixed right-0 top-[60px] bottom-[80px] w-56 flex-col z-20 pointer-events-none">
+              <div className="flex-1 flex flex-col justify-end overflow-hidden py-4 pr-5 gap-3">
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
                     <motion.button
                       key={name}
                       layout
-                      initial={{ opacity: 0, x: 60, scale: 0.8 }}
-                      animate={{ opacity: Math.min(1, 1 - i * 0.08), x: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -40, scale: 0.7 }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                      initial={{ opacity: 0, x: 80, scale: 0.7 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -50, scale: 0.6 }}
+                      transition={{ type: 'spring', stiffness: 250, damping: 22 }}
                       onClick={() => handleExploreInterest(name)}
-                      className="pointer-events-auto mb-2 group flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold text-amber-300/80 bg-amber-400/10 border border-amber-300/15 hover:bg-amber-400/20 hover:text-amber-300 transition-all cursor-pointer backdrop-blur-sm truncate"
+                      className="pointer-events-auto group flex items-center gap-2 px-4 py-3 rounded-full text-sm font-black text-amber-200 bg-gradient-to-r from-amber-400/15 to-yellow-400/10 border border-amber-300/20 hover:from-amber-400/25 hover:to-yellow-400/20 hover:text-amber-100 transition-all cursor-pointer backdrop-blur-sm truncate"
                       style={{
-                        opacity: Math.max(0.15, 1 - i * 0.08),
+                        opacity: Math.max(0.2, 1 - i * 0.06),
+                        boxShadow: i < 3 ? '0 0 15px rgba(253,224,71,0.15), 0 0 30px rgba(253,224,71,0.05)' : 'none',
                       }}
                     >
                       <span className="truncate">{name}</span>
-                      <Search size={10} className="text-amber-300/30 group-hover:text-amber-300/70 transition-colors flex-shrink-0" />
+                      <Search size={12} className="text-amber-300/30 group-hover:text-amber-300/80 transition-colors flex-shrink-0" />
                     </motion.button>
                   ))}
                 </AnimatePresence>
@@ -627,6 +670,27 @@ export default function DiscoverPage() {
               <span className="text-white/20 text-sm font-medium">BAE is thinking...</span>
             </motion.div>
           )}
+
+          {/* Continue button — appears 5s after pills, sends selected interests as context */}
+          <AnimatePresence>
+            {showContinue && !isStreaming && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex justify-center py-4"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleContinue}
+                  className="px-6 py-3 rounded-full bg-gradient-to-r from-violet-500/25 to-fuchsia-500/20 border border-violet-400/25 text-white/80 text-sm font-bold hover:from-violet-500/35 hover:to-fuchsia-500/30 transition-all"
+                >
+                  {recentlySelected.length > 0 ? 'Keep going' : 'Next question'}
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div ref={scrollEndRef} />
         </div>
