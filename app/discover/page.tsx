@@ -108,6 +108,8 @@ export default function DiscoverPage() {
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
   const [topicIcon, setTopicIcon] = useState<string | null>(null);
   const [topicHistory, setTopicHistory] = useState<{ icon: string; label: string; msgIdx: number }[]>([]);
+  // Question reactions — track which messages have been reacted to
+  const [questionReactions, setQuestionReactions] = useState<Record<number, string>>({});
   // Track interests selected since last AI response — for dynamic follow-up
   const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
   const [showContinue, setShowContinue] = useState(false);
@@ -635,8 +637,10 @@ export default function DiscoverPage() {
                       onClick={() => handleExploreInterest(name)}
                       className="pointer-events-auto group flex items-center gap-2 px-4 py-3 rounded-full text-sm font-black text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 hover:brightness-110 transition-all cursor-pointer truncate"
                       style={{
-                        opacity: Math.max(0.25, 1 - i * 0.06),
-                        boxShadow: i < 3 ? '0 0 20px rgba(253,224,71,0.4), 0 0 40px rgba(253,224,71,0.15)' : '0 0 10px rgba(253,224,71,0.2)',
+                        opacity: Math.max(0.3, 1 - i * 0.05),
+                        boxShadow: i < 5
+                          ? `0 0 25px rgba(253,224,71,${0.5 - i * 0.08}), 0 0 50px rgba(253,224,71,${0.2 - i * 0.03}), 0 0 80px rgba(253,224,71,${0.1 - i * 0.015})`
+                          : '0 0 10px rgba(253,224,71,0.15)',
                       }}
                     >
                       <span className="truncate">{name}</span>
@@ -750,8 +754,53 @@ export default function DiscoverPage() {
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               {msg.role === 'assistant' && (
-                <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
-                  {renderMessage(msg.content, idx)}
+                <div>
+                  <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
+                    {renderMessage(msg.content, idx)}
+                  </div>
+                  {/* Question reaction bar */}
+                  {msg.content && !msg.content.startsWith('(') && (
+                    <div className="flex items-center gap-1 mt-3">
+                      {questionReactions[idx] ? (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 400 }}
+                          className="text-2xl"
+                          style={{ filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.4))' }}
+                        >
+                          {questionReactions[idx]}
+                        </motion.span>
+                      ) : (
+                        [
+                          { emoji: '❤️', label: 'Love this' },
+                          { emoji: '🧠', label: 'Smart' },
+                          { emoji: '🔥', label: 'Fire' },
+                          { emoji: '😂', label: 'Funny' },
+                          { emoji: '🤔', label: 'Deep' },
+                        ].map(({ emoji, label }) => (
+                          <motion.button
+                            key={emoji}
+                            whileHover={{ scale: 1.3, y: -3 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => {
+                              setQuestionReactions(prev => ({ ...prev, [idx]: emoji }));
+                              playAddSound();
+                              // Send reaction as context for AI learning
+                              const reactionMsg = `(User reacted to your last message with ${emoji} (${label}). This tells you about what kind of questions/comments they appreciate. Briefly acknowledge it warmly — like "glad that landed" or "love that you felt that" — then continue naturally.)`;
+                              const newMsgs: ChatMessage[] = [...conversationHistory, { role: 'user', content: reactionMsg }];
+                              setConversationHistory(newMsgs);
+                              fetchResponse(newMsgs);
+                            }}
+                            className="text-lg opacity-30 hover:opacity-80 transition-opacity cursor-pointer p-1"
+                            title={label}
+                          >
+                            {emoji}
+                          </motion.button>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {msg.role === 'user' && (
