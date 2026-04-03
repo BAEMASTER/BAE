@@ -500,7 +500,7 @@ export default function DiscoverPage() {
   // Render message — no bubbles, flowing text with BIG glowing interest pills
   const renderMessage = (content: string, msgIdx: number) => {
     const parts = content.split(/(\[INTEREST:\s*[^\]]+\])/g);
-    return parts.map((part, i) => {
+    const elements = parts.map((part, i) => {
       const match = part.match(/\[INTEREST:\s*([^\]]+)\]/);
       if (match) {
         const name = match[1].trim();
@@ -568,6 +568,49 @@ export default function DiscoverPage() {
       }
       return <span key={`${msgIdx}-text-${i}`}>{part}</span>;
     });
+
+    // If this message had interest pills, add an "Add your own" button at the end
+    const hasInterests = content.includes('[INTEREST:');
+    if (hasInterests) {
+      elements.push(
+        <span key={`${msgIdx}-custom-add`} className="inline-flex items-center mx-1 my-2">
+          {showCustomInput ? (
+            <span className="inline-flex items-center gap-1">
+              <input
+                value={customInterestInput}
+                onChange={e => setCustomInterestInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleAddCustomInterest();
+                  if (e.key === 'Escape') { setShowCustomInput(false); setCustomInterestInput(''); }
+                }}
+                placeholder="Type an interest..."
+                autoFocus
+                className="px-4 py-2.5 rounded-full bg-white/10 border-2 border-dashed border-yellow-300/30 text-white text-sm outline-none focus:border-yellow-300/50 w-44 placeholder:text-white/25 font-medium"
+              />
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleAddCustomInterest}
+                disabled={!customInterestInput.trim()}
+                className="px-4 py-2.5 rounded-full bg-yellow-300 text-black text-sm font-black disabled:opacity-30"
+              >
+                Add
+              </motion.button>
+            </span>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => setShowCustomInput(true)}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold text-yellow-300/60 border-2 border-dashed border-yellow-300/25 hover:border-yellow-300/40 hover:text-yellow-300/80 transition-all cursor-pointer"
+            >
+              + Add your own
+            </motion.button>
+          )}
+        </span>
+      );
+    }
+
+    return elements;
   };
 
   const addedCount = collectedInterests.length;
@@ -689,45 +732,6 @@ export default function DiscoverPage() {
               <span className="text-yellow-300/50 text-xs font-bold">interests</span>
             </motion.div>
 
-            {/* Add your own interest */}
-            <AnimatePresence>
-              {showCustomInput ? (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 'auto', opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  className="flex items-center gap-1 overflow-hidden"
-                >
-                  <input
-                    value={customInterestInput}
-                    onChange={e => setCustomInterestInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleAddCustomInterest();
-                      if (e.key === 'Escape') { setShowCustomInput(false); setCustomInterestInput(''); }
-                    }}
-                    placeholder="Type an interest..."
-                    autoFocus
-                    className="px-3 py-1.5 rounded-full bg-white/10 border border-yellow-300/20 text-white text-xs outline-none focus:border-yellow-300/40 w-40 placeholder:text-white/20"
-                  />
-                  <button
-                    onClick={handleAddCustomInterest}
-                    disabled={!customInterestInput.trim()}
-                    className="px-3 py-1.5 rounded-full bg-yellow-300 text-black text-xs font-black disabled:opacity-30"
-                  >
-                    Add
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowCustomInput(true)}
-                  className="w-8 h-8 rounded-full bg-yellow-300/15 border border-yellow-300/20 flex items-center justify-center text-yellow-300 hover:bg-yellow-300/25 transition-all text-lg font-bold"
-                  title="Add your own interest"
-                >
-                  +
-                </motion.button>
-              )}
-            </AnimatePresence>
           </div>
 
           <button
