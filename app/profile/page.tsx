@@ -583,21 +583,45 @@ export default function ProfilePage() {
         setTimeout(() => setNameLocationSetupError(''), 3000);
         return;
       }
+      if (!usernameInput.trim()) {
+        setNameLocationSetupError('Pick a name for your BAE room');
+        setTimeout(() => setNameLocationSetupError(''), 3000);
+        return;
+      }
+      const usernameVal = usernameInput.toLowerCase().trim();
+      const validation = validateUsername(usernameVal);
+      if (!validation.valid) {
+        setNameLocationSetupError(validation.error || 'Invalid room name');
+        setTimeout(() => setNameLocationSetupError(''), 3000);
+        return;
+      }
       if (!user) return;
       try {
+        // Check if username is taken
+        const usernameDoc = await getDoc(doc(db, 'usernames', usernameVal));
+        if (usernameDoc.exists() && usernameDoc.data()?.uid !== user.uid) {
+          setNameLocationSetupError('That room name is taken — try another');
+          setTimeout(() => setNameLocationSetupError(''), 3000);
+          return;
+        }
+
         const dob = formatDOB(birthYear, birthMonth, birthDay);
         const displayFmt = `${firstName.trim()} ${lastName.trim().charAt(0)}.`;
+        // Save user profile
         await setDoc(doc(db, 'users', user.uid), {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           displayName: displayFmt,
+          username: usernameVal,
           city, state, country, birthDate: dob,
           updatedAt: new Date().toISOString()
         }, { merge: true });
+        // Reserve the username
+        await setDoc(doc(db, 'usernames', usernameVal), { uid: user.uid });
+        setUsername(usernameVal);
         setDisplayName(displayFmt);
         setSetupComplete(true);
         setNameLocationSetupError('');
-        // Show transition screen before Talk
         setShowTalkTransition(true);
       } catch (e) {
         console.error('Setup save failed', e);
@@ -673,6 +697,26 @@ export default function ProfilePage() {
                 <option value="">Select your country</option>
                 {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+            </div>
+
+            {/* BAE Room Link */}
+            <div className="mt-2 p-4 rounded-2xl bg-gradient-to-r from-yellow-300/5 to-amber-300/5 border border-yellow-300/15">
+              <label className="block text-sm font-bold mb-1 text-yellow-300/90">Your BAE Room *</label>
+              <p className="text-xs text-white/40 mb-3">This is your personal room on BAE. Share your link so people can talk with you. No spaces or periods.</p>
+              <div className="flex items-center gap-2">
+                <span className="text-white/30 text-sm font-mono">baewithme.com/</span>
+                <input
+                  value={usernameInput}
+                  onChange={e => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="yourname"
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-yellow-300/20 text-white placeholder:text-white/20 outline-none focus:border-yellow-300/40 focus:ring-2 focus:ring-yellow-300/20 font-mono"
+                />
+              </div>
+              {usernameInput && (
+                <p className="text-xs text-yellow-300/50 mt-2 font-mono">
+                  Your link: baewithme.com/{usernameInput}
+                </p>
+              )}
             </div>
           </div>
 
