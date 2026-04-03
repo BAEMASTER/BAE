@@ -6,7 +6,7 @@ import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Send, Sparkles, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Search } from 'lucide-react';
 import {
   StructuredInterest,
   parseInterests,
@@ -105,7 +105,6 @@ export default function DiscoverPage() {
   const [userName, setUserName] = useState('');
 
   const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
@@ -505,17 +504,6 @@ export default function DiscoverPage() {
             <span className="text-yellow-300/50 text-xs font-bold">interests</span>
           </motion.div>
 
-          {/* Sidebar toggle */}
-          {collectedInterests.length > 0 && (
-            <motion.button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-white/30 hover:text-white/60 transition-colors"
-            >
-              <ChevronRight size={18} className={`transition-transform ${sidebarOpen ? 'rotate-90' : ''}`} />
-            </motion.button>
-          )}
-
           <button
             onClick={async () => {
               if (!user) return;
@@ -540,35 +528,54 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      {/* Collected interests tray */}
+      {/* Interest conveyor belt — right sidebar (desktop) / bottom strip (mobile) */}
       <AnimatePresence>
-        {sidebarOpen && collectedInterests.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex-shrink-0 overflow-hidden border-b border-white/10 bg-black/10"
-          >
-            <div className="px-5 py-3">
-              <div className="text-[10px] font-bold text-white/25 tracking-widest uppercase mb-2">Your Interests</div>
-              <div className="flex flex-wrap gap-2">
-                {collectedInterests.map((name, i) => (
+        {collectedInterests.length > 0 && (
+          <>
+            {/* Desktop: fixed right sidebar */}
+            <div className="hidden md:flex fixed right-0 top-[60px] bottom-0 w-48 flex-col z-20 pointer-events-none">
+              <div className="flex-1 flex flex-col justify-end overflow-hidden py-4 pr-4">
+                <AnimatePresence initial={false}>
+                  {[...collectedInterests].reverse().map((name, i) => (
+                    <motion.button
+                      key={name}
+                      layout
+                      initial={{ opacity: 0, x: 60, scale: 0.8 }}
+                      animate={{ opacity: Math.min(1, 1 - i * 0.08), x: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -40, scale: 0.7 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                      onClick={() => handleExploreInterest(name)}
+                      className="pointer-events-auto mb-2 group flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold text-amber-300/80 bg-amber-400/10 border border-amber-300/15 hover:bg-amber-400/20 hover:text-amber-300 transition-all cursor-pointer backdrop-blur-sm truncate"
+                      style={{
+                        opacity: Math.max(0.15, 1 - i * 0.08),
+                      }}
+                    >
+                      <span className="truncate">{name}</span>
+                      <Search size={10} className="text-amber-300/30 group-hover:text-amber-300/70 transition-colors flex-shrink-0" />
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Mobile: horizontal scroll strip at top */}
+            <div className="md:hidden flex-shrink-0 overflow-x-auto border-b border-white/5 bg-black/10">
+              <div className="flex gap-2 px-4 py-2 min-w-max">
+                {collectedInterests.map((name) => (
                   <motion.button
                     key={name}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.02 }}
                     onClick={() => handleExploreInterest(name)}
-                    className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-amber-300/70 bg-amber-300/10 border border-amber-300/15 hover:bg-amber-300/20 hover:text-amber-300 transition-all cursor-pointer"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-300/70 bg-amber-300/8 border border-amber-300/12 hover:bg-amber-300/15 transition-all whitespace-nowrap"
                   >
                     {name}
-                    <Search size={10} className="text-amber-300/30 group-hover:text-amber-300/70 transition-colors" />
+                    <Search size={9} className="text-amber-300/30" />
                   </motion.button>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
 
@@ -636,41 +643,40 @@ export default function DiscoverPage() {
         className="flex-shrink-0 px-5 sm:px-8 py-4 bg-black/20 backdrop-blur-sm border-t border-white/10"
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="max-w-2xl mx-auto">
-          <div className="flex gap-3 items-center">
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder={isStreaming ? '' : 'Say something...'}
-              disabled={isStreaming}
-              className="flex-1 px-6 py-4 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all disabled:opacity-30 font-medium"
-            />
-            <motion.button
-              onClick={() => handleSend()}
-              disabled={!input.trim() || isStreaming}
-              whileTap={{ scale: 0.9 }}
-              whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
-              className={`p-4 rounded-full transition-all ${
-                input.trim() && !isStreaming
-                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
-                  : 'bg-white/5 text-white/15'
-              }`}
-            >
-              <Send size={18} />
-            </motion.button>
-          </div>
-          {/* Switch topic */}
+        <div className="max-w-2xl mx-auto flex gap-2 items-center">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            placeholder={isStreaming ? '' : 'Say something...'}
+            disabled={isStreaming}
+            className="flex-1 px-6 py-4 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all disabled:opacity-30 font-medium"
+          />
+          <motion.button
+            onClick={() => handleSend()}
+            disabled={!input.trim() || isStreaming}
+            whileTap={{ scale: 0.9 }}
+            whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
+            className={`p-4 rounded-full transition-all flex-shrink-0 ${
+              input.trim() && !isStreaming
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
+                : 'bg-white/5 text-white/15'
+            }`}
+          >
+            <Send size={18} />
+          </motion.button>
           {messages.length > 2 && !isStreaming && (
-            <div className="flex justify-center mt-2">
-              <button
-                onClick={() => handleSend('(User wants to switch to a completely new topic. Pivot to something totally different about their life — new area, new energy. Make it fun.)')}
-                className="text-xs font-bold text-white/25 hover:text-white/50 transition-colors py-1 px-3"
-              >
-                Switch topic
-              </button>
-            </div>
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              onClick={() => handleSend('(User wants to switch to a completely new topic. Pivot to something totally different about their life — new area, new energy. Make it fun.)')}
+              className="px-5 py-4 rounded-full bg-violet-500/20 border border-violet-400/25 text-violet-200 text-sm font-bold hover:bg-violet-500/30 transition-all flex-shrink-0 whitespace-nowrap"
+            >
+              New topic
+            </motion.button>
           )}
         </div>
       </div>
