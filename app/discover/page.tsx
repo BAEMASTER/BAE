@@ -681,7 +681,7 @@ export default function DiscoverPage() {
         {collectedInterests.length > 0 && (
           <>
             {/* Desktop: fixed right sidebar — big glowing pills */}
-            <div className="hidden md:flex fixed right-0 top-[60px] bottom-[80px] w-56 flex-col z-20 pointer-events-none">
+            <div className="hidden md:flex fixed right-0 top-[60px] bottom-[80px] w-64 flex-col z-20 pointer-events-none">
               <div className="flex-1 flex flex-col justify-end overflow-y-auto py-4 pr-5 gap-3 pointer-events-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
@@ -693,12 +693,12 @@ export default function DiscoverPage() {
                       exit={{ opacity: 0, y: -50, scale: 0.6 }}
                       transition={{ type: 'spring', stiffness: 250, damping: 22 }}
                       onClick={() => handleExploreInterest(name)}
-                      className="pointer-events-auto group flex items-center gap-2 px-4 py-3 rounded-full text-sm font-black text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 hover:brightness-110 transition-all cursor-pointer truncate"
+                      className="pointer-events-auto group flex items-center gap-2 px-5 py-3.5 rounded-full text-base font-black text-black bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-300 border-2 border-yellow-200 hover:brightness-110 transition-all cursor-pointer truncate"
                       style={{
-                        opacity: Math.max(0.3, 1 - i * 0.05),
-                        boxShadow: i < 5
-                          ? `0 0 25px rgba(253,224,71,${0.5 - i * 0.08}), 0 0 50px rgba(253,224,71,${0.2 - i * 0.03}), 0 0 80px rgba(253,224,71,${0.1 - i * 0.015})`
-                          : '0 0 10px rgba(253,224,71,0.15)',
+                        opacity: Math.max(0.35, 1 - i * 0.04),
+                        boxShadow: i < 6
+                          ? `0 0 30px rgba(253,224,71,${0.6 - i * 0.08}), 0 0 60px rgba(253,224,71,${0.3 - i * 0.04}), 0 0 100px rgba(253,224,71,${0.15 - i * 0.02})`
+                          : '0 0 15px rgba(253,224,71,0.2)',
                       }}
                     >
                       <span className="truncate">{name}</span>
@@ -801,7 +801,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Conversation — scrolling, flowing, BIG text, no bubbles */}
-      <div className="flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:ml-48 md:mr-56" ref={messagesContainerRef}>
+      <div className="flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:ml-48 md:mr-64" ref={messagesContainerRef}>
         <div className="max-w-2xl mx-auto space-y-8">
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
             <motion.div
