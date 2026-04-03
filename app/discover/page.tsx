@@ -108,8 +108,8 @@ export default function DiscoverPage() {
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
   const [topicIcon, setTopicIcon] = useState<string | null>(null);
   const [topicHistory, setTopicHistory] = useState<{ icon: string; label: string; msgIdx: number }[]>([]);
-  // Question reactions — track which messages have been reacted to
-  const [questionReactions, setQuestionReactions] = useState<Record<number, string>>({});
+  const [customInterestInput, setCustomInterestInput] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   // Track interests selected since last AI response — for dynamic follow-up
   const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
   const [showContinue, setShowContinue] = useState(false);
@@ -450,6 +450,37 @@ export default function DiscoverPage() {
     await fetchResponse(newMessages);
   };
 
+  const handleAddCustomInterest = async () => {
+    const name = customInterestInput.trim();
+    if (!name || !user) return;
+    if (isBlockedInterest(name)) return;
+
+    const newInterest = createInterest(name, 'profile');
+    const updated = addStructuredInterests(existingInterests, [newInterest]);
+    setExistingInterests(updated);
+    playAddSound();
+
+    setCollectedInterests(prev =>
+      prev.includes(name) ? prev : [...prev, name]
+    );
+    setCustomInterestInput('');
+    setShowCustomInput(false);
+
+    const newCount = collectedInterests.length + 1;
+    if (newCount === 5 || newCount === 10 || newCount === 15 || newCount === 20 || newCount === 25) {
+      playMilestoneSound();
+      setMilestoneText(`${newCount} interests discovered!`);
+      setTimeout(() => setMilestoneText(null), 2500);
+    }
+
+    try {
+      await setDoc(doc(firestore, 'users', user.uid), {
+        interests: updated,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch {}
+  };
+
   const handleExploreInterest = async (name: string) => {
     if (isStreaming) return;
     const msg = `(User wants to explore interests related to "${name}". Show a variety of related interests they can add. Present them with brief framing text and multiple [INTEREST: name] pills.)`;
@@ -641,21 +672,63 @@ export default function DiscoverPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Discovery counter — prominent */}
-          <motion.div
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-300/10 to-amber-300/10 border border-yellow-300/20"
-          >
-            <Sparkles size={16} className="text-yellow-300" />
-            <motion.span
-              key={addedCount}
-              initial={addedCount > 0 ? { scale: 1.5 } : {}}
-              animate={{ scale: 1 }}
-              className="text-yellow-300 font-black text-base"
+          {/* Discovery counter + add your own */}
+          <div className="flex items-center gap-2">
+            <motion.div
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-300/10 to-amber-300/10 border border-yellow-300/20"
             >
-              {addedCount}
-            </motion.span>
-            <span className="text-yellow-300/50 text-xs font-bold">interests</span>
-          </motion.div>
+              <Sparkles size={16} className="text-yellow-300" />
+              <motion.span
+                key={addedCount}
+                initial={addedCount > 0 ? { scale: 1.5 } : {}}
+                animate={{ scale: 1 }}
+                className="text-yellow-300 font-black text-base"
+              >
+                {addedCount}
+              </motion.span>
+              <span className="text-yellow-300/50 text-xs font-bold">interests</span>
+            </motion.div>
+
+            {/* Add your own interest */}
+            <AnimatePresence>
+              {showCustomInput ? (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 'auto', opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  className="flex items-center gap-1 overflow-hidden"
+                >
+                  <input
+                    value={customInterestInput}
+                    onChange={e => setCustomInterestInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleAddCustomInterest();
+                      if (e.key === 'Escape') { setShowCustomInput(false); setCustomInterestInput(''); }
+                    }}
+                    placeholder="Type an interest..."
+                    autoFocus
+                    className="px-3 py-1.5 rounded-full bg-white/10 border border-yellow-300/20 text-white text-xs outline-none focus:border-yellow-300/40 w-40 placeholder:text-white/20"
+                  />
+                  <button
+                    onClick={handleAddCustomInterest}
+                    disabled={!customInterestInput.trim()}
+                    className="px-3 py-1.5 rounded-full bg-yellow-300 text-black text-xs font-black disabled:opacity-30"
+                  >
+                    Add
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowCustomInput(true)}
+                  className="w-8 h-8 rounded-full bg-yellow-300/15 border border-yellow-300/20 flex items-center justify-center text-yellow-300 hover:bg-yellow-300/25 transition-all text-lg font-bold"
+                  title="Add your own interest"
+                >
+                  +
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
 
           <button
             onClick={async () => {
