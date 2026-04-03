@@ -820,56 +820,25 @@ export default function DiscoverPage() {
         )}
       </AnimatePresence>
 
-      {/* Topic icon tower — left panel (desktop only) */}
-      <div className="hidden md:flex fixed left-0 top-[60px] bottom-[80px] w-48 flex-col z-20">
-        <div className="flex-1 flex flex-col justify-end overflow-y-auto py-4 pl-5 gap-2" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(139,92,246,0.2) transparent' }}>
-          <AnimatePresence initial={false}>
-            {topicHistory.map((topic, i) => {
-              const isLatest = i === topicHistory.length - 1;
-              return (
-                <motion.button
-                  key={`${topic.icon}-${topic.msgIdx}`}
-                  layout
-                  initial={{ opacity: 0, x: -40, scale: 0.7 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 250, damping: 22 }}
-                  onClick={() => {
-                    // Scroll to the message at this index
-                    const msgElements = messagesContainerRef.current?.querySelectorAll('[data-msg-idx]');
-                    if (msgElements) {
-                      for (const el of msgElements) {
-                        if (el.getAttribute('data-msg-idx') === String(topic.msgIdx)) {
-                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          break;
-                        }
-                      }
-                    }
-                  }}
-                  className={`group flex items-center gap-3 px-3 py-2 rounded-2xl transition-all cursor-pointer ${
-                    isLatest
-                      ? 'bg-violet-500/15 border border-violet-400/20'
-                      : 'hover:bg-white/5'
-                  }`}
-                  style={isLatest ? {
-                    boxShadow: '0 0 20px rgba(139,92,246,0.15)',
-                  } : {
-                    opacity: Math.max(0.6, 1 - (topicHistory.length - 1 - i) * 0.06),
-                  }}
-                >
-                  <span className="text-7xl select-none transition-all"
-                    style={isLatest ? {
-                      filter: 'drop-shadow(0 0 25px rgba(253,224,71,0.6)) drop-shadow(0 0 50px rgba(253,224,71,0.3)) drop-shadow(0 0 80px rgba(253,224,71,0.15))',
-                    } : {
-                      filter: 'drop-shadow(0 0 12px rgba(253,224,71,0.3)) drop-shadow(0 0 25px rgba(253,224,71,0.1))',
-                    }}
-                  >
-                    {topic.icon}
-                  </span>
-                </motion.button>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+      {/* Current topic icon — left panel (desktop only) — ONE BIG GLOWING ICON */}
+      <div className="hidden md:flex fixed left-0 top-[60px] bottom-[80px] w-48 items-center justify-center z-20 pointer-events-none">
+        <AnimatePresence mode="wait">
+          {topicIcon && (
+            <motion.div
+              key={topicIcon}
+              initial={{ opacity: 0, scale: 0.3, rotate: -20 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0, scale: 0.3, rotate: 20 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 12 }}
+              className="text-[120px] select-none"
+              style={{
+                filter: 'drop-shadow(0 0 30px rgba(253,224,71,0.6)) drop-shadow(0 0 60px rgba(253,224,71,0.3)) drop-shadow(0 0 100px rgba(253,224,71,0.15))',
+              }}
+            >
+              {topicIcon}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Conversation — scrolling, flowing, BIG text, no bubbles */}
