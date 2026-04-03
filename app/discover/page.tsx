@@ -812,53 +812,8 @@ export default function DiscoverPage() {
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               {msg.role === 'assistant' && (
-                <div>
-                  <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
-                    {renderMessage(msg.content, idx)}
-                  </div>
-                  {/* Question reaction bar */}
-                  {msg.content && !msg.content.startsWith('(') && (
-                    <div className="flex items-center gap-1 mt-3">
-                      {questionReactions[idx] ? (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 400 }}
-                          className="text-2xl"
-                          style={{ filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.4))' }}
-                        >
-                          {questionReactions[idx]}
-                        </motion.span>
-                      ) : (
-                        [
-                          { emoji: '❤️', label: 'Love this' },
-                          { emoji: '🧠', label: 'Smart' },
-                          { emoji: '🔥', label: 'Fire' },
-                          { emoji: '😂', label: 'Funny' },
-                          { emoji: '🤔', label: 'Deep' },
-                        ].map(({ emoji, label }) => (
-                          <motion.button
-                            key={emoji}
-                            whileHover={{ scale: 1.3, y: -3 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => {
-                              setQuestionReactions(prev => ({ ...prev, [idx]: emoji }));
-                              playAddSound();
-                              // Send reaction as context for AI learning
-                              const reactionMsg = `(User reacted to your last message with ${emoji} (${label}). This tells you about what kind of questions/comments they appreciate. Briefly acknowledge it warmly — like "glad that landed" or "love that you felt that" — then continue naturally.)`;
-                              const newMsgs: ChatMessage[] = [...conversationHistory, { role: 'user', content: reactionMsg }];
-                              setConversationHistory(newMsgs);
-                              fetchResponse(newMsgs);
-                            }}
-                            className="text-lg opacity-30 hover:opacity-80 transition-opacity cursor-pointer p-1"
-                            title={label}
-                          >
-                            {emoji}
-                          </motion.button>
-                        ))
-                      )}
-                    </div>
-                  )}
+                <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
+                  {renderMessage(msg.content, idx)}
                 </div>
               )}
               {msg.role === 'user' && (

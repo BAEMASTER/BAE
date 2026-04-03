@@ -115,10 +115,13 @@ export async function POST(req: NextRequest) {
       ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
       : '';
 
-    // Keep only the last 20 messages to avoid token limits on long conversations
-    const trimmedMessages = messages.slice(-20).map((m: any) => ({
+    // Keep only the last 16 messages to avoid token limits on long conversations
+    // Also condense system messages (parenthetical instructions) to save tokens
+    const trimmedMessages = messages.slice(-16).map((m: any) => ({
       role: m.role,
-      content: m.content,
+      content: m.role === 'user' && m.content.startsWith('(')
+        ? m.content.slice(0, 200) // Truncate long system messages
+        : m.content,
     }));
 
     // Ensure first message is from user (API requirement)
