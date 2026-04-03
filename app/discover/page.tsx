@@ -429,16 +429,7 @@ export default function DiscoverPage() {
               <span className="text-white">.</span>
             </motion.h1>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.0 }}
-              className="text-lg sm:text-xl text-white/35 max-w-xl mx-auto leading-relaxed mt-8 mb-14"
-            >
-              A conversation that discovers who you are.
-              <br />
-              <span className="text-white/20">Not a chatbot. Not a quiz. Something new.</span>
-            </motion.p>
+            <div className="mt-8 mb-14" />
 
             <motion.div
               initial={{ opacity: 0, y: 15 }}
