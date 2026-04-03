@@ -549,11 +549,13 @@ export default function ProfilePage() {
           lastName: lastName.trim(),
           displayName: displayFmt,
           city, state, country, birthDate: dob,
-          interests: structuredInterests, updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString()
         }, { merge: true });
         setDisplayName(displayFmt);
         setSetupComplete(true);
         setNameLocationSetupError('');
+        // Send new users straight to Talk for interest discovery
+        router.push('/discover');
       } catch (e) {
         console.error('Setup save failed', e);
       }

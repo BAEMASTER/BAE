@@ -112,6 +112,7 @@ export default function DiscoverPage() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   // Track interests selected since last AI response — for dynamic follow-up
   const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
+  const [showContinue, setShowContinue] = useState(false);
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
@@ -256,11 +257,10 @@ export default function DiscoverPage() {
         setSuggestedInterests(prev => [...prev, ...newSuggested]);
         playDiscoverSound();
         // Start 5-second timer for continue button
-        // Auto-continue after 5 seconds of no interest clicking
+        // Show continue button 5 seconds after pills appear
         if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
-        continueTimerRef.current = setTimeout(() => {
-          handleContinue();
-        }, 5000);
+        setShowContinue(false);
+        continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
       }
       setRecentlySelected([]);
 
@@ -326,7 +326,8 @@ export default function DiscoverPage() {
             setSuggestedInterests(prev => [...prev, ...newRetry]);
             playDiscoverSound();
             if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
-            continueTimerRef.current = setTimeout(() => { handleContinue(); }, 5000);
+            setShowContinue(false);
+            continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
           }
           setRecentlySelected([]);
           const retryNamesFromResponse = retryInterests.map(m => m[1].trim());
@@ -365,6 +366,7 @@ export default function DiscoverPage() {
     if (!text || isStreaming) return;
     if (!textOverride) setInput('');
     if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+    setShowContinue(false);
 
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
     setMessages(newMessages);
@@ -395,9 +397,10 @@ export default function DiscoverPage() {
       prev.includes(interest.name) ? prev : [...prev, interest.name]
     );
     setRecentlySelected(prev => [...prev, interest.name]);
-    // Reset auto-continue timer — user is still active
+    // Reset continue button timer — user is still active
     if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
-    continueTimerRef.current = setTimeout(() => { handleContinue(); }, 5000);
+    setShowContinue(false);
+    continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
 
     setSuggestedInterests(prev =>
       prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
@@ -882,6 +885,31 @@ export default function DiscoverPage() {
             </motion.div>
           )}
 
+
+          {/* Continue button — appears 5s after interest pills show up */}
+          <AnimatePresence>
+            {showContinue && !isStreaming && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex justify-center py-4"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    setShowContinue(false);
+                    if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+                    handleContinue();
+                  }}
+                  className="px-6 py-3 rounded-full bg-gradient-to-r from-violet-500/25 to-fuchsia-500/20 border border-violet-400/25 text-white/80 text-sm font-bold hover:from-violet-500/35 hover:to-fuchsia-500/30 transition-all"
+                >
+                  Continue
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div ref={scrollEndRef} />
         </div>
