@@ -861,17 +861,12 @@ export default function DiscoverPage() {
                 >
                   <span className="text-7xl select-none transition-all"
                     style={isLatest ? {
-                      filter: 'drop-shadow(0 0 20px rgba(253,224,71,0.5)) drop-shadow(0 0 40px rgba(253,224,71,0.2))',
+                      filter: 'drop-shadow(0 0 25px rgba(253,224,71,0.6)) drop-shadow(0 0 50px rgba(253,224,71,0.3)) drop-shadow(0 0 80px rgba(253,224,71,0.15))',
                     } : {
-                      filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.2))',
+                      filter: 'drop-shadow(0 0 12px rgba(253,224,71,0.3)) drop-shadow(0 0 25px rgba(253,224,71,0.1))',
                     }}
                   >
                     {topic.icon}
-                  </span>
-                  <span className={`text-[11px] font-bold truncate transition-colors ${
-                    isLatest ? 'text-white/90' : 'text-white/50 group-hover:text-white/70'
-                  }`}>
-                    {topic.label}
                   </span>
                 </motion.button>
               );
