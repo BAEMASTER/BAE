@@ -57,10 +57,10 @@ export default function HomePage() {
                 key={p}
                 layout
                 initial={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
-                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', boxShadow: ['0 0 8px rgba(253,224,71,0.3)', '0 0 22px rgba(253,224,71,0.6)', '0 0 8px rgba(253,224,71,0.3)'] }}
+                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', boxShadow: ['0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)', '0 0 32px rgba(253,224,71,0.7), 0 0 12px rgba(253,224,71,0.45)', '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)'] }}
                 exit={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
                 transition={{ layout: { duration: 0.4 }, opacity: { duration: 0.4 }, scale: { duration: 0.4 }, filter: { duration: 0.4 }, boxShadow: { duration: 2.5, repeat: Infinity } }}
-                className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-yellow-100 bg-yellow-400/15 border border-yellow-300/30"
+                className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-black bg-[#fde047] border border-yellow-200"
               >
                 {p}
               </motion.div>
