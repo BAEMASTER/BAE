@@ -1,233 +1,87 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'firebase/auth';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-// --- CONSTANTS ---
-const ROTATING_WORDS = ['UPLIFT', 'ELEVATE', 'INSPIRE', 'CHANGE']; 
-const MIN_REQUIRED = 3;
-
-// --- FEATURED INTERESTS (Neutral + One Glowing) ---
-const FEATURED_INTERESTS = [
-  'Indian Food', 'Art Museums', 'Running', 
-  'AI', // <-- This will be the glowing pill
-  'Physics', 'Standup Comedy'
+const SAMPLE_INTERESTS = [
+  'Italian Food', 'Hot Yoga', 'Stand-up Comedy',
+  'AI', 'Parenting', 'Vinyl Records',
 ];
 
 export default function HomePage() {
   const router = useRouter();
 
-  // Firebase/Auth/State/Logic
-  const [app] = useState(() => {
-    const configEnv = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
-    const config = configEnv ? JSON.parse(configEnv) : {};
-    const apps = getApps();
-    return apps.length ? apps[0] : initializeApp(config);
-  });
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  const [user, setUser] = useState<User | null>(null);
-  const [userName, setUserName] = useState<string>('');
-  const [userInterests, setUserInterests] = useState<string[]>([]);
-  const [isChecking, setIsChecking] = useState(true);
-  const [wordIndex, setWordIndex] = useState(0);
-
-  useEffect(() => {
-    const initAuth = async () => {
-      if (!auth.currentUser) {
-        try { await signInAnonymously(auth); } catch {}
-      }
-    };
-    initAuth();
-
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (!u) {
-        setIsChecking(false);
-        return;
-      }
-      try {
-        const snap = await getDoc(doc(db, 'users', u.uid));
-        const data = snap.data();
-        setUserName(data?.displayName || u.displayName || u.email || 'You');
-        setUserInterests(data?.interests || []);
-      } catch (e) {
-        console.error("Profile load failed", e);
-      }
-      setIsChecking(false);
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % ROTATING_WORDS.length);
-    }, 2500);
-    return () => clearInterval(id);
-  });
-
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
-
-      {/* --- BACKGROUND --- */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] opacity-95"></div>
-      <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
-          <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/10 blur-[150px] animate-pulse-slow"></div>
-          <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/10 blur-[150px] animate-pulse-slow-reverse"></div>
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0015] via-[#1a0030] to-[#000020]" />
+      <div className="pointer-events-none absolute inset-0 opacity-30">
+        <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-violet-500/20 blur-[200px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-1/2 h-1/2 bg-indigo-500/15 blur-[200px]" />
       </div>
-      
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-20 flex items-center justify-between px-6 h-[72px] backdrop-blur-md bg-black/50 border-b border-fuchsia-500/20">
-        <div className="text-3xl font-extrabold bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,200,200,0.4)]">
-          BAE
-        </div>
-        
-        <div className="flex items-center gap-8">
-          <a href="#how-it-works" className="text-white/70 hover:text-white transition-colors font-medium text-sm">
-            How BAE Works
-          </a>
-          <button
-            onClick={() => router.push('/explorer')}
-            className="text-white/70 hover:text-white transition-colors font-medium text-sm"
-          >
-            Explorer
-          </button>
-          <button
-            onClick={() => router.push('/profile')}
-            className="text-white/70 hover:text-white transition-colors font-medium text-sm"
-          >
-            Profile
-          </button>
-          <button
-            onClick={() => router.push('/match')}
-            className="text-white/70 hover:text-white transition-colors font-medium text-sm"
-          >
-            Match
-          </button>
-        </div>
 
-        {user ? (
-          <div className="text-white/80 text-sm font-medium">{userName}</div>
-        ) : (
-          <button
-            onClick={() => router.push('/auth')}
-            className="px-8 py-2.5 rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white font-bold text-base hover:shadow-lg hover:shadow-pink-500/50 transition-all"
-          >
-            Sign In
-          </button>
-        )}
-      </header>
+      {/* Hero */}
+      <section className="relative flex flex-col items-center justify-center text-center px-6 z-10 min-h-[calc(100vh-72px)] pt-[72px]">
 
-      {/* HERO SECTION - Compact layout, no dead space */}
-      <section className="relative flex flex-col items-center text-center px-4 z-10 pt-8 sm:pt-12 pb-20">
-
-        {/* 1. ELEGANT INTEREST ROW - On top, tight spacing */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
+        {/* Interest pills — a taste of what BAE surfaces */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 max-w-4xl"
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10 sm:mb-14 max-w-2xl"
         >
-          {FEATURED_INTERESTS.map((interest, i) => {
-            const isGlow = interest === 'AI';
-            return (
-              <div 
-                key={interest}
-                className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-all cursor-default ${
-                  isGlow 
-                    ? 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] animate-pulse-slow-reverse' 
-                    : 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm'
-                }`}
-              >
-                {interest}
-              </div>
-            );
-          })}
-          <div className="px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white/40 border border-white/10 bg-transparent italic">
-            + and more
-          </div>
+          {SAMPLE_INTERESTS.map((interest) => (
+            <div
+              key={interest}
+              className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-amber-200/80 bg-amber-400/10 border border-amber-400/20"
+            >
+              {interest}
+            </div>
+          ))}
         </motion.div>
 
-        {/* 2. HUGE, BRIGHT HEADLINE */}
-        <motion.h2
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-6xl sm:text-7xl lg:text-9xl font-extrabold mb-6 sm:mb-8 drop-shadow-[0_0_50px_rgba(255,160,255,0.8)] leading-tight" 
-        >
-          Be Yourself on{' '}
-          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-            BAE
-          </span>
-        </motion.h2>
-
-        {/* 3. EMOTIONAL TAGLINE */}
-        <motion.p
+        {/* Headline */}
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="text-2xl sm:text-3xl lg:text-3xl font-medium mb-8 text-white/95 drop-shadow-lg max-w-4xl" 
+          transition={{ duration: 0.8 }}
+          className="text-5xl sm:text-7xl lg:text-8xl font-extrabold mb-6 leading-[1.1] max-w-5xl"
         >
-          <span className="block sm:inline">One great conversation can{' '}</span>
-          <span className="inline-block min-w-[7rem] sm:min-w-[12rem] relative align-baseline">
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={wordIndex}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-                className="bg-gradient-to-r from-yellow-100 to-pink-300 bg-clip-text text-transparent font-extrabold drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]"
-              >
-                {ROTATING_WORDS[wordIndex]}
-              </motion.span>
-            </AnimatePresence>
-          </span>{' '}
-          <span className="block sm:inline">YOUR WHOLE DAY.</span>
+          <span className="text-white">Let&apos;s Talk.</span>
+          <br />
+          <span className="text-white">And Make it{' '}</span>
+          <span className="bg-gradient-to-r from-amber-300 to-yellow-200 bg-clip-text text-transparent">
+            Interesting.
+          </span>
+        </motion.h1>
+
+        {/* Sub-copy */}
+        <motion.p
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+          className="text-lg sm:text-xl text-white/50 mb-10 sm:mb-14 max-w-lg font-medium leading-relaxed"
+        >
+          Talk to BAE. Discover your interests. Get your own room link. Invite anyone to a&nbsp;conversation.
         </motion.p>
 
-        {/* SEPARATOR */}
-        <motion.div 
-           initial={{ scaleX: 0, opacity: 0 }}
-           animate={{ scaleX: 1, opacity: 0.5 }}
-           transition={{ delay: 0.3, duration: 0.8 }}
-           className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent mb-8"
-        />
-
-        {/* CTA BUTTON - Changes based on auth/profile state */}
+        {/* CTA */}
         <motion.button
-          whileHover={{ scale: 1.05, boxShadow: "0 15px 40px rgba(245, 158, 11, 0.7)" }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => {
-            if (!user) {
-              router.push('/auth');
-            } else if (userInterests.length < MIN_REQUIRED) {
-              router.push('/profile');
-            } else {
-              router.push('/match');
-            }
-          }}
-          disabled={isChecking}
-          className="relative px-12 sm:px-20 py-5 sm:py-7 rounded-full text-white font-black transition-all disabled:opacity-50 mb-12"
-          style={{
-            background: "linear-gradient(90deg, #F59E0B, #F97316)",
-            boxShadow: "0 10px 30px rgba(245, 158, 11, 0.4)",
-          }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          whileHover={{ scale: 1.04, boxShadow: '0 15px 50px rgba(253, 224, 71, 0.4)' }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => router.push('/talk')}
+          className="px-14 sm:px-20 py-5 sm:py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)] tracking-wide"
         >
-          <span className="relative z-10 text-xl sm:text-2xl font-black tracking-wider">
-            {isChecking ? 'Initializing...' : !user ? 'BAE With Someone Now' : userInterests.length < MIN_REQUIRED ? 'Complete Your Profile' : 'BAE With Someone Now'}
-          </span>
+          Get Your BAE Room
         </motion.button>
 
       </section>
 
+      {/* Footer */}
       <footer className="absolute bottom-0 inset-x-0 z-10">
-        <p className="text-center text-white/20 text-sm font-medium mb-2">Your interests make you interesting</p>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-white/25 font-medium pb-5">
           <a href="/terms" className="hover:text-white/50 transition-colors">Terms</a>
           <span className="text-white/15">|</span>
