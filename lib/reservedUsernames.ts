@@ -10,7 +10,7 @@ export const RESERVED_USERNAMES = new Set([
   'about', 'help', 'support', 'home', 'login', 'signup',
   'register', 'bae', 'app', 'www', 'blog', 'status',
   'contact', 'feedback', 'invite', 'join', 'download',
-  'search', 'explore', 'discover', 'trending', 'popular',
+  'search', 'explore', 'discover', 'talk', 'trending', 'popular',
   // Future routes
   'notifications', 'messages', 'friends', 'connections',
   'serendipity', 'open', 'live', 'stream',

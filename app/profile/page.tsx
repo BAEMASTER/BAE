@@ -560,7 +560,7 @@ export default function ProfilePage() {
             transition={{ delay: 1.3, duration: 0.5 }}
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            onClick={() => router.push('/discover')}
+            onClick={() => router.push('/talk')}
             className="px-16 py-6 rounded-full font-black text-2xl sm:text-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40 shadow-[0_0_50px_rgba(253,224,71,0.4)]"
           >
             Let's Talk. And Make it Interesting.
@@ -846,7 +846,7 @@ export default function ProfilePage() {
 
               {/* Discover — AI podcast entry */}
               <motion.button
-                onClick={() => router.push('/discover')}
+                onClick={() => router.push('/talk')}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="w-full mt-4 px-5 py-4 rounded-2xl text-left transition-all"

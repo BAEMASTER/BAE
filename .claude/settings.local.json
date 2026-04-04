@@ -29,7 +29,12 @@
       "Bash(git config:*)",
       "Bash(gh auth:*)",
       "Bash(\"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status 2>&1)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(Share your link so people can talk with you.\":*)",
+      "Bash(grep -E \"\\\\.backup\\\\.|\\\\.old\\\\.|\\\\.tsx$|\\\\.ts$\")",
+      "Bash(Get your own BAE room. Share it with anyone.\" → Sign up for free:*)",
+      "Bash(your interests and get your own BAE room.\":*)",
+      "Bash(find:*)"
     ]
   }
 }
