@@ -119,8 +119,6 @@ export default function DiscoverPage() {
   const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
   const [isGuestTalk, setIsGuestTalk] = useState(false);
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
-  const [topicIcon, setTopicIcon] = useState<string | null>(null);
-  const [topicHistory, setTopicHistory] = useState<{ icon: string; label: string; msgIdx: number }[]>([]);
   const [customInterestInput, setCustomInterestInput] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
   // Track interests selected since last AI response — for dynamic follow-up
@@ -140,44 +138,6 @@ export default function DiscoverPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Map interests to topic icons — checks each interest individually in order
-  const detectTopicIcon = (_text: string, interests: string[]): string => {
-    // Check each interest individually, return icon for the first match
-    for (const interest of interests) {
-      const single = interest.toLowerCase();
-      const map: [string[], string][] = [
-        [['music', 'singing', 'guitar', 'piano', 'jazz', 'hip hop', 'rap', 'concert', 'band', 'instrument', 'song', 'dj', 'producer', 'vinyl', 'playlist', 'kirtan', 'mantra', 'chanting'], '🎵'],
-        [['chocolate', 'brownie', 'dessert', 'candy', 'sweets', 'ice cream', 'cake', 'cookie'], '🍫'],
-        [['fitness', 'gym', 'workout', 'running', 'exercise', 'lift', 'crossfit', 'training', 'marathon', 'strength', 'protein', 'nutrition', 'healthy snack'], '💪'],
-        [['cook', 'food', 'recipe', 'restaurant', 'chef', 'cuisine', 'dinner', 'meal', 'raw food', 'eating', 'vegan', 'plant-based', 'snack'], '🍕'],
-        [['yoga', 'meditation', 'mindful', 'breathwork', 'spiritual', 'consciousness', 'awakening', 'presence', 'zen', 'buddhis', 'hindu', 'sai baba', 'kundalini', 'chakra', 'energy healing'], '🧘'],
-        [['travel', 'trip', 'country', 'city', 'flight', 'explore', 'backpack', 'adventure', 'destination', 'abroad'], '✈️'],
-        [['tech', 'coding', 'software', 'ai', 'artificial intelligence', 'programming', 'startup', 'app', 'build', 'engineer', 'claude', 'machine learning', 'vibe coding'], '💻'],
-        [['business', 'entrepreneur', 'sales', 'hustle', 'revenue', 'company', 'insurance', 'financial', 'invest', 'wealth', 'estate planning', 'money'], '📈'],
-        [['family', 'kids', 'parent', 'father', 'mother', 'son', 'daughter', 'child', 'raising'], '👨‍👩‍👧‍👦'],
-        [['film', 'movie', 'cinema', 'director', 'watch', 'tv', 'show', 'series', 'netflix', 'documentary', 'back to the future'], '🎬'],
-        [['book', 'reading', 'author', 'novel', 'literature', 'writing', 'poetry', 'poet', 'journal', 'comic'], '📚'],
-        [['art', 'paint', 'drawing', 'creative', 'design', 'gallery', 'museum', 'sculpture', 'photograph'], '🎨'],
-        [['soccer', 'football', 'basketball', 'tennis', 'baseball', 'golf', 'sport'], '⚽'],
-        [['surf', 'ski', 'snowboard', 'swim', 'climb', 'hiking', 'outdoor', 'nature', 'mountain', 'ocean', 'beach', 'camping', 'trail'], '🌿'],
-        [['comedy', 'stand-up', 'funny', 'humor', 'laugh', 'improv', 'joke'], '😂'],
-        [['love', 'relationship', 'dating', 'romance', 'intimacy', 'partner', 'marriage', 'tantra', 'sacred sexuality', 'polarity', 'attraction'], '❤️'],
-        [['psychology', 'therapy', 'mental health', 'growth', 'personal development', 'self-improvement', 'coaching', 'sobriety'], '🧠'],
-        [['fashion', 'style', 'clothing', 'sneaker', 'outfit'], '👔'],
-        [['science', 'physics', 'biology', 'chemistry', 'space', 'astronomy', 'quantum', 'research'], '🔬'],
-        [['dog', 'cat', 'pet', 'animal'], '🐕'],
-        [['game', 'gaming', 'video game', 'board game', 'chess', 'poker'], '🎮'],
-        [['coffee', 'tea', 'cafe', 'espresso'], '☕'],
-        [['wine', 'beer', 'cocktail', 'drink', 'bar', 'whiskey'], '🍷'],
-        [['dance', 'dancing', 'salsa', 'house music', 'electronic', 'rave', 'festival'], '💃'],
-        [['philosophy', 'meaning', 'existence', 'purpose', 'stoic', 'wisdom', 'truth'], '💡'],
-      ];
-      for (const [keywords, icon] of map) {
-        if (keywords.some(k => single.includes(k))) return icon;
-      }
-    }
-    return '✦';
-  };
 
   // Auto-scroll
   useEffect(() => {
@@ -305,17 +265,6 @@ export default function DiscoverPage() {
       // Detect topic icon — only add to history when the ICON CATEGORY changes (major topic shift)
       const interestNamesFromResponse = [...fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g)].map(m => m[1].trim());
       if (interestNamesFromResponse.length > 0) {
-        const icon = detectTopicIcon('', interestNamesFromResponse);
-        setTopicIcon(icon);
-        setTopicHistory(prev => {
-          const lastIcon = prev.length > 0 ? prev[prev.length - 1].icon : null;
-          // Only add when the icon category actually changes — not every response
-          if (icon !== lastIcon) {
-            const label = interestNamesFromResponse[0];
-            return [...prev, { icon, label, msgIdx: assistantIdx }];
-          }
-          return prev;
-        });
       }
 
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
@@ -361,16 +310,6 @@ export default function DiscoverPage() {
             continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
           }
           setRecentlySelected([]);
-          const retryNamesFromResponse = retryInterests.map(m => m[1].trim());
-          const retryIcon = detectTopicIcon(retryText, retryNamesFromResponse);
-          setTopicIcon(retryIcon);
-          setTopicHistory(prev => {
-            const lastIcon = prev.length > 0 ? prev[prev.length - 1].icon : null;
-            if (retryIcon !== lastIcon) {
-              return [...prev, { icon: retryIcon, label: retryNamesFromResponse[0] || 'Chat', msgIdx: assistantIdx }];
-            }
-            return prev;
-          });
           const retryFinal = [...currentMessages, { role: 'assistant' as const, content: retryText }];
           setConversationHistory(retryFinal);
           if (user) {
@@ -824,29 +763,9 @@ export default function DiscoverPage() {
         )}
       </AnimatePresence>
 
-      {/* Current topic icon — left panel (desktop only) — ONE BIG GLOWING ICON */}
-      <div className="hidden md:flex fixed left-0 top-[60px] bottom-[80px] w-48 items-center justify-center z-20 pointer-events-none">
-        <AnimatePresence mode="wait">
-          {topicIcon && (
-            <motion.div
-              key={topicIcon}
-              initial={{ opacity: 0, scale: 0.3, rotate: -20 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              exit={{ opacity: 0, scale: 0.3, rotate: 20 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 12 }}
-              className="text-[120px] select-none"
-              style={{
-                filter: 'drop-shadow(0 0 30px rgba(253,224,71,0.6)) drop-shadow(0 0 60px rgba(253,224,71,0.3)) drop-shadow(0 0 100px rgba(253,224,71,0.15))',
-              }}
-            >
-              {topicIcon}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* Conversation — scrolling, flowing, BIG text, no bubbles */}
-      <div className="flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:ml-48 md:mr-64" ref={messagesContainerRef}>
+      <div className="flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:mr-64" ref={messagesContainerRef}>
         <div className="max-w-2xl mx-auto space-y-8">
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
             <motion.div
