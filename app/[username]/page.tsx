@@ -118,14 +118,15 @@ export default function BaeLinkPage() {
         const unsub = onAuthStateChanged(auth, async (user) => {
           if (!user) {
             // Not signed in — show guest entry (just type name)
-            setPageState('guest-entry');
+            setPageState(prev => prev === 'loading' ? 'guest-entry' : prev);
             return;
           }
           setVisitorUser(user);
 
           // Check if this is an anonymous guest (from guest entry)
+          // Don't reset pageState if we're already joining (handleGuestJoin in progress)
           if (user.isAnonymous) {
-            setPageState('guest-entry');
+            setPageState(prev => prev === 'loading' ? 'guest-entry' : prev);
             return;
           }
 
@@ -213,7 +214,7 @@ export default function BaeLinkPage() {
         setPageState(prev => prev === 'waiting' ? 'offline' : prev);
       }, 5 * 60 * 1000);
     }
-  }, [db, router]);
+  }, [db, router, guestName]);
 
   // Cleanup
   useEffect(() => {
@@ -237,7 +238,7 @@ export default function BaeLinkPage() {
         setVisitorUser(user);
       }
       // Go straight to the call — pass guest info as query params
-      initiateCall(user.uid, owner);
+      await initiateCall(user.uid, owner);
     } catch (e) {
       console.error('Guest join failed', e);
       setIsJoining(false);
