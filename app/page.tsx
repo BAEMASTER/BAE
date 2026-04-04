@@ -85,7 +85,7 @@ export default function HomePage() {
           transition={{ delay: 1, duration: 1.2 }}
           className="text-lg sm:text-xl font-semibold text-white/30 tracking-wide"
         >
-          The most interesting conversations in the world are on BAE.
+          The most interesting conversations in the world are on BAE. Start having yours.
         </motion.p>
 
       </section>
