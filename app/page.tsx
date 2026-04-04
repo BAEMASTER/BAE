@@ -1,12 +1,46 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const PILLS = ['Italian Food', 'Art Museums', 'Running', 'AI', 'Physics', 'Standup Comedy'];
+const ALL_INTERESTS = [
+  'Italian Food', 'Art Museums', 'Running', 'AI', 'Physics', 'Standup Comedy',
+  'Hot Yoga', 'Photography', 'Cooking', 'Jazz', 'Hiking', 'Podcasts',
+  'Psychology', 'Travel', 'Vinyl Records', 'Meditation', 'Surfing', 'Chess',
+  'Parenting', 'Film', 'Entrepreneurship', 'Dancing', 'Philosophy', 'Dogs',
+  'Sci-Fi', 'Sneakers', 'Coffee', 'Live Music', 'Gardening', 'Anime',
+];
+
+const VISIBLE = 6;
 
 export default function HomePage() {
   const router = useRouter();
+  const [pills, setPills] = useState(ALL_INTERESTS.slice(0, VISIBLE));
+  const [pool, setPool] = useState(ALL_INTERESTS.slice(VISIBLE));
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPills(prev => {
+        const next = [...prev];
+        // Swap 2 random pills
+        const swapCount = 2;
+        const indices = [...Array(VISIBLE).keys()].sort(() => Math.random() - 0.5).slice(0, swapCount);
+        setPool(prevPool => {
+          const newPool = [...prevPool];
+          for (const idx of indices) {
+            const incoming = newPool.shift()!;
+            newPool.push(next[idx]);
+            next[idx] = incoming;
+          }
+          return newPool;
+        });
+        return next;
+      });
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
       <div className="pointer-events-none absolute inset-0 opacity-40">
@@ -15,13 +49,23 @@ export default function HomePage() {
       </div>
 
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen gap-10 sm:gap-14">
-        {/* Interest pills */}
-        <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3 max-w-3xl">
-          {PILLS.map((p, i) => (
-            <motion.div key={p} animate={{ boxShadow: ['0 0 8px rgba(253,224,71,0.3)', '0 0 22px rgba(253,224,71,0.6)', '0 0 8px rgba(253,224,71,0.3)'] }} transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.4 }} className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-yellow-100 bg-yellow-400/15 border border-yellow-300/30">
-              {p}
-            </motion.div>
-          ))}
+        {/* Rotating interest pills */}
+        <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3 max-w-3xl min-h-[44px] sm:min-h-[52px]">
+          <AnimatePresence mode="popLayout">
+            {pills.map((p) => (
+              <motion.div
+                key={p}
+                layout
+                initial={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', boxShadow: ['0 0 8px rgba(253,224,71,0.3)', '0 0 22px rgba(253,224,71,0.6)', '0 0 8px rgba(253,224,71,0.3)'] }}
+                exit={{ opacity: 0, scale: 0.7, filter: 'blur(4px)' }}
+                transition={{ layout: { duration: 0.4 }, opacity: { duration: 0.4 }, scale: { duration: 0.4 }, filter: { duration: 0.4 }, boxShadow: { duration: 2.5, repeat: Infinity } }}
+                className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-yellow-100 bg-yellow-400/15 border border-yellow-300/30"
+              >
+                {p}
+              </motion.div>
+            ))}
+          </AnimatePresence>
           <div className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-semibold text-white/30 border border-white/10 italic">+ and more</div>
         </div>
 
