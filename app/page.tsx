@@ -62,7 +62,7 @@ export default function HomePage() {
           transition={{ delay: 0.3, duration: 0.8 }}
           className="text-lg sm:text-xl text-white/50 mb-10 sm:mb-14 max-w-lg font-medium leading-relaxed"
         >
-          Talk to BAE. Discover your interests. Get your own room link. Invite anyone to a&nbsp;conversation.
+          Talk to BAE. Discover your interests. Connect with people who&nbsp;get&nbsp;it.
         </motion.p>
 
         {/* CTA */}
