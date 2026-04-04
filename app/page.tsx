@@ -62,7 +62,7 @@ export default function HomePage() {
           transition={{ delay: 0.3, duration: 0.8 }}
           className="text-lg sm:text-xl text-white/50 mb-10 sm:mb-14 max-w-lg font-medium leading-relaxed"
         >
-          Talk to BAE. Discover your interests. Connect with people who&nbsp;get&nbsp;it.
+          Your room. Your people. Conversations that actually mean&nbsp;something.
         </motion.p>
 
         {/* CTA */}
@@ -75,7 +75,7 @@ export default function HomePage() {
           onClick={() => router.push('/talk')}
           className="px-14 sm:px-20 py-5 sm:py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)] tracking-wide"
         >
-          Get Your BAE Room
+          Get Your Room
         </motion.button>
 
       </section>
