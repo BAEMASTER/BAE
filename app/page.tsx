@@ -12,57 +12,80 @@ export default function HomePage() {
   const router = useRouter();
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0015] via-[#1a0030] to-[#000020]" />
-      <div className="pointer-events-none absolute inset-0 opacity-30">
-        <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-violet-500/20 blur-[200px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-1/2 h-1/2 bg-indigo-500/15 blur-[200px]" />
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
+      {/* Background glow effects */}
+      <div className="pointer-events-none absolute inset-0 opacity-40">
+        <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-violet-500/10 blur-[200px]" />
       </div>
 
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center text-center px-6 z-10 min-h-[calc(100vh-72px)] pt-[72px]">
 
-        {/* Interest pills — a taste of what BAE surfaces */}
+        {/* Glowing interest pills */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-10 sm:mb-14 max-w-2xl"
+          className="flex flex-wrap justify-center gap-2.5 sm:gap-3 mb-12 sm:mb-16 max-w-3xl"
         >
-          {SAMPLE_INTERESTS.map((interest) => (
-            <div
+          {SAMPLE_INTERESTS.map((interest, i) => (
+            <motion.div
               key={interest}
-              className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-amber-200/80 bg-amber-400/10 border border-amber-400/20"
+              animate={{
+                boxShadow: [
+                  '0 0 10px rgba(253,224,71,0.3)',
+                  '0 0 20px rgba(253,224,71,0.6)',
+                  '0 0 10px rgba(253,224,71,0.3)',
+                ],
+              }}
+              transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 }}
+              className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-yellow-100 bg-yellow-400/15 border border-yellow-300/30 backdrop-blur-sm"
             >
               {interest}
-            </div>
+            </motion.div>
           ))}
         </motion.div>
 
-        {/* Headline */}
+        {/* Headline — "Let's Talk." on line 1, "And Make it [Interesting.]" on line 2 */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-5xl sm:text-7xl lg:text-8xl font-extrabold mb-6 leading-[1.1] max-w-5xl"
+          className="mb-8 leading-[1.05]"
         >
-          <span className="text-white">Let&apos;s Talk.</span>
-          <br />
-          <span className="text-white">And Make it{' '}</span>
-          <span className="bg-gradient-to-r from-amber-300 to-yellow-200 bg-clip-text text-transparent">
-            Interesting.
+          <span className="block text-5xl sm:text-7xl lg:text-[5.5rem] font-extrabold text-white drop-shadow-[0_0_40px_rgba(255,200,255,0.4)]">
+            Let&apos;s Talk.
+          </span>
+          <span className="block text-5xl sm:text-7xl lg:text-[5.5rem] font-extrabold mt-1 sm:mt-2">
+            <span className="text-white drop-shadow-[0_0_40px_rgba(255,200,255,0.4)]">And Make it </span>
+            <motion.span
+              animate={{
+                boxShadow: [
+                  '0 0 15px rgba(253,224,71,0.5)',
+                  '0 0 30px rgba(253,224,71,0.8)',
+                  '0 0 15px rgba(253,224,71,0.5)',
+                ],
+              }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="inline-block px-5 py-1 sm:px-8 sm:py-2 bg-yellow-300 text-black rounded-full border-2 border-yellow-200"
+            >
+              Interesting.
+            </motion.span>
           </span>
         </motion.h1>
 
-        {/* Sub-copy */}
+        {/* Sub-copy — styled with presence */}
         <motion.p
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
-          className="text-lg sm:text-xl text-white/50 mb-10 sm:mb-14 max-w-lg font-medium leading-relaxed"
+          className="text-xl sm:text-2xl text-white/60 mb-10 sm:mb-14 font-semibold tracking-wide"
         >
-          Your room. Your people. Your&nbsp;experience.
+          <span className="text-white/80">Your room.</span>{' '}
+          <span className="text-white/80">Your people.</span>{' '}
+          <span className="text-white/80">Your experience.</span>
         </motion.p>
 
         {/* Power statement */}
@@ -70,7 +93,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="text-lg sm:text-xl font-semibold text-white/40 tracking-wide mb-8 sm:mb-10"
+          className="text-base sm:text-lg font-medium text-white/40 tracking-wide mb-8 sm:mb-10 max-w-xl"
         >
           The most interesting conversations in the world are on BAE.
         </motion.p>
@@ -79,11 +102,15 @@ export default function HomePage() {
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          whileHover={{ scale: 1.04, boxShadow: '0 15px 50px rgba(253, 224, 71, 0.4)' }}
+          transition={{ delay: 0.7, duration: 0.6 }}
+          whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(245, 158, 11, 0.6)' }}
           whileTap={{ scale: 0.96 }}
           onClick={() => router.push('/talk')}
-          className="px-14 sm:px-20 py-5 sm:py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)] tracking-wide"
+          className="px-14 sm:px-20 py-5 sm:py-7 rounded-full font-black text-xl sm:text-2xl text-white transition-all tracking-wider"
+          style={{
+            background: 'linear-gradient(90deg, #F59E0B, #F97316)',
+            boxShadow: '0 10px 40px rgba(245, 158, 11, 0.4)',
+          }}
         >
           Start Having Yours
         </motion.button>
