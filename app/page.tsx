@@ -83,9 +83,9 @@ export default function HomePage() {
           transition={{ delay: 0.3, duration: 0.8 }}
           className="text-xl sm:text-2xl text-white/60 mb-10 sm:mb-14 font-semibold tracking-wide"
         >
-          <span className="text-white/80">Your room.</span>{' '}
-          <span className="text-white/80">Your people.</span>{' '}
-          <span className="text-white/80">Your experience.</span>
+          <span className="text-white/80">Talk with BAE.</span>{' '}
+          <span className="text-white/80">Build your interests.</span>{' '}
+          <span className="text-white/80">Get a room (yours).</span>
         </motion.p>
 
         {/* Power statement */}
