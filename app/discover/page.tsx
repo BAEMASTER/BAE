@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
+import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -105,6 +105,7 @@ export default function DiscoverPage() {
   const [userName, setUserName] = useState('');
 
   const [collectedInterests, setCollectedInterests] = useState<string[]>([]);
+  const [isGuestTalk, setIsGuestTalk] = useState(false);
   const [milestoneText, setMilestoneText] = useState<string | null>(null);
   const [topicIcon, setTopicIcon] = useState<string | null>(null);
   const [topicHistory, setTopicHistory] = useState<{ icon: string; label: string; msgIdx: number }[]>([]);
@@ -114,6 +115,14 @@ export default function DiscoverPage() {
   const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
   const [showContinue, setShowContinue] = useState(false);
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper: save to Firestore only for signed-in (non-guest) users
+  const saveToFirestore = async (data: any) => {
+    if (isGuestTalk || !user) return;
+    try {
+      await setDoc(doc(firestore, 'users', user.uid), { ...data, updatedAt: new Date().toISOString() }, { merge: true });
+    } catch {}
+  };
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -166,8 +175,24 @@ export default function DiscoverPage() {
   // Auth + load
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) { router.push('/auth'); return; }
+      if (!u) {
+        // Not signed in — sign in anonymously for guest Talk
+        try {
+          await signInAnonymously(auth);
+        } catch {
+          router.push('/auth');
+        }
+        return;
+      }
       setUser(u);
+
+      // Guest/anonymous user — skip Firestore, go straight to Talk
+      if (u.isAnonymous) {
+        setIsGuestTalk(true);
+        setUserName('');
+        setAuthReady(true);
+        return;
+      }
 
       try {
         const snap = await getDoc(doc(firestore, 'users', u.uid));
@@ -283,14 +308,7 @@ export default function DiscoverPage() {
 
       const finalMessages = [...currentMessages, { role: 'assistant' as const, content: fullText }];
       setConversationHistory(finalMessages);
-      if (user) {
-        try {
-          await setDoc(doc(firestore, 'users', user.uid), {
-            discoverConversation: finalMessages,
-            updatedAt: new Date().toISOString(),
-          }, { merge: true });
-        } catch {}
-      }
+      await saveToFirestore({ discoverConversation: finalMessages });
     } catch (e) {
       console.error('Error:', e);
       // Retry once before showing error
@@ -344,7 +362,7 @@ export default function DiscoverPage() {
           const retryFinal = [...currentMessages, { role: 'assistant' as const, content: retryText }];
           setConversationHistory(retryFinal);
           if (user) {
-            try { await setDoc(doc(firestore, 'users', user.uid), { discoverConversation: retryFinal, updatedAt: new Date().toISOString() }, { merge: true }); } catch {}
+            await saveToFirestore({ discoverConversation: retryFinal });
           }
           setIsStreaming(false);
           setTimeout(() => inputRef.current?.focus(), 100);
@@ -373,14 +391,7 @@ export default function DiscoverPage() {
     setMessages(newMessages);
     setConversationHistory(newMessages);
 
-    if (user) {
-      try {
-        await setDoc(doc(firestore, 'users', user.uid), {
-          discoverConversation: newMessages,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true });
-      } catch {}
-    }
+    await saveToFirestore({ discoverConversation: newMessages });
 
     await fetchResponse(newMessages);
   };
@@ -415,14 +426,7 @@ export default function DiscoverPage() {
       setTimeout(() => setMilestoneText(null), 2500);
     }
 
-    try {
-      await setDoc(doc(firestore, 'users', user.uid), {
-        interests: updated,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-    } catch (e) {
-      console.error('Failed to add interest:', e);
-    }
+    await saveToFirestore({ interests: updated });
   };
 
   const handleContinue = async () => {
@@ -439,14 +443,7 @@ export default function DiscoverPage() {
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
     setConversationHistory(newMessages);
     setRecentlySelected([]);
-    if (user) {
-      try {
-        await setDoc(doc(firestore, 'users', user.uid), {
-          discoverConversation: newMessages,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true });
-      } catch {}
-    }
+    await saveToFirestore({ discoverConversation: newMessages });
     await fetchResponse(newMessages);
   };
 
@@ -473,12 +470,7 @@ export default function DiscoverPage() {
       setTimeout(() => setMilestoneText(null), 2500);
     }
 
-    try {
-      await setDoc(doc(firestore, 'users', user.uid), {
-        interests: updated,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-    } catch {}
+    await saveToFirestore({ interests: updated });
   };
 
   const handleExploreInterest = async (name: string) => {
@@ -486,14 +478,7 @@ export default function DiscoverPage() {
     const msg = `(User wants to explore interests related to "${name}". Show a variety of related interests they can add. Present them with brief framing text and multiple [INTEREST: name] pills.)`;
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: msg }];
     setConversationHistory(newMessages);
-    if (user) {
-      try {
-        await setDoc(doc(firestore, 'users', user.uid), {
-          discoverConversation: newMessages,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true });
-      } catch {}
-    }
+    await saveToFirestore({ discoverConversation: newMessages });
     await fetchResponse(newMessages);
   };
 
@@ -915,6 +900,27 @@ export default function DiscoverPage() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Guest signup nudge — appears after 3+ interests */}
+          {isGuestTalk && collectedInterests.length >= 3 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center gap-3 py-6 mt-4 border-t border-white/10"
+            >
+              <p className="text-white/40 text-sm text-center">
+                Sign up to save your interests and get your own BAE room.
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => router.push('/auth')}
+                className="px-8 py-3 rounded-full font-black text-base bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_30px_rgba(253,224,71,0.25)]"
+              >
+                Sign up for free
+              </motion.button>
+            </motion.div>
+          )}
 
           <div ref={scrollEndRef} />
         </div>
