@@ -13,6 +13,7 @@ import { parseInterests, interestNames, createInterest, addInterests as addStruc
 import { formatPublicName } from '@/lib/formatName';
 import { isBlockedInterest } from '@/lib/interestBlocklist';
 import { Plus } from 'lucide-react';
+import { Confetti, MegaVibeCelebration, ReactionCascade, playMegaVibeSound, playCollectSound, playReactionReceivedSound, playSharedInterestSound } from '@/components/match';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -128,184 +129,6 @@ function pairKey(a: string, b: string): string {
 // --- REACTION CONSTANTS ---
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
 
-// --- CONFETTI ---
-function Confetti() {
-  const [viewport, setViewport] = useState({ w: 0, h: 0 });
-
-  useEffect(() => {
-    setViewport({ w: window.innerWidth, h: window.innerHeight });
-  }, []);
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {[...Array(50)].map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ x: viewport.w / 2, y: viewport.h / 2, opacity: 1 }}
-          animate={{
-            x: viewport.w / 2 + (Math.random() - 0.5) * 400,
-            y: viewport.h + 100,
-            opacity: 0,
-            rotate: Math.random() * 360,
-          }}
-          transition={{ duration: 2, ease: 'easeIn' }}
-          className="absolute w-2 h-2 rounded-full"
-          style={{
-            backgroundColor: ['#FFD700', '#A78BFA', '#87CEEB', '#98FB98'][
-              Math.floor(Math.random() * 4)
-            ],
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// --- MEGA VIBE SOUND ---
-function playMegaVibeSound() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const now = ctx.currentTime;
-
-    // Ascending major arpeggio: C5 → E5 → G5 → C6
-    const notes = [523, 659, 784, 1047];
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + i * 0.09);
-      const t = now + i * 0.09;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
-      osc.start(t);
-      osc.stop(t + 0.35);
-    });
-
-    // High shimmer on the final note for sparkle
-    const shimmer = ctx.createOscillator();
-    const sGain = ctx.createGain();
-    shimmer.connect(sGain);
-    sGain.connect(ctx.destination);
-    shimmer.type = 'sine';
-    const sStart = now + notes.length * 0.09;
-    shimmer.frequency.setValueAtTime(2094, sStart); // C7
-    sGain.gain.setValueAtTime(0, sStart);
-    sGain.gain.linearRampToValueAtTime(0.06, sStart + 0.04);
-    sGain.gain.exponentialRampToValueAtTime(0.001, sStart + 0.5);
-    shimmer.start(sStart);
-    shimmer.stop(sStart + 0.5);
-  } catch {}
-}
-
-// --- TAP-TO-ADD SOUND (satisfying "collected" chime) ---
-function playCollectSound() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(587, now);      // D5
-    osc.frequency.setValueAtTime(880, now + 0.06); // A5
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-    osc.start(now);
-    osc.stop(now + 0.15);
-  } catch {}
-}
-
-// --- MEGA VIBE CELEBRATION ---
-function MegaVibeCelebration() {
-  return (
-    <>
-      <Confetti />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm pointer-events-none"
-      >
-        <motion.div
-          initial={{ scale: 0, y: 100 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0, y: -100 }}
-          transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-          className="text-center"
-        >
-          <motion.h1
-            animate={{
-              scale: [1, 1.05, 1],
-              textShadow: [
-                '0 0 20px rgba(253,224,71,0.5)',
-                '0 0 40px rgba(253,224,71,0.8)',
-                '0 0 20px rgba(253,224,71,0.5)'
-              ]
-            }}
-            transition={{ duration: 1, repeat: Infinity }}
-            className="text-9xl font-black text-yellow-300 drop-shadow-2xl tracking-tighter"
-          >
-            MEGAVIBE
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="text-2xl sm:text-3xl font-bold text-yellow-200/90 mt-3 tracking-wide"
-          >
-            5 Shared Interests!
-          </motion.p>
-        </motion.div>
-      </motion.div>
-    </>
-  );
-}
-
-// --- REACTION CASCADE ---
-function ReactionCascade({ emoji, originX, onComplete }: {
-  emoji: string;
-  originX: number; // viewport %
-  onComplete: () => void;
-}) {
-  const drift = useMemo(() => (Math.random() - 0.5) * 60, []); // ±30px gentle drift
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-
-  useEffect(() => {
-    const t = setTimeout(onComplete, isMobile ? 1000 : 1200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <motion.div
-      initial={{ opacity: 1, x: 0, y: 0, scale: isMobile ? 1 : 1.75 }}
-      animate={{
-        opacity: 0,
-        x: drift,
-        y: isMobile ? '-25vh' : '-40vh',
-        scale: isMobile ? 0.85 : 1,
-      }}
-      transition={{
-        duration: isMobile ? 0.9 : 1,
-        ease: [0.22, 1, 0.36, 1],
-      }}
-      className="absolute pointer-events-none"
-      style={{
-        left: `${originX}%`,
-        bottom: isMobile ? '18vh' : '15vh',
-        fontSize: isMobile ? '48px' : '32px',
-        filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.5))',
-      }}
-    >
-      {emoji}
-    </motion.div>
-  );
-}
 
 // --- MAIN PAGE ---
 export default function MatchPageWrapper() {
@@ -768,6 +591,7 @@ function MatchPage() {
             emoji: data.emoji,
             originX: data.originX,
           }]);
+          playReactionReceivedSound();
         }
         if (data?.type === 'interest-added' && !event?.fromId?.startsWith?.('local')) {
           setAddNotification({ name: data.name, interest: data.interest });
