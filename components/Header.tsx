@@ -77,7 +77,7 @@ export default function Header() {
   const mobileNavLinks = (
     <>
       <NavLink href="/explorer" label="Explorer" mobile />
-      <NavLink href="/discover" label="BAE AI" mobile />
+      <NavLink href="/discover" label="Talk" mobile />
       <NavLink href="/profile" label="Profile" mobile />
     </>
   );
