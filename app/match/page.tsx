@@ -953,16 +953,16 @@ function MatchPage() {
     myProfileRef.current = updatedProfile;
     setMyProfile(updatedProfile);
 
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        interests: updated,
-        updatedAt: new Date().toISOString(),
-      });
-      console.log('✅ Interest added to Firestore:', interest);
-    } catch (e) {
-      console.error('❌ Failed to add interest:', e);
-      // Revert on error
-      setMyProfile(myProfile);
+    if (!isGuest) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          interests: updated,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error('Failed to add interest:', e);
+        setMyProfile(myProfile);
+      }
     }
   };
 
@@ -998,13 +998,16 @@ function MatchPage() {
     setMyProfile(updatedProfile);
     playCollectSound();
 
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        interests: updated,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.error('Quick-add failed:', e);
+    // Guest mode — local only, no Firestore
+    if (!isGuest) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          interests: updated,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error('Quick-add failed:', e);
+      }
     }
 
     setQuickAddValue('');
@@ -1043,13 +1046,15 @@ function MatchPage() {
     setMyProfile(updatedProfile);
     playCollectSound();
 
-    try {
-      await updateDoc(doc(db, 'users', user.uid), {
-        interests: updated,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.error('Drawer quick-add failed:', e);
+    if (!isGuest) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          interests: updated,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error('Drawer quick-add failed:', e);
+      }
     }
 
     setDrawerQuickAddValue('');
@@ -1369,7 +1374,7 @@ function MatchPage() {
               </AnimatePresence>
             </div>
           )}
-          {/* Partner disconnect overlay */}
+          {/* Partner disconnect / post-call overlay */}
           <AnimatePresence>
             {isMatched && partnerDisconnected && (
               <motion.div
@@ -1378,18 +1383,58 @@ function MatchPage() {
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm"
               >
-                <div className="text-center px-4">
-                  <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={isDirectCall ? () => router.push('/') : handleNext}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
-                  >
-                    {isDirectCall ? 'Back to BAE' : 'Find Next Match'}
-                    {!isDirectCall && <RefreshCw size={16} />}
-                  </motion.button>
-                </div>
+                {isGuest ? (
+                  /* Guest post-call CTA — sell the dream */
+                  <div className="text-center px-6 max-w-md">
+                    <motion.h2
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight"
+                    >
+                      Make all your conversations more interesting.
+                    </motion.h2>
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-white/40 text-lg mb-8"
+                    >
+                      Get your own BAE room. Share it with anyone.
+                    </motion.p>
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => router.push('/auth')}
+                      className="px-12 py-5 rounded-full font-black text-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)] mb-4"
+                    >
+                      Sign up for free
+                    </motion.button>
+                    <br />
+                    <button
+                      onClick={() => router.push('/')}
+                      className="text-white/25 text-sm hover:text-white/40 transition-colors mt-2"
+                    >
+                      Maybe later
+                    </button>
+                  </div>
+                ) : (
+                  /* Regular user post-call */
+                  <div className="text-center px-4">
+                    <p className="text-xl font-bold text-white mb-4">Partner disconnected</p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={isDirectCall ? () => router.push('/') : handleNext}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold rounded-full shadow-lg mx-auto"
+                    >
+                      {isDirectCall ? 'Back to BAE' : 'Find Next Match'}
+                      {!isDirectCall && <RefreshCw size={16} />}
+                    </motion.button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

@@ -407,9 +407,15 @@ export default function BaeLinkPage() {
             </motion.button>
           </div>
 
-          <p className="text-white/15 text-xs mt-6">
+          <p className="text-white/20 text-xs mt-6">
             No account needed. Just jump in.
           </p>
+          <button
+            onClick={handleSignIn}
+            className="text-violet-300/50 text-xs mt-3 hover:text-violet-300/80 transition-colors underline"
+          >
+            Already on BAE? Sign in
+          </button>
         </motion.div>
       </main>
     );
