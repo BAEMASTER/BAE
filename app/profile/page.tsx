@@ -298,7 +298,7 @@ export default function ProfilePage() {
     try {
       await setDoc(doc(db, 'users', user.uid), {
         displayName, city, state, country, birthDate: dob,
-        interests: structuredInterests, updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString()
       }, { merge: true });
       
       setSaveSuccess(true);

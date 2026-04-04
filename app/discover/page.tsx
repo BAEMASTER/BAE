@@ -27,9 +27,21 @@ type SuggestedInterest = {
   messageIdx: number;
 };
 
+// Shared AudioContext — unlocked on first user gesture for iOS/Safari
+let sharedAudioCtx: AudioContext | null = null;
+function getAudioCtx(): AudioContext {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume();
+  }
+  return sharedAudioCtx;
+}
+
 const playDiscoverSound = () => {
   try {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioCtx = getAudioCtx();
     const osc1 = audioCtx.createOscillator();
     const osc2 = audioCtx.createOscillator();
     const gain1 = audioCtx.createGain();
@@ -52,7 +64,7 @@ const playDiscoverSound = () => {
 
 const playAddSound = () => {
   try {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioCtx = getAudioCtx();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
@@ -67,7 +79,7 @@ const playAddSound = () => {
 
 const playMilestoneSound = () => {
   try {
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioCtx = getAudioCtx();
     [523, 659, 784, 1047].forEach((freq, i) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -530,7 +542,7 @@ export default function DiscoverPage() {
                   ✓
                 </motion.span>
               ) : (
-                <span className="text-black/50">+</span>
+                <span className="text-black font-black">+</span>
               )}
               <span>{name}</span>
             </motion.button>
@@ -586,7 +598,7 @@ export default function DiscoverPage() {
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}
               onClick={() => setShowCustomInput(true)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold text-yellow-300/60 border-2 border-dashed border-yellow-300/25 hover:border-yellow-300/40 hover:text-yellow-300/80 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-black text-yellow-300 border-2 border-dashed border-yellow-300/40 hover:border-yellow-300/60 hover:bg-yellow-300/10 transition-all cursor-pointer"
             >
               + Add your own
             </motion.button>
@@ -931,40 +943,42 @@ export default function DiscoverPage() {
         className="flex-shrink-0 px-5 sm:px-8 py-4 bg-black/20 backdrop-blur-sm border-t border-white/10"
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="max-w-2xl mx-auto flex gap-2 items-center">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={isStreaming ? '' : 'Say something...'}
-            disabled={isStreaming}
-            className="flex-1 px-6 py-4 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 focus:shadow-[0_0_20px_rgba(139,92,246,0.1)] transition-all disabled:opacity-30 font-medium"
-          />
-          <motion.button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isStreaming}
-            whileTap={{ scale: 0.9 }}
-            whileHover={input.trim() && !isStreaming ? { scale: 1.05 } : {}}
-            className={`p-4 rounded-full transition-all flex-shrink-0 ${
-              input.trim() && !isStreaming
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
-                : 'bg-white/5 text-white/15'
-            }`}
-          >
-            <Send size={18} />
-          </motion.button>
-          {messages.length > 2 && !isStreaming && (
+        <div className="max-w-2xl mx-auto">
+          <div className="flex gap-2 items-center">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              placeholder={isStreaming ? '' : 'Say something...'}
+              disabled={isStreaming}
+              className="flex-1 min-w-0 px-5 py-3.5 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 transition-all disabled:opacity-30 font-medium"
+            />
             <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.03 }}
-              onClick={() => handleSend('(User wants to switch to a completely new topic. Ask about a totally different area of their real, everyday life — not a hypothetical. Keep it grounded, easy to answer, fun.)')}
-              className="px-5 py-4 rounded-full bg-violet-500/20 border border-violet-400/25 text-violet-200 text-sm font-bold hover:bg-violet-500/30 transition-all flex-shrink-0 whitespace-nowrap"
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isStreaming}
+              whileTap={{ scale: 0.9 }}
+              className={`p-3.5 rounded-full transition-all flex-shrink-0 ${
+                input.trim() && !isStreaming
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/25'
+                  : 'bg-white/5 text-white/15'
+              }`}
             >
-              New topic
+              <Send size={18} />
             </motion.button>
+          </div>
+          {messages.length > 2 && !isStreaming && (
+            <div className="flex justify-center mt-2">
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)')}
+                className="px-5 py-2.5 rounded-full bg-violet-500/15 border border-violet-400/20 text-violet-200 text-sm font-bold hover:bg-violet-500/25 transition-all"
+              >
+                New topic
+              </motion.button>
+            </div>
           )}
         </div>
       </div>
