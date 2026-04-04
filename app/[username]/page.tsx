@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { onAuthStateChanged, getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
+import { onAuthStateChanged, getAuth, signInAnonymously, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,7 +38,8 @@ type OwnerProfile = {
 type PageState =
   | 'loading'
   | 'not-found'
-  | 'need-auth'        // Visitor needs to sign in
+  | 'guest-entry'      // Guest just needs to type their name
+  | 'need-auth'        // Visitor needs to sign in (fallback)
   | 'need-onboarding'  // Visitor signed in but needs name + interests
   | 'waiting'          // Waiting for owner (optimistic first 5 min)
   | 'ringing'          // Owner is online, call is ringing
@@ -68,7 +69,11 @@ export default function BaeLinkPage() {
   const [waitingMessageIdx, setWaitingMessageIdx] = useState(0);
   const [breathePhase, setBreathePhase] = useState<'in' | 'out'>('in');
 
-  // Quick onboarding state
+  // Guest entry state
+  const [guestName, setGuestName] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+
+  // Quick onboarding state (legacy — kept for signed-in users who need setup)
   const [onboardName, setOnboardName] = useState('');
   const [onboardInterests, setOnboardInterests] = useState('');
 
@@ -109,29 +114,35 @@ export default function BaeLinkPage() {
         const data = await res.json();
         setOwner(data);
 
-        // Now check visitor auth
+        // Check visitor auth — if already signed in with profile, go direct. Otherwise guest entry.
         const unsub = onAuthStateChanged(auth, async (user) => {
           if (!user) {
-            setPageState('need-auth');
+            // Not signed in — show guest entry (just type name)
+            setPageState('guest-entry');
             return;
           }
           setVisitorUser(user);
 
-          // Check if visitor has a profile
+          // Check if this is an anonymous guest (from guest entry)
+          if (user.isAnonymous) {
+            setPageState('guest-entry');
+            return;
+          }
+
+          // Check if visitor has a full profile
           const snap = await getDoc(doc(db, 'users', user.uid));
           if (snap.exists()) {
             const profile = snap.data();
             const interests = parseInterests(profile.interests);
-            if (profile.displayName?.trim() && interests.length >= 3) {
+            if (profile.displayName?.trim() && interests.length >= 1) {
               setVisitorProfile(profile);
-              // Ready to call — determine flow based on owner presence
               initiateCall(user.uid, data);
               return;
             }
           }
-          // Need onboarding
-          setOnboardName(user.displayName || '');
-          setPageState('need-onboarding');
+          // Signed in but no profile — still show guest entry for speed
+          setGuestName(user.displayName?.split(' ')[0] || '');
+          setPageState('guest-entry');
         });
 
         return () => unsub();
@@ -166,7 +177,8 @@ export default function BaeLinkPage() {
               if (callData.status === 'accepted' && callData.roomUrl) {
                 setPageState('connecting');
                 // Navigate to match page with direct call params
-                router.push(`/match?directCall=true&roomUrl=${encodeURIComponent(callData.roomUrl)}&partnerId=${encodeURIComponent(ownerData.uid)}`);
+                const guestParams = guestName.trim() ? `&guest=true&guestName=${encodeURIComponent(guestName.trim())}` : '';
+                router.push(`/match?directCall=true&roomUrl=${encodeURIComponent(callData.roomUrl)}&partnerId=${encodeURIComponent(ownerData.uid)}${guestParams}`);
               } else if (callData.status === 'declined') {
                 setPageState('offline');
               }
@@ -211,6 +223,26 @@ export default function BaeLinkPage() {
       if (callListenerRef.current) callListenerRef.current();
     };
   }, []);
+
+  // --- Guest join handler ---
+  const handleGuestJoin = async () => {
+    if (!guestName.trim() || !owner || isJoining) return;
+    setIsJoining(true);
+    try {
+      // Sign in anonymously to get a temp uid for Daily.co
+      let user = visitorUser;
+      if (!user) {
+        const cred = await signInAnonymously(auth);
+        user = cred.user;
+        setVisitorUser(user);
+      }
+      // Go straight to the call — pass guest info as query params
+      initiateCall(user.uid, owner);
+    } catch (e) {
+      console.error('Guest join failed', e);
+      setIsJoining(false);
+    }
+  };
 
   // --- Auth handler ---
   const handleSignIn = async () => {
@@ -320,8 +352,8 @@ export default function BaeLinkPage() {
     );
   }
 
-  // Need auth — sign in to continue
-  if (pageState === 'need-auth') {
+  // Guest entry — just type your name and join
+  if (pageState === 'guest-entry' || pageState === 'need-auth' || pageState === 'need-onboarding') {
     return (
       <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
         <motion.div
@@ -329,110 +361,55 @@ export default function BaeLinkPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center max-w-md w-full"
         >
-          <h1 className="text-3xl font-black mb-2">
+          <h1 className="text-4xl sm:text-5xl font-black mb-3">
             BAE with {ownerPublicName}
           </h1>
-          <p className="text-white/50 text-lg mb-2">
-            {ownerPublicName} wants to connect with you on BAE.
-          </p>
 
-          {/* Owner interests preview */}
+          {/* Owner interests preview — the hook */}
           {ownerInterestNames.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mb-8 mt-4">
-              {ownerInterestNames.slice(0, 8).map(interest => (
-                <span key={interest} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 border border-white/20 text-white/70">
+              {ownerInterestNames.slice(0, 10).map(interest => (
+                <span key={interest} className="px-3 py-1.5 rounded-full text-sm font-bold bg-gradient-to-r from-yellow-300/15 to-amber-300/10 border border-yellow-300/20 text-yellow-300/80">
                   {interest}
                 </span>
               ))}
-              {ownerInterestNames.length > 8 && (
-                <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/5 text-white/30">
-                  +{ownerInterestNames.length - 8} more
+              {ownerInterestNames.length > 10 && (
+                <span className="px-3 py-1.5 rounded-full text-sm font-bold bg-white/5 text-white/30">
+                  +{ownerInterestNames.length - 10} more
                 </span>
               )}
             </div>
           )}
 
-          <button
-            onClick={handleSignIn}
-            className="w-full py-4 bg-white text-black font-bold rounded-xl text-lg flex items-center justify-center gap-3 hover:bg-white/90 transition-colors"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            Continue with Google
-          </button>
+          {/* Just type your name */}
+          <div className="space-y-4 mt-6">
+            <input
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleGuestJoin()}
+              placeholder="What's your name?"
+              autoFocus
+              className="w-full px-6 py-5 rounded-2xl bg-white/10 border-2 border-white/15 text-white text-xl text-center placeholder:text-white/25 outline-none focus:border-yellow-300/40 focus:ring-2 focus:ring-yellow-300/15 font-bold"
+            />
 
-          <p className="text-white/25 text-xs mt-4">
-            Sign in to BAE with you — it takes 30 seconds
-          </p>
-        </motion.div>
-      </main>
-    );
-  }
-
-  // Quick onboarding
-  if (pageState === 'need-onboarding') {
-    const interestItems = onboardInterests.split(',').map(s => s.trim()).filter(Boolean);
-    const canSubmit = onboardName.trim() && interestItems.length >= 3;
-
-    return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md w-full"
-        >
-          <h2 className="text-2xl font-black mb-2">Almost there!</h2>
-          <p className="text-white/50 text-sm mb-6">
-            Set up your BAE in 30 seconds, then connect with {ownerPublicName}.
-          </p>
-
-          <div className="space-y-4 text-left">
-            <div>
-              <label className="block text-sm font-semibold mb-1.5 text-white/70">What should people call you?</label>
-              <input
-                value={onboardName}
-                onChange={e => setOnboardName(e.target.value)}
-                placeholder="Your name"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-1.5 text-white/70">
-                3 things you love <span className="text-white/30">(comma separated)</span>
-              </label>
-              <input
-                value={onboardInterests}
-                onChange={e => setOnboardInterests(e.target.value)}
-                placeholder="e.g. hiking, jazz, astrophysics"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20"
-              />
-              {interestItems.length > 0 && interestItems.length < 3 && (
-                <p className="text-amber-300/70 text-xs mt-1.5">{3 - interestItems.length} more to go</p>
-              )}
-              {interestItems.length >= 3 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {interestItems.map((item, i) => (
-                    <span key={i} className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-300 text-black border border-yellow-200">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            <motion.button
+              onClick={handleGuestJoin}
+              disabled={!guestName.trim() || isJoining}
+              whileHover={guestName.trim() && !isJoining ? { scale: 1.03 } : {}}
+              whileTap={guestName.trim() && !isJoining ? { scale: 0.97 } : {}}
+              className={`w-full py-5 rounded-2xl font-black text-xl transition-all ${
+                guestName.trim() && !isJoining
+                  ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)]'
+                  : 'bg-white/5 text-white/20 cursor-not-allowed'
+              }`}
+            >
+              {isJoining ? 'Joining...' : 'Join'}
+            </motion.button>
           </div>
 
-          <motion.button
-            onClick={handleOnboardingSubmit}
-            disabled={!canSubmit}
-            whileTap={canSubmit ? { scale: 0.95 } : {}}
-            className={`w-full mt-6 py-4 font-bold rounded-xl text-lg transition-all ${
-              canSubmit
-                ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white'
-                : 'bg-white/5 text-white/20 cursor-not-allowed'
-            }`}
-          >
-            Let's BAE
-          </motion.button>
+          <p className="text-white/15 text-xs mt-6">
+            No account needed. Just jump in.
+          </p>
         </motion.div>
       </main>
     );

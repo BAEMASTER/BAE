@@ -322,6 +322,8 @@ function MatchPage() {
   const isDirectCall = searchParams.get('directCall') === 'true';
   const directRoomUrl = searchParams.get('roomUrl');
   const directPartnerId = searchParams.get('partnerId');
+  const isGuest = searchParams.get('guest') === 'true';
+  const guestDisplayName = searchParams.get('guestName') || 'Guest';
   const yourVideoRef = useRef<HTMLVideoElement>(null);
   const theirVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -407,18 +409,33 @@ function MatchPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
+        if (isGuest) return; // Guest might still be signing in anonymously
         router.push('/auth');
         return;
       }
       setUser(u);
       userUidRef.current = u.uid;
 
+      // Guest mode — create a minimal local profile, no Firestore needed
+      if (isGuest && u.isAnonymous) {
+        const guestProfile = {
+          displayName: guestDisplayName,
+          interests: [],
+          city: '',
+          country: '',
+        };
+        myProfileRef.current = guestProfile;
+        setMyProfile(guestProfile);
+        setAuthReady(true);
+        return;
+      }
+
       try {
         const snap = await getDoc(doc(db, 'users', u.uid));
         if (snap.exists()) {
           const profileData = snap.data();
 
-          // Gate: redirect to profile if name or location not set
+          // Gate: redirect to profile if name or location not set (skip for guests)
           if (!profileData.displayName?.trim() || !profileData.city?.trim() || !profileData.country?.trim()) {
             router.push('/profile');
             return;
