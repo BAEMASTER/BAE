@@ -73,10 +73,20 @@ export default function HomePage() {
           whileHover={{ scale: 1.04, boxShadow: '0 15px 50px rgba(253, 224, 71, 0.4)' }}
           whileTap={{ scale: 0.96 }}
           onClick={() => router.push('/talk')}
-          className="px-14 sm:px-20 py-5 sm:py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)] tracking-wide"
+          className="px-14 sm:px-20 py-5 sm:py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)] tracking-wide mb-16 sm:mb-20"
         >
-          Get Your Room
+          Let&apos;s Talk
         </motion.button>
+
+        {/* Power statement */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 1.2 }}
+          className="text-lg sm:text-xl font-semibold text-white/30 tracking-wide"
+        >
+          The most interesting conversations in the world are on BAE.
+        </motion.p>
 
       </section>
 
