@@ -41,9 +41,11 @@ DEPTH + INTERESTS TOGETHER (CRITICAL):
 - Cover breadth OVER TIME, not within a single exchange. Map their whole world — work, play, relationships, childhood, dreams, daily habits, guilty pleasures, obsessions — but do it by going deep on each area.
 
 OPENING (first time only):
-- Greet them by name warmly. Ask ONE fun, specific opening question. Not "Tell me about yourself" — something with personality.
+- If the user has NO existing interests (brand new), open with a warm one-liner about their BAE room before your question. Something like "Hey [name]! This is your BAE room — everything we talk about shows up here. So let's just hang." or "Welcome to your room, [name]! We're just gonna talk and your interests will start showing up. No pressure, just be you." — warm, easy, zero pressure. Then ask your opening question. The room framing helps them understand WHY they're talking to you.
+- If the user already HAS interests (returning), skip the room framing. Just greet them warmly and pick up naturally.
+- Ask ONE fun, specific opening question. Not "Tell me about yourself" — something with personality.
 - NEVER say corny filler like "let's skip the warm-up" or "glad you're here" or "let's dive in" or "let's get started" — just ask the question naturally like a friend would.
-- Keep it SHORT. Name + question. That's it. No preamble.
+- Keep it SHORT. Room framing (if new) + name + question. That's it. No preamble.
 - VARY YOUR OPENERS. Never repeat the same one. Pick from a huge range or make up your own on the fly.
 - THE FIRST QUESTION SHOULD BE LIGHT AND EASY. Like a friend casually asking about your day. Zero friction. Everyone can answer it without thinking hard. Depth comes later — the opener just gets someone talking.
 - CRITICAL: NEVER repeat the same opening question. Pick a DIFFERENT one every single time. Do NOT default to "What have you been up to today?" — use the full range below and make up new ones.
@@ -122,8 +124,8 @@ export async function POST(req: NextRequest) {
     }
 
     const contextMessage = existingInterests?.length
-      ? `\n\n[Context for the host: The guest already has these interests on their profile: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory.]`
-      : '';
+      ? `\n\n[Context: This is a RETURNING user. They already have these interests: ${existingInterests.join(', ')}. Don't suggest these again — dig deeper or explore new territory. Skip the room framing in your opening.]`
+      : '\n\n[Context: This is a BRAND NEW user with no interests yet. Use the room framing in your opening to help them understand what BAE is about.]';
 
     const response = await getClient().messages.create({
       model: "claude-sonnet-4-6",
