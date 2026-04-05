@@ -126,6 +126,7 @@ export default function DiscoverPage() {
   const [showContinue, setShowContinue] = useState(false);
   const [newTopicCount, setNewTopicCount] = useState(0);
   const [showSignupNudge, setShowSignupNudge] = useState(false);
+  const [jokeReactions, setJokeReactions] = useState<Record<number, string>>({}); // msgIdx → reaction
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper: save to Firestore only for signed-in (non-guest) users
@@ -444,8 +445,84 @@ export default function DiscoverPage() {
     await fetchResponse(newMessages);
   };
 
+  const handleJokeReaction = async (msgIdx: number, reaction: string) => {
+    if (jokeReactions[msgIdx]) return;
+    setJokeReactions(prev => ({ ...prev, [msgIdx]: reaction }));
+    // Send reaction to Talk AI
+    const contextMsg = `(User reacted to your joke with "${reaction}". Respond with ONE short sentence matching the vibe, then continue with a new question. Do not reference the joke again after your one-liner.)`;
+    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
+    setConversationHistory(newMessages);
+    await saveToFirestore({ discoverConversation: newMessages });
+    setTimeout(() => fetchResponse(newMessages), 800);
+  };
+
   // Render message — no bubbles, flowing text with BIG glowing interest pills
   const renderMessage = (content: string, msgIdx: number) => {
+    // Check for joke
+    const jokeMatch = content.match(/\[JOKE\]([\s\S]*?)\[\/JOKE\]/);
+    if (jokeMatch) {
+      const jokeText = jokeMatch[1].trim();
+      const beforeJoke = content.slice(0, jokeMatch.index).trim();
+      const afterJoke = content.slice((jokeMatch.index || 0) + jokeMatch[0].length).trim();
+      const reacted = jokeReactions[msgIdx];
+
+      return (
+        <>
+          {beforeJoke && <span>{beforeJoke}</span>}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="relative my-6 py-8 px-6 sm:px-10 rounded-2xl text-center"
+            style={{
+              background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.08) 0%, transparent 70%)',
+            }}
+          >
+            <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed text-white font-medium italic">
+              {jokeText}
+            </p>
+            {/* Reaction bar */}
+            <AnimatePresence>
+              {!reacted && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                  className="flex justify-center gap-4 mt-6"
+                >
+                  {[
+                    { emoji: '🧀', label: 'cheesy!' },
+                    { emoji: '😂', label: 'hilarious!' },
+                    { emoji: '🙄', label: 'so bad!' },
+                  ].map(r => (
+                    <motion.button
+                      key={r.label}
+                      whileTap={{ scale: 1.3 }}
+                      onClick={() => handleJokeReaction(msgIdx, r.label)}
+                      className="flex flex-col items-center gap-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                    >
+                      <span className="text-2xl">{r.emoji}</span>
+                      <span className="text-xs font-bold text-white/50">{r.label}</span>
+                    </motion.button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {reacted && (
+              <motion.p
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-4 text-sm font-bold text-amber-300/60"
+              >
+                You said: {reacted}
+              </motion.p>
+            )}
+          </motion.div>
+          {afterJoke && <span>{afterJoke}</span>}
+        </>
+      );
+    }
+
     const parts = content.split(/(\[INTEREST:\s*[^\]]+\])/g);
     const elements = parts.map((part, i) => {
       const match = part.match(/\[INTEREST:\s*([^\]]+)\]/);
