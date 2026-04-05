@@ -204,14 +204,14 @@ function ConnectPreview() {
   };
 
   return (
-    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-between relative overflow-hidden">
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-5 h-full flex flex-col justify-between relative overflow-y-auto">
       {/* Video placeholders */}
-      <div className="flex gap-3 mb-3">
-        <div className="flex-1 aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-900/50 to-indigo-900/50 border border-white/5 flex items-center justify-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-lg">You</div>
+      <div className="flex gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <div className="flex-1 aspect-video sm:aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-900/50 to-indigo-900/50 border border-white/5 flex items-center justify-center">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-sm sm:text-lg">You</div>
         </div>
-        <div className="flex-1 aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-900/50 to-indigo-900/50 border border-white/5 flex items-center justify-center">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-lg">Alex</div>
+        <div className="flex-1 aspect-video sm:aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-900/50 to-indigo-900/50 border border-white/5 flex items-center justify-center">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-sm sm:text-lg">Alex</div>
         </div>
       </div>
 
@@ -246,7 +246,7 @@ function ConnectPreview() {
             key={emoji}
             whileTap={{ scale: 1.4 }}
             onClick={(e) => handleReaction(emoji, e)}
-            className="text-xl sm:text-2xl hover:scale-110 transition-transform cursor-pointer select-none"
+            className="text-xl sm:text-2xl hover:scale-110 transition-transform cursor-pointer select-none p-1.5 min-w-[40px] min-h-[40px] flex items-center justify-center"
           >
             {emoji}
           </motion.button>
@@ -310,7 +310,7 @@ export default function WelcomePage() {
   const Preview = PREVIEWS[beat];
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-white bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
+    <main className="relative min-h-dvh overflow-hidden text-white bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
       {/* Launch burst */}
       <AnimatePresence>
         {launching && (
@@ -348,24 +348,22 @@ export default function WelcomePage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation arrows — desktop: between panels, mobile: screen edges */}
+      {/* Navigation arrows — mobile: bottom edges, desktop: between panels */}
       {!showName && (
         <>
-          {/* Left arrow — only if not first beat */}
           {beat > 0 && (
-            <div className="absolute left-2 sm:left-4 md:left-[calc(40%-24px)] top-1/2 -translate-y-1/2 z-50">
+            <div className="absolute left-2 sm:left-4 md:left-[calc(40%-24px)] bottom-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-50">
               <NavArrow direction="left" onClick={goBack} />
             </div>
           )}
-          {/* Right arrow — always visible on beats */}
-          <div className="absolute right-2 sm:right-4 md:right-[calc(40%-24px)] top-1/2 -translate-y-1/2 z-50">
+          <div className="absolute right-2 sm:right-4 md:right-[calc(40%-24px)] bottom-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-50">
             <NavArrow direction="right" onClick={advance} />
           </div>
         </>
       )}
 
       {/* Content */}
-      <section className="relative z-10 flex items-center justify-center min-h-screen px-10 sm:px-16 md:px-8 py-16 sm:py-0">
+      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-10 md:px-8 py-6 sm:py-0">
         <AnimatePresence mode="wait">
           {!showName ? (
             <motion.div
@@ -378,7 +376,7 @@ export default function WelcomePage() {
               {/* Left: Text */}
               <div className="flex-shrink-0 md:w-[40%] text-center md:text-left">
                 <h1
-                  className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4 md:mb-6 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight mb-3 md:mb-6 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
@@ -387,7 +385,7 @@ export default function WelcomePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2"
+                  className="text-base sm:text-xl md:text-2xl font-bold text-white mb-2"
                 >
                   {current.sub}
                 </motion.p>
@@ -408,7 +406,7 @@ export default function WelcomePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.5 }}
-                className="flex-1 w-full md:w-[60%] min-h-[300px] sm:min-h-[340px] md:min-h-[420px]"
+                className="flex-1 w-full md:w-[60%] min-h-[200px] sm:min-h-[300px] md:min-h-[420px]"
               >
                 <Preview />
               </motion.div>
@@ -428,7 +426,7 @@ export default function WelcomePage() {
                 Let&apos;s Talk.
               </h2>
               <h2
-                className="text-3xl sm:text-5xl font-black mb-10 sm:mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                className="text-3xl sm:text-5xl font-black mb-6 sm:mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                 style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
               >
                 And Make it Interesting.
