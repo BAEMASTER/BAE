@@ -131,27 +131,27 @@ function TalkPreview() {
   };
 
   return (
-    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 h-full flex flex-col justify-center text-left">
-      <div className="space-y-5 sm:space-y-7">
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-10 h-full flex flex-col justify-center text-left">
+      <div className="space-y-6 sm:space-y-8">
         {/* BAE message */}
-        <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light">
+        <p className="text-lg sm:text-2xl md:text-3xl leading-[1.7] text-white/90 font-light">
           What did you do today that actually felt good?
         </p>
         {/* User message */}
-        <div className="pl-4 sm:pl-6 border-l-[3px] border-amber-400/40">
-          <p className="text-sm sm:text-lg leading-[1.7] text-amber-200/60 font-light italic">
+        <div className="pl-5 sm:pl-6 border-l-[3px] border-amber-400/40">
+          <p className="text-base sm:text-xl md:text-2xl leading-[1.7] text-amber-200/60 font-light italic">
             Went to hot yoga this morning
           </p>
         </div>
         {/* BAE observation + pills + framing */}
         <div>
-          <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light mb-3">
+          <p className="text-lg sm:text-2xl md:text-3xl leading-[1.7] text-white/90 font-light mb-4">
             That&apos;s a very specific kind of discipline. Love that.
           </p>
-          <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light mb-3">
+          <p className="text-lg sm:text-xl md:text-2xl leading-[1.7] text-white/90 font-light mb-5">
             Tap to add any to your interests:
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5 sm:gap-3">
             {TALK_PILLS.map(pill => {
               const isAdded = added.has(pill);
               return (
@@ -159,15 +159,15 @@ function TalkPreview() {
                   key={pill}
                   whileTap={!isAdded ? { scale: 0.92 } : {}}
                   onClick={(e) => handleTap(pill, e)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold transition-all select-none ${
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-base sm:text-lg font-bold transition-all select-none ${
                     isAdded
                       ? 'text-emerald-300 bg-emerald-400/15 border-2 border-emerald-400/25'
                       : 'text-black bg-[#fde047] border-2 border-yellow-200 cursor-pointer'
                   }`}
                   style={!isAdded ? {
-                    boxShadow: '0 0 16px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.3)',
+                    boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)',
                   } : {
-                    boxShadow: '0 0 12px rgba(52,211,153,0.2)',
+                    boxShadow: '0 0 16px rgba(52,211,153,0.3)',
                   }}
                 >
                   {isAdded ? (
@@ -381,7 +381,7 @@ export default function WelcomePage() {
       )}
 
       {/* Content */}
-      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-10 md:px-8 py-6 sm:py-0">
+      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-8 py-6 sm:py-0">
         <AnimatePresence mode="wait">
           {!showName ? (
             <motion.div
@@ -389,12 +389,12 @@ export default function WelcomePage() {
               initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.4, ease: 'circOut' } }}
               exit={{ opacity: 0, scale: 2, filter: 'blur(20px)', transition: { duration: 0.4, ease: 'circIn' } }}
-              className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-6 md:gap-12"
+              className="w-full max-w-4xl flex flex-col items-center text-center gap-4 sm:gap-6"
             >
-              {/* Left: Text */}
-              <div className="flex-shrink-0 md:w-[40%] text-center md:text-left">
+              {/* Headline — centered, big */}
+              <div>
                 <h1
-                  className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight mb-3 md:mb-6 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  className="text-4xl sm:text-6xl md:text-7xl font-black leading-tight mb-2 sm:mb-4 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
@@ -403,7 +403,7 @@ export default function WelcomePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-base sm:text-xl md:text-2xl font-bold text-white mb-2"
+                  className="text-lg sm:text-2xl md:text-3xl font-bold text-white"
                 >
                   {current.sub}
                 </motion.p>
@@ -412,19 +412,19 @@ export default function WelcomePage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.35, duration: 0.5 }}
-                    className="text-base sm:text-lg md:text-xl font-semibold text-white/50"
+                    className="text-base sm:text-xl md:text-2xl font-semibold text-white/50 mt-1"
                   >
                     {current.sub2}
                   </motion.p>
                 )}
               </div>
 
-              {/* Right: Interactive preview */}
+              {/* Interactive preview — full width, immersive */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.5 }}
-                className="flex-1 w-full md:w-[60%] min-h-[200px] sm:min-h-[300px] md:min-h-[420px]"
+                className="w-full min-h-[250px] sm:min-h-[350px] md:min-h-[420px]"
               >
                 <Preview />
               </motion.div>
