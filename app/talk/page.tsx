@@ -146,7 +146,13 @@ export default function DiscoverPage() {
   const [jokeReactions, setJokeReactions] = useState<Record<number, string>>({}); // msgIdx → reaction
   const [activeJoke, setActiveJoke] = useState<number | null>(null); // msgIdx of unreacted joke
   const userMsgCountRef = useRef(0);
-  const lastJokeAtRef = useRef(0); // user msg count when last joke was triggered
+  const lastJokeAtRef = useRef(0);
+  // Deep dive cluster state
+  const [deepDivePrompt, setDeepDivePrompt] = useState<string | null>(null);
+  const [deepDiveInput, setDeepDiveInput] = useState('');
+  const [deepDiveCluster, setDeepDiveCluster] = useState<string[]>([]);
+  const batchTapTimestamps = useRef<number[]>([]);
+  const deepDiveInputRef = useRef<HTMLInputElement>(null);
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper: save to Firestore only for signed-in (non-guest) users
@@ -287,6 +293,7 @@ export default function DiscoverPage() {
         continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
       }
       setRecentlySelected([]);
+      batchTapTimestamps.current = [];
 
       // Detect topic icon — only add to history when the ICON CATEGORY changes (major topic shift)
       const interestNamesFromResponse = [...fullText.matchAll(/\[INTEREST:\s*([^\]]+)\]/g)].map(m => m[1].trim());
@@ -336,6 +343,7 @@ export default function DiscoverPage() {
             continueTimerRef.current = setTimeout(() => setShowContinue(true), 5000);
           }
           setRecentlySelected([]);
+      batchTapTimestamps.current = [];
           const retryFinal = [...currentMessages, { role: 'assistant' as const, content: retryText }];
           setConversationHistory(retryFinal);
           if (user) {
@@ -408,9 +416,33 @@ export default function DiscoverPage() {
     setCollectedInterests(prev =>
       prev.includes(interest.name) ? prev : [...prev, interest.name]
     );
+    // Track tap timing for fast-tap detection
+    const now = Date.now();
+    batchTapTimestamps.current.push(now);
+
     setRecentlySelected(prev => {
       const next = [...prev, interest.name];
-      if (next.length === 3) playComboSound();
+      // On 3rd tap, check if all 3 taps happened within ~3 seconds
+      if (next.length === 3) {
+        const timestamps = batchTapTimestamps.current;
+        const timeSinceFirst = timestamps.length >= 3
+          ? timestamps[timestamps.length - 1] - timestamps[timestamps.length - 3]
+          : Infinity;
+        const isFastTap = timeSinceFirst < 3000;
+
+        if (isFastTap) {
+          playComboSound();
+          // 60-70% chance to trigger deep dive
+          if (Math.random() < 0.65) {
+            const cluster = next.slice();
+            setTimeout(() => {
+              setDeepDiveCluster(cluster);
+              // Ask AI for the deep dive prompt
+              triggerDeepDive(cluster);
+            }, 600);
+          }
+        }
+      }
       return next;
     });
     // Reset continue button timer — user is still active
@@ -490,6 +522,70 @@ export default function DiscoverPage() {
     setConversationHistory(newMessages);
     await saveToFirestore({ discoverConversation: newMessages });
     await fetchResponse(newMessages);
+  };
+
+  const triggerDeepDive = async (cluster: string[]) => {
+    // Ask AI for a contextual deep-dive prompt
+    const askMsg = `(The user just rapidly tapped 3 interests: ${cluster.join(', ')}. They're clearly into this area. Generate a deep dive prompt. Say something like "You're really into this." then ask them to add something specific — use "your favorite" framing contrasted against the generic category. Example: "think your favorite dish, not just Italian Food." Keep it to 2 sentences. Wrap your response in [DEEPDIVE]...[/DEEPDIVE] tags.)`;
+    try {
+      const res = await fetch('/api/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...conversationHistory, { role: 'user', content: askMsg }],
+          existingInterests: interestNames(existingInterests),
+        }),
+      });
+      const data = await res.json();
+      const match = data.text?.match(/\[DEEPDIVE\]([\s\S]*?)\[\/DEEPDIVE\]/);
+      if (match) {
+        setDeepDivePrompt(match[1].trim());
+        setTimeout(() => deepDiveInputRef.current?.focus(), 400);
+      } else {
+        // Fallback
+        setDeepDivePrompt("You're really into this. Add something specific — think your favorite, not just the category. The details are where the magic is.");
+        setTimeout(() => deepDiveInputRef.current?.focus(), 400);
+      }
+    } catch {
+      setDeepDivePrompt("You're really into this. Add something specific — think your favorite, not just the category.");
+      setTimeout(() => deepDiveInputRef.current?.focus(), 400);
+    }
+  };
+
+  const handleDeepDiveSubmit = async () => {
+    const value = deepDiveInput.trim();
+    if (!value) return;
+
+    // Add as interest
+    const newInterest = createInterest(value, 'profile');
+    const updated = addStructuredInterests(existingInterests, [newInterest]);
+    setExistingInterests(updated);
+    setCollectedInterests(prev => prev.includes(value) ? prev : [...prev, value]);
+    playAddSound();
+    await saveToFirestore({ interests: updated });
+
+    // Send to Talk for follow-up
+    const contextMsg = `(User just added a specific insider interest: "${value}" from the cluster: ${deepDiveCluster.join(', ')}. This is a hand-typed interest — the strongest signal. Respond with a warm brief one-liner, then ask a genuinely curious open-ended follow-up about THAT SPECIFIC THING. Not the category. The exact thing they typed. Sound like a curious friend who just got a great recommendation. Then stay in this topic area for 2-3 more questions before naturally bridging to something new.)`;
+    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
+    setConversationHistory(newMessages);
+
+    setDeepDivePrompt(null);
+    setDeepDiveInput('');
+    setDeepDiveCluster([]);
+    batchTapTimestamps.current = [];
+
+    await saveToFirestore({ discoverConversation: newMessages });
+    await fetchResponse(newMessages);
+  };
+
+  const handleDeepDiveSkip = () => {
+    setDeepDivePrompt(null);
+    setDeepDiveInput('');
+    setDeepDiveCluster([]);
+    batchTapTimestamps.current = [];
+    // Continue normally — no commentary
+    if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
+    continueTimerRef.current = setTimeout(() => setShowContinue(true), 3000);
   };
 
   const handleJokeReaction = async (msgIdx: number, reaction: string) => {
@@ -1031,6 +1127,57 @@ export default function DiscoverPage() {
                   >
                     Not now
                   </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Deep Dive Prompt */}
+          <AnimatePresence>
+            {deepDivePrompt && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5 }}
+                className="relative my-8 py-8 px-6 sm:px-10 rounded-2xl text-center"
+                style={{
+                  background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.1) 0%, rgba(253,224,71,0.03) 50%, transparent 70%)',
+                }}
+              >
+                <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 font-medium mb-6">
+                  {deepDivePrompt}
+                </p>
+                <div className="max-w-md mx-auto space-y-4">
+                  <input
+                    ref={deepDiveInputRef}
+                    value={deepDiveInput}
+                    onChange={e => setDeepDiveInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleDeepDiveSubmit()}
+                    onClick={e => e.stopPropagation()}
+                    placeholder="Get specific..."
+                    className="w-full px-6 py-4 rounded-xl bg-white/5 border-2 border-amber-400/30 text-white text-lg text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/60 focus:bg-white/8 focus:shadow-[0_0_30px_rgba(253,224,71,0.15)] transition-all"
+                  />
+                  <div className="flex justify-center gap-3">
+                    {deepDiveInput.trim() && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleDeepDiveSubmit}
+                        className="px-8 py-3 rounded-full font-black text-base text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400"
+                        style={{ boxShadow: '0 0 20px rgba(253,224,71,0.3)' }}
+                      >
+                        Add it
+                      </motion.button>
+                    )}
+                    <button
+                      onClick={handleDeepDiveSkip}
+                      className="px-6 py-3 rounded-full text-sm font-bold text-white/30 hover:text-white/50 transition-colors"
+                    >
+                      Continue
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
