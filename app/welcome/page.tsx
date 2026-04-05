@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // --- Reaction bar for Connect preview ---
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
@@ -75,21 +76,63 @@ function GoldPill({ children, small }: { children: string; small?: boolean }) {
   );
 }
 
-// --- Preview panels ---
+// --- Animated Talk Preview ---
+type ConvoLine = { type: 'bae' | 'user' | 'pills'; text?: string; pills?: string[] };
+
+const CONVO_LINES: ConvoLine[] = [
+  { type: 'bae', text: 'What did you do today that actually felt good?' },
+  { type: 'user', text: 'Went to hot yoga this morning' },
+  { type: 'bae', text: "That's a very specific kind of discipline. Is that a recent thing or have you always been that way?" },
+  { type: 'user', text: "It started during COVID honestly. Now I can't go a week without it." },
+  { type: 'bae', text: "So it became a ritual, not just a workout. That says a lot about you." },
+  { type: 'pills', pills: ['Hot Yoga', 'Fitness', 'Wellness'] },
+  { type: 'bae', text: "Tap to add to your interests:" },
+  { type: 'bae', text: "What else keeps you grounded like that?" },
+  { type: 'user', text: "Cooking. I make pasta from scratch every Sunday." },
+  { type: 'bae', text: "Every Sunday — you're a ritual person. What's your signature dish?" },
+  { type: 'pills', pills: ['Cooking', 'Italian Food', 'Sunday Rituals'] },
+];
+
 function TalkPreview() {
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    if (visibleCount >= CONVO_LINES.length) return;
+    const delay = CONVO_LINES[visibleCount]?.type === 'pills' ? 600 : visibleCount === 0 ? 400 : 1200;
+    const t = setTimeout(() => setVisibleCount(prev => prev + 1), delay);
+    return () => clearTimeout(t);
+  }, [visibleCount]);
+
   return (
-    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center gap-4 text-left">
-      <p className="text-white/40 text-sm font-medium">BAE</p>
-      <p className="text-white text-base sm:text-lg font-medium">What did you do today that actually felt good?</p>
-      <div className="border-l-2 border-amber-400/30 pl-4">
-        <p className="text-white/70 text-base sm:text-lg font-medium">Went to hot yoga this morning</p>
-      </div>
-      <p className="text-white/40 text-sm font-medium">BAE</p>
-      <p className="text-white text-base sm:text-lg font-medium">That&apos;s a very specific kind of discipline. Is that a recent thing or have you always been that way?</p>
-      <div className="flex flex-wrap gap-2 mt-2">
-        <GoldPill>Hot Yoga</GoldPill>
-        <GoldPill>Fitness</GoldPill>
-        <GoldPill>Wellness</GoldPill>
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-end gap-2.5 text-left overflow-hidden">
+      <div className="flex flex-col gap-2.5 overflow-y-auto max-h-full">
+        {CONVO_LINES.slice(0, visibleCount).map((line, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {line.type === 'bae' && (
+              <div>
+                {i === 0 || CONVO_LINES[i - 1]?.type !== 'bae' ? (
+                  <p className="text-white/35 text-xs font-medium mb-1">BAE</p>
+                ) : null}
+                <p className="text-white text-sm sm:text-base font-medium">{line.text}</p>
+              </div>
+            )}
+            {line.type === 'user' && (
+              <div className="border-l-2 border-amber-400/30 pl-3">
+                <p className="text-white/65 text-sm sm:text-base font-medium">{line.text}</p>
+              </div>
+            )}
+            {line.type === 'pills' && (
+              <div className="flex flex-wrap gap-1.5 py-1">
+                {line.pills!.map(p => <GoldPill key={p} small>{p}</GoldPill>)}
+              </div>
+            )}
+          </motion.div>
+        ))}
       </div>
     </div>
   );
@@ -99,12 +142,12 @@ function BuildPreview() {
   const interests = ['Hot Yoga', 'Italian Food', 'AI', 'Stand-up Comedy', 'Parenting', 'Jazz', 'Photography', 'Travel', 'Philosophy', 'Cooking', 'Fitness', 'Vinyl Records'];
   return (
     <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center">
-      <p className="text-white font-black text-xl sm:text-2xl mb-1">Jason R.</p>
+      <p className="text-white font-black text-xl sm:text-2xl mb-1">Alex M.</p>
       <p className="text-white/30 text-sm font-medium mb-4">52 interests</p>
       <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-5">
         {interests.map(i => <GoldPill key={i} small>{i}</GoldPill>)}
       </div>
-      <p className="text-amber-400/60 text-sm font-semibold">baewithme.com/jason</p>
+      <p className="text-amber-400/60 text-sm font-semibold">baewithme.com/alex</p>
     </div>
   );
 }
@@ -180,6 +223,21 @@ function ConnectPreview() {
 
 const PREVIEWS = [TalkPreview, BuildPreview, ConnectPreview];
 
+// --- Nav Arrow ---
+function NavArrow({ direction, onClick }: { direction: 'left' | 'right'; onClick: () => void }) {
+  const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
+  return (
+    <motion.button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      whileHover={{ opacity: 0.5 }}
+      whileTap={{ scale: 0.9 }}
+      className="text-white/20 hover:text-white/50 transition-opacity p-2"
+    >
+      <Icon size={36} strokeWidth={1.5} />
+    </motion.button>
+  );
+}
+
 // --- Main page ---
 export default function WelcomePage() {
   const router = useRouter();
@@ -194,6 +252,10 @@ export default function WelcomePage() {
     } else {
       setShowName(true);
     }
+  };
+
+  const goBack = () => {
+    if (beat > 0) setBeat(prev => prev - 1);
   };
 
   useEffect(() => {
@@ -233,44 +295,24 @@ export default function WelcomePage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Progress dots + tap hint */}
+      {/* Navigation arrows — desktop: between panels, mobile: screen edges */}
       {!showName && (
-        <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-4">
-          <motion.button
-            onClick={advance}
-            animate={{ boxShadow: ['0 0 15px rgba(253,224,71,0.2)', '0 0 30px rgba(253,224,71,0.4)', '0 0 15px rgba(253,224,71,0.2)'] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="px-8 py-3 rounded-full text-sm font-bold text-amber-300 border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 transition-colors"
-          >
-            Tap to continue
-          </motion.button>
-          <div className="flex gap-3">
-            {BEATS.map((_, i) => (
-              <motion.div
-                key={i}
-                className="w-3.5 h-3.5 rounded-full"
-                animate={{
-                  backgroundColor: i === beat ? '#fde047' : 'rgba(255,255,255,0.15)',
-                  scale: i === beat ? 1.3 : 1,
-                  boxShadow: i === beat ? '0 0 16px rgba(253,224,71,0.7)' : '0 0 0px transparent',
-                }}
-                transition={{ duration: 0.4 }}
-              />
-            ))}
+        <>
+          {/* Left arrow — only if not first beat */}
+          {beat > 0 && (
+            <div className="absolute left-2 sm:left-4 md:left-[calc(40%-24px)] top-1/2 -translate-y-1/2 z-50">
+              <NavArrow direction="left" onClick={goBack} />
+            </div>
+          )}
+          {/* Right arrow — always visible on beats */}
+          <div className="absolute right-2 sm:right-4 md:right-[calc(40%-24px)] top-1/2 -translate-y-1/2 z-50">
+            <NavArrow direction="right" onClick={advance} />
           </div>
-        </div>
+        </>
       )}
 
       {/* Content */}
-      <section
-        className="relative z-10 flex items-center justify-center min-h-screen px-4 sm:px-8 py-16 sm:py-0"
-        onClick={(e) => {
-          // Don't advance if clicking reaction bar
-          if ((e.target as HTMLElement).closest('[data-reaction-bar]')) return;
-          if (!showName) advance();
-        }}
-        style={{ cursor: showName ? 'default' : 'pointer' }}
-      >
+      <section className="relative z-10 flex items-center justify-center min-h-screen px-10 sm:px-16 md:px-8 py-16 sm:py-0">
         <AnimatePresence mode="wait">
           {!showName ? (
             <motion.div
@@ -278,12 +320,12 @@ export default function WelcomePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, transition: { duration: 0.5 } }}
               exit={{ opacity: 0, scale: 1.08, filter: 'blur(6px)', transition: { duration: 0.3 } }}
-              className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-8 md:gap-12"
+              className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-6 md:gap-12"
             >
               {/* Left: Text */}
               <div className="flex-shrink-0 md:w-[40%] text-center md:text-left">
                 <h1
-                  className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight mb-6 md:mb-8 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight mb-4 md:mb-6 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
@@ -292,7 +334,7 @@ export default function WelcomePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3"
+                  className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-2"
                 >
                   {current.sub}
                 </motion.p>
@@ -313,7 +355,7 @@ export default function WelcomePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.5 }}
-                className="flex-1 w-full md:w-[60%] min-h-[280px] sm:min-h-[320px] md:min-h-[400px]"
+                className="flex-1 w-full md:w-[60%] min-h-[300px] sm:min-h-[340px] md:min-h-[420px]"
               >
                 <Preview />
               </motion.div>
@@ -324,16 +366,16 @@ export default function WelcomePage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="text-center max-w-lg w-full"
+              className="text-center max-w-lg w-full px-4"
             >
               <h2
-                className="text-5xl sm:text-7xl font-black mb-3 text-white"
+                className="text-4xl sm:text-6xl font-black mb-2 text-white"
                 style={{ filter: 'drop-shadow(0 0 40px rgba(255,180,255,0.3))' }}
               >
                 Let&apos;s Talk.
               </h2>
               <h2
-                className="text-4xl sm:text-6xl font-black mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                className="text-3xl sm:text-5xl font-black mb-10 sm:mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                 style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
               >
                 And Make it Interesting.
