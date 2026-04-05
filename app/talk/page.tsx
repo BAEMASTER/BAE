@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
@@ -148,11 +148,14 @@ export default function DiscoverPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        // Not signed in — sign in anonymously for guest Talk
+        // Not signed in — try anonymous auth, fall back to pure guest mode
         try {
           await signInAnonymously(auth);
         } catch {
-          router.push('/auth');
+          // Anonymous auth failed — run Talk without auth (no Firestore saving)
+          setIsGuestTalk(true);
+          setUserName('');
+          setAuthReady(true);
         }
         return;
       }

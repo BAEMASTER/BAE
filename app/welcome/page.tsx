@@ -102,72 +102,21 @@ function GoldPill({ children, small }: { children: string; small?: boolean }) {
   );
 }
 
-// --- Animated Talk Preview ---
-type ConvoLine = { type: 'bae' | 'user' | 'pills'; text?: string; pills?: string[] };
-
-const CONVO_LINES: ConvoLine[] = [
-  { type: 'bae', text: 'What did you do today that actually felt good?' },
-  { type: 'user', text: 'Went to hot yoga this morning' },
-  { type: 'bae', text: "That's a very specific kind of discipline. Is that a recent thing or have you always been that way?" },
-  { type: 'user', text: "It started during COVID honestly. Now I can't go a week without it." },
-  { type: 'bae', text: "So it became a ritual, not just a workout. That says a lot about you." },
-  { type: 'pills', pills: ['Hot Yoga', 'Fitness', 'Wellness'] },
-  { type: 'bae', text: "Tap to add to your interests:" },
-  { type: 'bae', text: "What else keeps you grounded like that?" },
-  { type: 'user', text: "Cooking. I make pasta from scratch every Sunday." },
-  { type: 'bae', text: "Every Sunday — you're a ritual person. What's your signature dish?" },
-  { type: 'pills', pills: ['Cooking', 'Italian Food', 'Sunday Rituals'] },
-];
-
+// --- Preview panels ---
 function TalkPreview() {
-  const [visibleCount, setVisibleCount] = useState(0);
-
-  useEffect(() => {
-    if (visibleCount >= CONVO_LINES.length) return;
-    const delay = CONVO_LINES[visibleCount]?.type === 'pills' ? 600 : visibleCount === 0 ? 400 : 1200;
-    const t = setTimeout(() => setVisibleCount(prev => prev + 1), delay);
-    return () => clearTimeout(t);
-  }, [visibleCount]);
-
   return (
-    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-end gap-2.5 text-left overflow-hidden">
-      <div className="flex flex-col gap-2.5 overflow-y-auto max-h-full">
-        {CONVO_LINES.slice(0, visibleCount).map((line, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {line.type === 'bae' && (
-              <div>
-                {i === 0 || CONVO_LINES[i - 1]?.type !== 'bae' ? (
-                  <p className="text-white/35 text-xs font-medium mb-1">BAE</p>
-                ) : null}
-                <p className="text-white text-sm sm:text-base font-medium">{line.text}</p>
-              </div>
-            )}
-            {line.type === 'user' && (
-              <div className="border-l-2 border-amber-400/30 pl-3">
-                <p className="text-white/65 text-sm sm:text-base font-medium">{line.text}</p>
-              </div>
-            )}
-            {line.type === 'pills' && (
-              <div className="flex flex-wrap gap-1.5 py-1">
-                {line.pills!.map((p, pi) => (
-                  <motion.span
-                    key={p}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 12, delay: pi * 0.12 }}
-                  >
-                    <GoldPill small>{p}</GoldPill>
-                  </motion.span>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        ))}
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-center gap-2.5 text-left">
+      <p className="text-white/35 text-xs font-medium">BAE</p>
+      <p className="text-white text-sm sm:text-base font-medium">What did you do today that actually felt good?</p>
+      <div className="border-l-2 border-amber-400/30 pl-3">
+        <p className="text-white/65 text-sm sm:text-base font-medium">Went to hot yoga this morning</p>
+      </div>
+      <p className="text-white/35 text-xs font-medium">BAE</p>
+      <p className="text-white text-sm sm:text-base font-medium">That&apos;s a very specific kind of discipline. Is that a recent thing or have you always been that way?</p>
+      <div className="flex flex-wrap gap-1.5 pt-2">
+        <GoldPill small>Hot Yoga</GoldPill>
+        <GoldPill small>Fitness</GoldPill>
+        <GoldPill small>Wellness</GoldPill>
       </div>
     </div>
   );
