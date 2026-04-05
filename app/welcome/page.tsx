@@ -87,8 +87,8 @@ const BEATS = [
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
-    headline: 'Then it gets fun.',
-    sub: 'Connect with anyone. Shared interests glow. React in real time.',
+    headline: 'Now, invite your people to your room.',
+    sub: 'Shared interests glow. Have so much fun.',
     glowColor: 'rgba(244,63,94,0.4)',
   },
 ];
