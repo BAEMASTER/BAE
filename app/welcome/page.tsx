@@ -119,7 +119,7 @@ function TalkPreview() {
         </div>
         {/* BAE response */}
         <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light">
-          That&apos;s a very specific kind of discipline. Is that a recent thing or have you always been that way?
+          That&apos;s a very specific kind of discipline. What got you into that?
         </p>
         {/* Interest pills */}
         <div className="flex flex-wrap gap-2">
