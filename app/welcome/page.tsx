@@ -128,7 +128,16 @@ function TalkPreview() {
             )}
             {line.type === 'pills' && (
               <div className="flex flex-wrap gap-1.5 py-1">
-                {line.pills!.map(p => <GoldPill key={p} small>{p}</GoldPill>)}
+                {line.pills!.map((p, pi) => (
+                  <motion.span
+                    key={p}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 12, delay: pi * 0.12 }}
+                  >
+                    <GoldPill small>{p}</GoldPill>
+                  </motion.span>
+                ))}
               </div>
             )}
           </motion.div>
