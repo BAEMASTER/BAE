@@ -34,7 +34,6 @@ const BEATS = [
   },
 ];
 
-const BEAT_DURATION = 4000;
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -42,18 +41,14 @@ export default function WelcomePage() {
   const [showName, setShowName] = useState(false);
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    timerRef.current = setTimeout(() => {
-      if (beat < BEATS.length - 1) {
-        setBeat(prev => prev + 1);
-      } else {
-        setShowName(true);
-      }
-    }, BEAT_DURATION);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [beat]);
+  const advance = () => {
+    if (beat < BEATS.length - 1) {
+      setBeat(prev => prev + 1);
+    } else {
+      setShowName(true);
+    }
+  };
 
   useEffect(() => {
     if (showName) setTimeout(() => inputRef.current?.focus(), 600);
@@ -68,10 +63,6 @@ export default function WelcomePage() {
     }
   };
 
-  const skip = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setShowName(true);
-  };
 
   const current = BEATS[beat];
 
@@ -132,33 +123,43 @@ export default function WelcomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          onClick={skip}
+          onClick={() => setShowName(true)}
           className="absolute top-6 right-6 z-50 text-white/25 hover:text-white/60 text-sm font-medium transition-colors"
         >
           Skip →
         </motion.button>
       )}
 
-      {/* Beat counter dots */}
+      {/* Progress dots + tap hint */}
       {!showName && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-          {BEATS.map((_, i) => (
-            <motion.div
-              key={i}
-              className="w-2.5 h-2.5 rounded-full"
-              animate={{
-                backgroundColor: i === beat ? '#fde047' : 'rgba(255,255,255,0.15)',
-                scale: i === beat ? 1.3 : 1,
-                boxShadow: i === beat ? '0 0 12px rgba(253,224,71,0.6)' : '0 0 0px transparent',
-              }}
-              transition={{ duration: 0.4 }}
-            />
-          ))}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-4">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.2, 0.5, 0.2] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-white/30 text-sm font-medium"
+          >
+            Tap to continue
+          </motion.p>
+          <div className="flex gap-3">
+            {BEATS.map((_, i) => (
+              <motion.div
+                key={i}
+                className="w-2.5 h-2.5 rounded-full"
+                animate={{
+                  backgroundColor: i === beat ? '#fde047' : 'rgba(255,255,255,0.15)',
+                  scale: i === beat ? 1.3 : 1,
+                  boxShadow: i === beat ? '0 0 12px rgba(253,224,71,0.6)' : '0 0 0px transparent',
+                }}
+                transition={{ duration: 0.4 }}
+              />
+            ))}
+          </div>
         </div>
       )}
 
       {/* Content */}
-      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6">
+      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6" onClick={() => !showName && advance()} style={{ cursor: showName ? 'default' : 'pointer' }}>
         <AnimatePresence mode="wait">
           {!showName ? (
             <motion.div
