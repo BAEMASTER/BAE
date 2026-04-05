@@ -103,7 +103,33 @@ function GoldPill({ children, small, showPlus }: { children: string; small?: boo
 }
 
 // --- Preview panels ---
+const TALK_PILLS = ['Hot Yoga', 'Fitness', 'Wellness', 'Discipline', 'Mind-body', 'Meditation'];
+
+function playAddSound() {
+  try {
+    const ctx = getCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(659, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+    gain.gain.setValueAtTime(0.07, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } catch {}
+}
+
 function TalkPreview() {
+  const [added, setAdded] = useState<Set<string>>(new Set());
+
+  const handleTap = (pill: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (added.has(pill)) return;
+    playAddSound();
+    setAdded(prev => new Set(prev).add(pill));
+  };
+
   return (
     <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 h-full flex flex-col justify-center text-left">
       <div className="space-y-5 sm:space-y-7">
@@ -126,12 +152,39 @@ function TalkPreview() {
             Tap to add any to your interests:
           </p>
           <div className="flex flex-wrap gap-2">
-            <GoldPill showPlus>Hot Yoga</GoldPill>
-            <GoldPill showPlus>Fitness</GoldPill>
-            <GoldPill showPlus>Wellness</GoldPill>
-            <GoldPill showPlus>Discipline</GoldPill>
-            <GoldPill showPlus>Mind-body</GoldPill>
-            <GoldPill showPlus>Meditation</GoldPill>
+            {TALK_PILLS.map(pill => {
+              const isAdded = added.has(pill);
+              return (
+                <motion.button
+                  key={pill}
+                  whileTap={!isAdded ? { scale: 0.92 } : {}}
+                  onClick={(e) => handleTap(pill, e)}
+                  className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold transition-all select-none ${
+                    isAdded
+                      ? 'text-emerald-300 bg-emerald-400/15 border-2 border-emerald-400/25'
+                      : 'text-black bg-[#fde047] border-2 border-yellow-200 cursor-pointer'
+                  }`}
+                  style={!isAdded ? {
+                    boxShadow: '0 0 16px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.3)',
+                  } : {
+                    boxShadow: '0 0 12px rgba(52,211,153,0.2)',
+                  }}
+                >
+                  {isAdded ? (
+                    <motion.span
+                      initial={{ rotate: -180, scale: 0 }}
+                      animate={{ rotate: 0, scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400 }}
+                    >
+                      ✓
+                    </motion.span>
+                  ) : (
+                    <span className="font-black">+</span>
+                  )}
+                  {pill}
+                </motion.button>
+              );
+            })}
           </div>
         </div>
       </div>
