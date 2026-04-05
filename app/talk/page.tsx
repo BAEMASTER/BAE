@@ -124,6 +124,8 @@ export default function DiscoverPage() {
   // Track interests selected since last AI response — for dynamic follow-up
   const [recentlySelected, setRecentlySelected] = useState<string[]>([]);
   const [showContinue, setShowContinue] = useState(false);
+  const [newTopicCount, setNewTopicCount] = useState(0);
+  const [showSignupNudge, setShowSignupNudge] = useState(false);
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper: save to Firestore only for signed-in (non-guest) users
@@ -371,6 +373,11 @@ export default function DiscoverPage() {
     setSuggestedInterests(prev =>
       prev.map(s => s.name === interest.name ? { ...s, added: true } : s)
     );
+
+    // Smooth scroll to bottom after pill interaction
+    setTimeout(() => {
+      scrollEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
 
     // Milestone celebrations
     const newCount = collectedInterests.length + 1;
@@ -703,7 +710,7 @@ export default function DiscoverPage() {
         {collectedInterests.length > 0 && (
           <>
             {/* Desktop: fixed right sidebar — big glowing pills */}
-            <div className="hidden md:block fixed right-0 top-[60px] bottom-[80px] w-64 z-20 overflow-hidden">
+            <div className="hidden md:block fixed right-0 top-[60px] bottom-[80px] w-64 z-20">
               <div className="h-full overflow-y-auto flex flex-col justify-end py-4 pr-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
@@ -836,26 +843,37 @@ export default function DiscoverPage() {
             )}
           </AnimatePresence>
 
-          {/* Guest signup nudge — appears after 3+ interests */}
-          {isGuestTalk && collectedInterests.length >= 3 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center gap-3 py-6 mt-4 border-t border-white/10"
-            >
-              <p className="text-white/40 text-sm text-center">
-                Sign up to save your interests and get your own BAE room.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => router.push('/auth')}
-                className="px-8 py-3 rounded-full font-black text-base bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_30px_rgba(253,224,71,0.25)]"
+          {/* Guest signup nudge — appears after 15+ interests AND 3+ new topic clicks, dismissable */}
+          <AnimatePresence>
+            {isGuestTalk && showSignupNudge && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex flex-col items-center gap-3 py-6 mt-4 border-t border-white/10"
               >
-                Sign up for free
-              </motion.button>
-            </motion.div>
-          )}
+                <p className="text-white/40 text-sm text-center">
+                  Sign up to save your interests and get your own BAE room.
+                </p>
+                <div className="flex items-center gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => router.push('/auth')}
+                    className="px-8 py-3 rounded-full font-black text-base bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_30px_rgba(253,224,71,0.25)]"
+                  >
+                    Sign up for free
+                  </motion.button>
+                  <button
+                    onClick={() => setShowSignupNudge(false)}
+                    className="text-white/20 text-xs hover:text-white/40 transition-colors"
+                  >
+                    Not now
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div ref={scrollEndRef} />
         </div>
@@ -868,6 +886,24 @@ export default function DiscoverPage() {
       >
         <div className="max-w-2xl mx-auto">
           <div className="flex gap-2 items-center">
+            {messages.length > 2 && !isStreaming && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  const count = newTopicCount + 1;
+                  setNewTopicCount(count);
+                  if (isGuestTalk && collectedInterests.length >= 15 && count >= 3) {
+                    setShowSignupNudge(true);
+                  }
+                  handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)');
+                }}
+                className="flex-shrink-0 px-6 py-3.5 rounded-full bg-violet-500/15 border border-violet-400/20 text-violet-200 text-base font-bold hover:bg-violet-500/25 transition-all"
+              >
+                New topic
+              </motion.button>
+            )}
             <input
               ref={inputRef}
               value={input}
@@ -890,19 +926,6 @@ export default function DiscoverPage() {
               <Send size={18} />
             </motion.button>
           </div>
-          {messages.length > 2 && !isStreaming && (
-            <div className="flex justify-center mt-2">
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)')}
-                className="px-5 py-2.5 rounded-full bg-violet-500/15 border border-violet-400/20 text-violet-200 text-sm font-bold hover:bg-violet-500/25 transition-all"
-              >
-                New topic
-              </motion.button>
-            </div>
-          )}
         </div>
       </div>
     </main>
