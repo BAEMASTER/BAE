@@ -13,32 +13,17 @@ const ALL_INTERESTS = [
   ['Cooking', 'Vinyl Records', 'Entrepreneurship', 'Gardening', 'Yoga'],
 ];
 
-const GLOW_ON = '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)';
-const GLOW_OFF = '0 0 4px rgba(253,224,71,0.1), 0 0 2px rgba(253,224,71,0.05)';
-const CYCLE_MS = 3500;
-const FADE_MS = 600; // glow dims this long before swap
-
 export default function HomePage() {
   const router = useRouter();
   const [setIndex, setSetIndex] = useState(0);
-  const [glowing, setGlowing] = useState(true);
   const pills = ALL_INTERESTS[setIndex];
 
   useEffect(() => {
     const id = setInterval(() => {
-      // Dim glow first
-      setGlowing(false);
-      // Then swap words after glow fades
-      setTimeout(() => {
-        setSetIndex(prev => (prev + 1) % ALL_INTERESTS.length);
-        setGlowing(true);
-      }, FADE_MS);
-    }, CYCLE_MS);
+      setSetIndex(prev => (prev + 1) % ALL_INTERESTS.length);
+    }, 3500);
     return () => clearInterval(id);
   }, []);
-
-  // Show 3 pills on mobile, all 5 on desktop
-  const mobilePills = pills.slice(0, 3);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
@@ -50,29 +35,26 @@ export default function HomePage() {
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen gap-10 sm:gap-14">
         {/* Interest pills — single row, ghost glow on transition */}
         <div className="flex justify-center gap-2.5 sm:gap-3">
-          {pills.map((p, i) => {
-            const showOnMobile = i < 3;
-            return (
-              <div
-                key={i}
-                className={`${showOnMobile ? '' : 'hidden sm:block'} px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-black bg-[#fde047] border border-yellow-200 overflow-hidden transition-shadow duration-500`}
-                style={{ boxShadow: glowing ? GLOW_ON : GLOW_OFF }}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={p}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.3 }}
-                    className="block whitespace-nowrap"
-                  >
-                    {p}
-                  </motion.span>
-                </AnimatePresence>
-              </div>
-            );
-          })}
+          {pills.map((p, i) => (
+            <div
+              key={i}
+              className={`${i < 3 ? '' : 'hidden sm:block'} px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-black bg-[#fde047] border border-yellow-200 overflow-hidden`}
+              style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={p}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.3 }}
+                  className="block whitespace-nowrap"
+                >
+                  {p}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+          ))}
         </div>
 
         {/* Headline */}
