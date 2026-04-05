@@ -253,6 +253,7 @@ export default function WelcomePage() {
   const [beat, setBeat] = useState(0);
   const [showName, setShowName] = useState(false);
   const [name, setName] = useState('');
+  const [launching, setLaunching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const advance = () => {
@@ -272,8 +273,11 @@ export default function WelcomePage() {
   }, [showName]);
 
   const handleGo = () => {
+    setLaunching(true);
     const trimmed = name.trim();
-    router.push(trimmed ? `/talk?name=${encodeURIComponent(trimmed)}` : '/talk');
+    setTimeout(() => {
+      router.push(trimmed ? `/talk?name=${encodeURIComponent(trimmed)}` : '/talk');
+    }, 500);
   };
 
   const current = BEATS[beat];
@@ -281,6 +285,20 @@ export default function WelcomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
+      {/* Launch burst */}
+      <AnimatePresence>
+        {launching && (
+          <motion.div
+            initial={{ opacity: 0.8, scale: 0 }}
+            animate={{ opacity: 0, scale: 4 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center"
+          >
+            <div className="w-[300px] h-[300px] rounded-full bg-gradient-radial from-yellow-300/60 via-amber-400/30 to-transparent blur-[40px]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
