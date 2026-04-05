@@ -252,13 +252,6 @@ function ConnectPreview() {
       </AnimatePresence>
 
       {/* Reaction bar — FUNCTIONAL */}
-      <motion.p
-        animate={{ opacity: [0.3, 0.7, 0.3] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="text-center text-amber-300/60 text-xs font-semibold mb-2"
-      >
-        The only social media with a brain. Tap to react!
-      </motion.p>
       <div ref={barRef} className="flex justify-center gap-2 sm:gap-3 py-2 px-3 rounded-full bg-white/5 border border-white/10">
         {REACTION_EMOJIS.map(emoji => (
           <motion.button
