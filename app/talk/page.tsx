@@ -127,6 +127,7 @@ export default function DiscoverPage() {
   const [newTopicCount, setNewTopicCount] = useState(0);
   const [showSignupNudge, setShowSignupNudge] = useState(false);
   const [jokeReactions, setJokeReactions] = useState<Record<number, string>>({}); // msgIdx → reaction
+  const [activeJoke, setActiveJoke] = useState<number | null>(null); // msgIdx of unreacted joke
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper: save to Firestore only for signed-in (non-guest) users
@@ -448,6 +449,7 @@ export default function DiscoverPage() {
   const handleJokeReaction = async (msgIdx: number, reaction: string) => {
     if (jokeReactions[msgIdx]) return;
     setJokeReactions(prev => ({ ...prev, [msgIdx]: reaction }));
+    setActiveJoke(null);
     // Send reaction to Talk AI
     const contextMsg = `(User reacted to your joke with "${reaction}". Respond with ONE short sentence matching the vibe, then continue with a new question. Do not reference the joke again after your one-liner.)`;
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
@@ -466,29 +468,34 @@ export default function DiscoverPage() {
       const afterJoke = content.slice((jokeMatch.index || 0) + jokeMatch[0].length).trim();
       const reacted = jokeReactions[msgIdx];
 
+      // Set active joke for background dim (only if not yet reacted)
+      if (!reacted && activeJoke !== msgIdx) {
+        setTimeout(() => setActiveJoke(msgIdx), 100);
+      }
+
       return (
         <>
           {beforeJoke && <span>{beforeJoke}</span>}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="relative my-6 py-8 px-6 sm:px-10 rounded-2xl text-center"
+            className="relative my-8 py-10 px-6 sm:px-10 rounded-2xl text-center"
             style={{
-              background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.08) 0%, transparent 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.12) 0%, rgba(253,224,71,0.04) 40%, transparent 70%)',
             }}
           >
             <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed text-white font-medium italic">
               {jokeText}
             </p>
-            {/* Reaction bar */}
+            {/* Reaction bar — 1.5s delay for punchline to breathe */}
             <AnimatePresence>
               {!reacted && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ delay: 0.5, duration: 0.4 }}
-                  className="flex justify-center gap-4 mt-6"
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: 1.5, duration: 0.5 }}
+                  className="flex justify-center gap-4 mt-8"
                 >
                   {[
                     { emoji: '🧀', label: 'cheesy!' },
@@ -499,7 +506,7 @@ export default function DiscoverPage() {
                       key={r.label}
                       whileTap={{ scale: 1.3 }}
                       onClick={() => handleJokeReaction(msgIdx, r.label)}
-                      className="flex flex-col items-center gap-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                      className="flex flex-col items-center gap-1.5 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
                     >
                       <span className="text-2xl">{r.emoji}</span>
                       <span className="text-xs font-bold text-white/50">{r.label}</span>
@@ -852,8 +859,21 @@ export default function DiscoverPage() {
       </AnimatePresence>
 
 
+      {/* Joke dim overlay */}
+      <AnimatePresence>
+        {activeJoke !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 bg-black/30 z-10 pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Conversation — scrolling, flowing, BIG text, no bubbles */}
-      <div className="flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:mr-64" ref={messagesContainerRef}>
+      <div className={`flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:mr-64 ${activeJoke !== null ? 'relative z-20' : ''}`} ref={messagesContainerRef}>
         <div className="max-w-2xl mx-auto space-y-8">
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
             <motion.div
