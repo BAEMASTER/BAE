@@ -105,18 +105,28 @@ function GoldPill({ children, small }: { children: string; small?: boolean }) {
 // --- Preview panels ---
 function TalkPreview() {
   return (
-    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-center gap-2.5 text-left">
-      <p className="text-white/35 text-xs font-medium">BAE</p>
-      <p className="text-white text-sm sm:text-base font-medium">What did you do today that actually felt good?</p>
-      <div className="border-l-2 border-amber-400/30 pl-3">
-        <p className="text-white/65 text-sm sm:text-base font-medium">Went to hot yoga this morning</p>
-      </div>
-      <p className="text-white/35 text-xs font-medium">BAE</p>
-      <p className="text-white text-sm sm:text-base font-medium">That&apos;s a very specific kind of discipline. Is that a recent thing or have you always been that way?</p>
-      <div className="flex flex-wrap gap-1.5 pt-2">
-        <GoldPill small>Hot Yoga</GoldPill>
-        <GoldPill small>Fitness</GoldPill>
-        <GoldPill small>Wellness</GoldPill>
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 h-full flex flex-col justify-center text-left">
+      <div className="space-y-5 sm:space-y-7">
+        {/* BAE message */}
+        <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light">
+          What did you do today that actually felt good?
+        </p>
+        {/* User message */}
+        <div className="pl-4 sm:pl-6 border-l-[3px] border-amber-400/40">
+          <p className="text-sm sm:text-lg leading-[1.7] text-amber-200/60 font-light italic">
+            Went to hot yoga this morning
+          </p>
+        </div>
+        {/* BAE response */}
+        <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light">
+          That&apos;s a very specific kind of discipline. Is that a recent thing or have you always been that way?
+        </p>
+        {/* Interest pills */}
+        <div className="flex flex-wrap gap-2">
+          <GoldPill>Hot Yoga</GoldPill>
+          <GoldPill>Fitness</GoldPill>
+          <GoldPill>Wellness</GoldPill>
+        </div>
       </div>
     </div>
   );
