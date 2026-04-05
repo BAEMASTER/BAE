@@ -325,7 +325,7 @@ export default function WelcomePage() {
               {/* Headline */}
               <div>
                 <h1
-                  className="text-4xl sm:text-6xl md:text-8xl font-black leading-[1.15] mb-3 sm:mb-4 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  className="text-4xl sm:text-6xl md:text-8xl font-black leading-[1.15] mb-3 sm:mb-4 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
@@ -358,7 +358,7 @@ export default function WelcomePage() {
               className="text-center max-w-lg w-full px-4"
             >
               <h2
-                className="text-5xl sm:text-7xl md:text-8xl font-black mb-4 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                className="text-5xl sm:text-7xl md:text-8xl font-black mb-4 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
                 style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
               >
                 What&apos;s your name?
