@@ -90,12 +90,13 @@ const BEATS = [
 ];
 
 // --- Pill component ---
-function GoldPill({ children, small }: { children: string; small?: boolean }) {
+function GoldPill({ children, small, showPlus }: { children: string; small?: boolean; showPlus?: boolean }) {
   return (
     <span
-      className={`inline-block ${small ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-sm'} rounded-full font-bold text-black bg-[#fde047] border border-yellow-200`}
+      className={`inline-flex items-center gap-1 ${small ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-sm'} rounded-full font-bold text-black bg-[#fde047] border border-yellow-200`}
       style={{ boxShadow: '0 0 16px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.3)' }}
     >
+      {showPlus && <span className="font-black">+</span>}
       {children}
     </span>
   );
@@ -125,12 +126,12 @@ function TalkPreview() {
             Tap to add any to your interests:
           </p>
           <div className="flex flex-wrap gap-2">
-            <GoldPill>Hot Yoga</GoldPill>
-            <GoldPill>Fitness</GoldPill>
-            <GoldPill>Wellness</GoldPill>
-            <GoldPill>Discipline</GoldPill>
-            <GoldPill>Mind-body</GoldPill>
-            <GoldPill>Meditation</GoldPill>
+            <GoldPill showPlus>Hot Yoga</GoldPill>
+            <GoldPill showPlus>Fitness</GoldPill>
+            <GoldPill showPlus>Wellness</GoldPill>
+            <GoldPill showPlus>Discipline</GoldPill>
+            <GoldPill showPlus>Mind-body</GoldPill>
+            <GoldPill showPlus>Meditation</GoldPill>
           </div>
         </div>
       </div>
