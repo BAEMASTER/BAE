@@ -128,6 +128,8 @@ export default function DiscoverPage() {
   const [showSignupNudge, setShowSignupNudge] = useState(false);
   const [jokeReactions, setJokeReactions] = useState<Record<number, string>>({}); // msgIdx → reaction
   const [activeJoke, setActiveJoke] = useState<number | null>(null); // msgIdx of unreacted joke
+  const userMsgCountRef = useRef(0);
+  const lastJokeAtRef = useRef(0); // user msg count when last joke was triggered
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper: save to Firestore only for signed-in (non-guest) users
@@ -345,13 +347,36 @@ export default function DiscoverPage() {
     if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
     setShowContinue(false);
 
-    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: text }];
-    setMessages(newMessages);
-    setConversationHistory(newMessages);
+    // Count real user messages (not system context messages)
+    if (!text.startsWith('(')) {
+      userMsgCountRef.current += 1;
+    }
 
-    await saveToFirestore({ discoverConversation: newMessages });
+    // Check if it's joke time: first at 10+ interests & 8+ messages, then every 10 messages after last joke
+    const shouldJoke = collectedInterests.length >= 10
+      && userMsgCountRef.current >= 8
+      && (lastJokeAtRef.current === 0
+        ? true
+        : userMsgCountRef.current - lastJokeAtRef.current >= 10);
 
-    await fetchResponse(newMessages);
+    let messagesToSend: ChatMessage[];
+    if (shouldJoke) {
+      lastJokeAtRef.current = userMsgCountRef.current;
+      messagesToSend = [
+        ...conversationHistory,
+        { role: 'user', content: text },
+        { role: 'user', content: '(Time for a joke. Deliver one now wrapped in [JOKE] tags. Make it short, funny, inspired by who this person is.)' },
+      ];
+    } else {
+      messagesToSend = [...conversationHistory, { role: 'user', content: text }];
+    }
+
+    setMessages(messagesToSend);
+    setConversationHistory(messagesToSend);
+
+    await saveToFirestore({ discoverConversation: messagesToSend });
+
+    await fetchResponse(messagesToSend);
   };
 
   const handleAddInterest = async (interest: SuggestedInterest) => {

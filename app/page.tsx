@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Interest columns ---
@@ -16,21 +16,18 @@ const COLUMNS = [
 // --- Reaction bar ---
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
 
-type FlyingEmoji = { id: number; emoji: string; originX: number };
-
-function FlyingReaction({ emoji, originX, onComplete }: { emoji: string; originX: number; onComplete: () => void }) {
-  const drift = useMemo(() => (Math.random() - 0.5) * 100, []);
-  useEffect(() => { const t = setTimeout(onComplete, 1200); return () => clearTimeout(t); }, []);
+function FloatEmoji({ emoji, onComplete }: { emoji: string; onComplete: () => void }) {
+  useEffect(() => { const t = setTimeout(onComplete, 800); return () => clearTimeout(t); }, []);
   return (
-    <motion.div
-      initial={{ opacity: 1, x: 0, y: 0, scale: 2 }}
-      animate={{ opacity: 0, x: drift, y: '-40vh', scale: 0.8 }}
-      transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute pointer-events-none"
-      style={{ left: `${originX}%`, bottom: '60px', fontSize: '52px', filter: 'drop-shadow(0 0 12px rgba(253,224,71,0.6))' }}
+    <motion.span
+      initial={{ opacity: 0.9, y: 0, scale: 1 }}
+      animate={{ opacity: 0, y: -40, scale: 1.1 }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
+      className="absolute pointer-events-none -top-10 left-1/2 -translate-x-1/2 text-3xl sm:text-4xl"
+      style={{ filter: 'drop-shadow(0 0 6px rgba(253,224,71,0.4))' }}
     >
       {emoji}
-    </motion.div>
+    </motion.span>
   );
 }
 
@@ -41,45 +38,25 @@ function getCtx() {
   return sharedCtx;
 }
 
-const EMOJI_SOUNDS: Record<string, { freq: number; type: OscillatorType; dur: number }> = {
-  '❤️': { freq: 523, type: 'sine', dur: 0.15 },
-  '🔥': { freq: 880, type: 'sawtooth', dur: 0.08 },
-  '😂': { freq: 698, type: 'triangle', dur: 0.1 },
-  '🤯': { freq: 1047, type: 'sine', dur: 0.18 },
-  '👏': { freq: 587, type: 'square', dur: 0.06 },
-  '🧠': { freq: 784, type: 'sine', dur: 0.2 },
-};
-
-function playSound(emoji: string) {
+function playTapSound() {
   try {
     const ctx = getCtx();
-    const s = EMOJI_SOUNDS[emoji] || { freq: 784, type: 'sine' as OscillatorType, dur: 0.12 };
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = s.type; osc.frequency.setValueAtTime(s.freq, now);
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + s.dur);
-    osc.start(now); osc.stop(now + s.dur);
-    if (emoji === '🧠') {
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.connect(gain2); gain2.connect(ctx.destination);
-      osc2.type = 'sine'; osc2.frequency.setValueAtTime(1568, now);
-      gain2.gain.setValueAtTime(0.04, now);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      osc2.start(now); osc2.stop(now + 0.25);
-    }
+    osc.type = 'sine'; osc.frequency.setValueAtTime(660, now);
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now); osc.stop(now + 0.1);
   } catch {}
 }
 
 export default function HomePage() {
   const router = useRouter();
   const [indices, setIndices] = useState([0, 0, 0, 0, 0]);
-  const [flying, setFlying] = useState<FlyingEmoji[]>([]);
+  const [floatingEmoji, setFloatingEmoji] = useState<{ id: number; emoji: string; idx: number } | null>(null);
   const idRef = useRef(0);
-  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timers = COLUMNS.map((col, colIdx) =>
@@ -96,13 +73,10 @@ export default function HomePage() {
 
   const pills = COLUMNS.map((col, i) => col[indices[i]]);
 
-  const handleReaction = (emoji: string) => {
-    playSound(emoji);
-    const barRect = barRef.current?.getBoundingClientRect();
-    if (!barRect) return;
-    const originX = 30 + Math.random() * 40; // spread across center
+  const handleReaction = (emoji: string, idx: number) => {
+    playTapSound();
     const id = idRef.current++;
-    setFlying(prev => [...prev, { id, emoji, originX }]);
+    setFloatingEmoji({ id, emoji, idx });
   };
 
   return (
@@ -112,14 +86,6 @@ export default function HomePage() {
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" />
       </div>
 
-      {/* Flying emojis — full page */}
-      <div className="fixed inset-0 z-30 pointer-events-none">
-        <AnimatePresence>
-          {flying.map(f => (
-            <FlyingReaction key={f.id} emoji={f.emoji} originX={f.originX} onComplete={() => setFlying(prev => prev.filter(x => x.id !== f.id))} />
-          ))}
-        </AnimatePresence>
-      </div>
 
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen">
         {/* Interest pills */}
@@ -153,16 +119,21 @@ export default function HomePage() {
         </h1>
 
         {/* Reaction bar */}
-        <div ref={barRef} className="flex justify-center gap-3 sm:gap-5 py-4 px-6 sm:px-10 rounded-full bg-white/5 border border-white/10 mb-8 sm:mb-12 relative z-40">
-          {REACTION_EMOJIS.map(emoji => (
+        <div className="flex justify-center gap-3 sm:gap-5 py-4 px-6 sm:px-10 rounded-full bg-white/5 border border-white/10 mb-8 sm:mb-12">
+          {REACTION_EMOJIS.map((emoji, idx) => (
             <motion.button
               key={emoji}
-              whileTap={{ scale: 1.5 }}
-              whileHover={{ scale: 1.15 }}
-              onClick={() => handleReaction(emoji)}
-              className="text-3xl sm:text-4xl cursor-pointer select-none p-1 sm:p-2 min-w-[48px] min-h-[48px] flex items-center justify-center transition-transform"
+              whileTap={{ scale: 1.3 }}
+              whileHover={{ scale: 1.1 }}
+              onClick={() => handleReaction(emoji, idx)}
+              className="relative text-3xl sm:text-4xl cursor-pointer select-none p-1 sm:p-2 min-w-[48px] min-h-[48px] flex items-center justify-center transition-transform"
             >
               {emoji}
+              <AnimatePresence>
+                {floatingEmoji && floatingEmoji.idx === idx && (
+                  <FloatEmoji key={floatingEmoji.id} emoji={floatingEmoji.emoji} onComplete={() => setFloatingEmoji(null)} />
+                )}
+              </AnimatePresence>
             </motion.button>
           ))}
         </div>
