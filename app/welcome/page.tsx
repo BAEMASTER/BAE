@@ -121,11 +121,16 @@ function TalkPreview() {
         <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light">
           That&apos;s a very specific kind of discipline. What got you into that?
         </p>
-        {/* Interest pills */}
-        <div className="flex flex-wrap gap-2">
-          <GoldPill>Hot Yoga</GoldPill>
-          <GoldPill>Fitness</GoldPill>
-          <GoldPill>Wellness</GoldPill>
+        {/* Interest pills with framing text */}
+        <div>
+          <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light mb-3">
+            Tap to add to your interests:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <GoldPill>Hot Yoga</GoldPill>
+            <GoldPill>Fitness</GoldPill>
+            <GoldPill>Wellness</GoldPill>
+          </div>
         </div>
       </div>
     </div>
