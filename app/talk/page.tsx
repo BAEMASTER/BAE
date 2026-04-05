@@ -389,7 +389,7 @@ export default function DiscoverPage() {
 
     let contextMsg: string;
     if (recentlySelected.length > 0) {
-      contextMsg = `(User selected these interests: ${recentlySelected.join(', ')}. Continue the conversation based on what they picked — ask a follow-up that connects to the specific interests they chose. Be dynamic — if they picked something surprising, go there.)`;
+      contextMsg = `(User added these interests: ${recentlySelected.join(', ')}. Ask a warm, curious follow-up about one of them — like a friend would. "What does your meditation practice look like?" Do NOT analyze their selections, do NOT comment on what they did or didn't pick, do NOT categorize them. Just be curious about one of the topics.)`;
     } else {
       contextMsg = `(Continue the conversation naturally. Ask a genuine follow-up about what they said, or bridge to a new topic. Do NOT reference interest selections.)`;
     }
