@@ -184,14 +184,17 @@ export default function WelcomePage() {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="text-center max-w-lg w-full"
             >
-              <p className="text-xl sm:text-2xl text-white/50 font-semibold mb-4">
-                The most interesting conversations in the world are on BAE.
-              </p>
               <h2
-                className="text-5xl sm:text-7xl font-black mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                className="text-5xl sm:text-7xl font-black mb-3 text-white"
+                style={{ filter: 'drop-shadow(0 0 40px rgba(255,180,255,0.3))' }}
+              >
+                Let&apos;s Talk.
+              </h2>
+              <h2
+                className="text-4xl sm:text-6xl font-black mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                 style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
               >
-                Let&apos;s make yours.
+                And Make it Interesting.
               </h2>
 
               <div className="space-y-5">
