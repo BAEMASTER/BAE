@@ -76,8 +76,8 @@ const BEATS = [
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
-    headline: 'Everything you love, in one place.',
-    sub: 'Your BAE room. Your interests. Your link to share.',
+    headline: 'Get Your BAE Room.',
+    sub: 'Your personal place to talk with your people.',
     sub2: '',
     glowColor: 'rgba(253,224,71,0.4)',
   },
@@ -193,15 +193,35 @@ function TalkPreview() {
 }
 
 function BuildPreview() {
-  const interests = ['Hot Yoga', 'Italian Food', 'AI', 'Stand-up Comedy', 'Parenting', 'Jazz', 'Photography', 'Travel', 'Philosophy', 'Cooking', 'Fitness', 'Vinyl Records'];
+  const [sampleName, setSampleName] = useState('');
+
   return (
-    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center">
-      <p className="text-white font-black text-xl sm:text-2xl mb-1">Alex M.</p>
-      <p className="text-white/30 text-sm font-medium mb-4">52 interests</p>
-      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-5">
-        {interests.map(i => <GoldPill key={i} small>{i}</GoldPill>)}
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 h-full flex flex-col items-center justify-center">
+      <div className="w-full max-w-md text-center">
+        <p
+          className="text-2xl sm:text-3xl md:text-4xl font-black mb-8 sm:mb-10"
+          style={{ filter: 'drop-shadow(0 0 30px rgba(253,224,71,0.4))' }}
+        >
+          <span className="text-white/50">baewithme.com/</span>
+          <span className="bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent">
+            {sampleName || ''}
+          </span>
+          {!sampleName && (
+            <motion.span
+              animate={{ opacity: [1, 0] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+              className="inline-block w-[3px] h-[1.2em] bg-amber-400 align-middle ml-0.5"
+            />
+          )}
+        </p>
+        <input
+          value={sampleName}
+          onChange={e => setSampleName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+          onClick={e => e.stopPropagation()}
+          placeholder="type your name"
+          className="w-full px-6 py-4 rounded-2xl bg-white/8 border-2 border-amber-400/30 text-white text-xl sm:text-2xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/60 focus:bg-white/10 focus:shadow-[0_0_40px_rgba(253,224,71,0.15)] transition-all"
+        />
       </div>
-      <p className="text-amber-400/60 text-sm font-semibold">baewithme.com/alex</p>
     </div>
   );
 }
