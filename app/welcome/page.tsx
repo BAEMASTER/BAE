@@ -9,31 +9,24 @@ const BEATS = [
     headline: 'Talk.',
     sub: 'BAE gets to know you through conversation.',
     sub2: 'Your interests reveal themselves naturally.',
-    bg: 'from-[#2D004F] via-[#5C0067] to-[#1A0033]',
-    accent: 'text-violet-300',
-    glow: 'bg-violet-500/30',
-    glowAlt: 'bg-fuchsia-500/20',
+    bg: 'from-[#1A0033] via-[#4D004D] to-[#000033]',
+    glowColor: 'rgba(168,85,247,0.4)',
   },
   {
     headline: 'Build.',
     sub: 'Every interest becomes part of your BAE room.',
     sub2: 'baewithme.com/you — a space that\'s purely you.',
-    bg: 'from-[#1A0033] via-[#003355] to-[#001A33]',
-    accent: 'text-amber-300',
-    glow: 'bg-amber-500/25',
-    glowAlt: 'bg-yellow-400/20',
+    bg: 'from-[#1A0033] via-[#4D004D] to-[#000033]',
+    glowColor: 'rgba(253,224,71,0.4)',
   },
   {
     headline: 'Connect.',
     sub: 'Invite anyone into your room.',
     sub2: 'Shared interests glow. Real conversations happen.',
-    bg: 'from-[#330022] via-[#660033] to-[#1A0022]',
-    accent: 'text-rose-300',
-    glow: 'bg-rose-500/25',
-    glowAlt: 'bg-pink-400/20',
+    bg: 'from-[#1A0033] via-[#4D004D] to-[#000033]',
+    glowColor: 'rgba(244,63,94,0.4)',
   },
 ];
-
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -63,36 +56,30 @@ export default function WelcomePage() {
     }
   };
 
-
   const current = BEATS[beat];
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-white">
-      {/* Animated background */}
+    <main className="relative min-h-screen overflow-hidden text-white bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
+      {/* Background glow — matches homepage energy */}
+      <div className="pointer-events-none absolute inset-0 opacity-40">
+        <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" />
+      </div>
+
+      {/* Accent glow that shifts per beat */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={beat}
+          key={`glow-${beat}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8 }}
-          className={`absolute inset-0 bg-gradient-to-br ${current.bg}`}
-        />
-      </AnimatePresence>
-
-      {/* Floating glow orbs */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`glow-${beat}`}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.2 }}
-          transition={{ duration: 1 }}
           className="pointer-events-none absolute inset-0"
         >
-          <div className={`absolute top-[15%] left-[10%] w-[500px] h-[500px] ${current.glow} blur-[180px] rounded-full animate-pulse`} />
-          <div className={`absolute bottom-[10%] right-[10%] w-[600px] h-[600px] ${current.glowAlt} blur-[200px] rounded-full`} />
-          <div className={`absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] ${current.glow} blur-[150px] rounded-full opacity-50`} />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[200px]"
+            style={{ backgroundColor: current.glowColor }}
+          />
         </motion.div>
       </AnimatePresence>
 
@@ -117,39 +104,26 @@ export default function WelcomePage() {
         ))}
       </div>
 
-      {/* Skip button */}
+      {/* Tap to continue + progress dots */}
       {!showName && (
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          onClick={() => setShowName(true)}
-          className="absolute top-6 right-6 z-50 text-white/25 hover:text-white/60 text-sm font-medium transition-colors"
-        >
-          Skip →
-        </motion.button>
-      )}
-
-      {/* Progress dots + tap hint */}
-      {!showName && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-4">
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0.2, 0.5, 0.2] }}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-5">
+          <motion.button
+            onClick={advance}
+            animate={{ boxShadow: ['0 0 15px rgba(253,224,71,0.2)', '0 0 30px rgba(253,224,71,0.4)', '0 0 15px rgba(253,224,71,0.2)'] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="text-white/30 text-sm font-medium"
+            className="px-8 py-3 rounded-full text-sm font-bold text-amber-300 border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 transition-colors"
           >
             Tap to continue
-          </motion.p>
+          </motion.button>
           <div className="flex gap-3">
             {BEATS.map((_, i) => (
               <motion.div
                 key={i}
-                className="w-2.5 h-2.5 rounded-full"
+                className="w-3.5 h-3.5 rounded-full"
                 animate={{
                   backgroundColor: i === beat ? '#fde047' : 'rgba(255,255,255,0.15)',
                   scale: i === beat ? 1.3 : 1,
-                  boxShadow: i === beat ? '0 0 12px rgba(253,224,71,0.6)' : '0 0 0px transparent',
+                  boxShadow: i === beat ? '0 0 16px rgba(253,224,71,0.7)' : '0 0 0px transparent',
                 }}
                 transition={{ duration: 0.4 }}
               />
@@ -159,7 +133,11 @@ export default function WelcomePage() {
       )}
 
       {/* Content */}
-      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6" onClick={() => !showName && advance()} style={{ cursor: showName ? 'default' : 'pointer' }}>
+      <section
+        className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6"
+        onClick={() => !showName && advance()}
+        style={{ cursor: showName ? 'default' : 'pointer' }}
+      >
         <AnimatePresence mode="wait">
           {!showName ? (
             <motion.div
@@ -170,22 +148,22 @@ export default function WelcomePage() {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="text-center max-w-3xl"
             >
-              {/* Big headline word */}
-              <motion.h1
-                className={`text-8xl sm:text-[10rem] lg:text-[12rem] font-black leading-none mb-6 sm:mb-8 ${current.accent}`}
+              {/* Big headline */}
+              <h1
+                className="text-8xl sm:text-[10rem] lg:text-[12rem] font-black leading-none mb-8 sm:mb-10 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                 style={{
-                  textShadow: `0 0 80px currentColor, 0 0 160px currentColor`,
+                  filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))',
                 }}
               >
                 {current.headline}
-              </motion.h1>
+              </h1>
 
-              {/* Sub lines */}
+              {/* Sub lines — bold, warm, readable */}
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white/80 mb-3"
+                className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4"
               >
                 {current.sub}
               </motion.p>
@@ -193,7 +171,7 @@ export default function WelcomePage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="text-lg sm:text-xl text-white/40 font-medium"
+                className="text-lg sm:text-2xl font-semibold text-white/60"
               >
                 {current.sub2}
               </motion.p>
@@ -206,13 +184,13 @@ export default function WelcomePage() {
               transition={{ duration: 0.7, ease: 'easeOut' }}
               className="text-center max-w-lg w-full"
             >
-              <motion.h2
-                className="text-5xl sm:text-7xl font-black mb-4 bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 bg-clip-text text-transparent"
-                style={{ textShadow: '0 0 60px rgba(253,224,71,0.3)' }}
+              <h2
+                className="text-6xl sm:text-8xl font-black mb-4 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
               >
                 Ready.
-              </motion.h2>
-              <p className="text-xl sm:text-2xl text-white/50 font-medium mb-12">
+              </h2>
+              <p className="text-2xl sm:text-3xl text-white/70 font-semibold mb-12">
                 What should BAE call you?
               </p>
 
@@ -223,7 +201,7 @@ export default function WelcomePage() {
                   onChange={e => setName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleGo()}
                   placeholder="Your first name"
-                  className="w-full px-8 py-5 rounded-2xl bg-white/8 border border-white/15 text-white text-xl sm:text-2xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/40 focus:bg-white/10 focus:shadow-[0_0_40px_rgba(253,224,71,0.1)] transition-all"
+                  className="w-full px-8 py-5 rounded-2xl bg-white/8 border border-white/15 text-white text-xl sm:text-2xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/40 focus:bg-white/10 focus:shadow-[0_0_40px_rgba(253,224,71,0.15)] transition-all"
                 />
                 <motion.button
                   whileHover={{ scale: 1.04, boxShadow: '0 0 80px rgba(253,224,71,0.6), 0 0 120px rgba(245,158,11,0.3)' }}
@@ -234,12 +212,6 @@ export default function WelcomePage() {
                 >
                   Let&apos;s Talk
                 </motion.button>
-                <button
-                  onClick={() => router.push('/talk')}
-                  className="text-white/20 hover:text-white/40 text-sm font-medium transition-colors"
-                >
-                  Skip for now
-                </button>
               </div>
             </motion.div>
           )}
