@@ -391,7 +391,7 @@ export default function DiscoverPage() {
     if (recentlySelected.length > 0) {
       contextMsg = `(User selected these interests: ${recentlySelected.join(', ')}. Continue the conversation based on what they picked — ask a follow-up that connects to the specific interests they chose. Be dynamic — if they picked something surprising, go there.)`;
     } else {
-      contextMsg = `(User didn't select any of the suggested interests — they didn't resonate. Ask a fresh question about a different area of their life. Keep it grounded and real.)`;
+      contextMsg = `(Continue the conversation naturally. Ask a genuine follow-up about what they said, or bridge to a new topic. Do NOT reference interest selections.)`;
     }
 
     const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
@@ -414,6 +414,7 @@ export default function DiscoverPage() {
     setCollectedInterests(prev =>
       prev.includes(name) ? prev : [...prev, name]
     );
+    setRecentlySelected(prev => [...prev, name]);
     setCustomInterestInput('');
     setShowCustomInput(false);
 
