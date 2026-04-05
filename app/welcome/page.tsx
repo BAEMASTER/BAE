@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // --- Reaction bar for Connect preview ---
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
@@ -224,20 +223,6 @@ function ConnectPreview() {
 
 const PREVIEWS = [TalkPreview, BuildPreview, ConnectPreview];
 
-// --- Nav Arrow ---
-function NavArrow({ direction, onClick }: { direction: 'left' | 'right'; onClick: () => void }) {
-  const Icon = direction === 'left' ? ChevronLeft : ChevronRight;
-  return (
-    <motion.button
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
-      whileHover={{ opacity: 0.5 }}
-      whileTap={{ scale: 0.9 }}
-      className="text-white/20 hover:text-white/50 transition-opacity p-2"
-    >
-      <Icon size={36} strokeWidth={1.5} />
-    </motion.button>
-  );
-}
 
 // --- Main page ---
 export default function WelcomePage() {
@@ -254,10 +239,6 @@ export default function WelcomePage() {
     } else {
       setShowName(true);
     }
-  };
-
-  const goBack = () => {
-    if (beat > 0) setBeat(prev => prev - 1);
   };
 
   useEffect(() => {
@@ -314,18 +295,23 @@ export default function WelcomePage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation arrows — mobile: bottom edges, desktop: between panels */}
+      {/* Progress dots */}
       {!showName && (
-        <>
-          {beat > 0 && (
-            <div className="absolute left-2 sm:left-4 md:left-[calc(40%-24px)] bottom-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-50">
-              <NavArrow direction="left" onClick={goBack} />
-            </div>
-          )}
-          <div className="absolute right-2 sm:right-4 md:right-[calc(40%-24px)] bottom-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-50">
-            <NavArrow direction="right" onClick={advance} />
-          </div>
-        </>
+        <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-3">
+          {BEATS.map((_, i) => (
+            <motion.div
+              key={i}
+              className="w-3 h-3 rounded-full cursor-pointer"
+              animate={{
+                backgroundColor: i === beat ? '#fde047' : 'rgba(255,255,255,0.15)',
+                scale: i === beat ? 1.3 : 1,
+                boxShadow: i === beat ? '0 0 14px rgba(253,224,71,0.7)' : '0 0 0px transparent',
+              }}
+              transition={{ duration: 0.4 }}
+              onClick={(e) => { e.stopPropagation(); setBeat(i); }}
+            />
+          ))}
+        </div>
       )}
 
       {/* Content */}
