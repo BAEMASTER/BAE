@@ -871,7 +871,7 @@ export default function DiscoverPage() {
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder={isStreaming ? '' : 'Say something...'}
               disabled={isStreaming}
-              className="flex-1 min-w-0 px-5 py-3.5 rounded-full bg-white/8 border border-white/12 text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 transition-all disabled:opacity-30 font-medium"
+              className={`flex-1 min-w-0 px-5 py-3.5 rounded-full bg-white/8 border text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 transition-all disabled:opacity-30 font-medium ${showContinue && !isStreaming ? 'border-amber-400/40 shadow-[0_0_20px_rgba(253,224,71,0.15)] animate-pulse' : 'border-white/12'}`}
             />
             <motion.button
               onClick={() => handleSend()}
