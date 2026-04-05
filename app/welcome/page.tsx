@@ -121,7 +121,7 @@ function TalkPreview() {
           That&apos;s a very specific kind of discipline. Love that.
         </p>
         <p className="text-lg sm:text-2xl md:text-3xl leading-[1.6] text-white/60 font-light">
-          Tap to add any to your interests:
+          Tap what fits you:
         </p>
         <div className="flex flex-wrap gap-3 sm:gap-4">
           {TALK_PILLS.map(pill => {
@@ -312,7 +312,7 @@ export default function WelcomePage() {
       )}
 
       {/* Content */}
-      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-8 py-20 sm:py-8">
+      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-8 pt-6 sm:pt-8 pb-28 sm:pb-32">
         <AnimatePresence mode="wait">
           {!showName ? (
             <motion.div
@@ -325,7 +325,7 @@ export default function WelcomePage() {
               {/* Headline */}
               <div>
                 <h1
-                  className="text-4xl sm:text-6xl md:text-8xl font-black leading-[1.05] mb-3 sm:mb-4 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  className="text-4xl sm:text-6xl md:text-8xl font-black leading-[1.15] mb-3 sm:mb-4 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
