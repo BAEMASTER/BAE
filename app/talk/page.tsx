@@ -77,6 +77,23 @@ const playAddSound = () => {
   } catch {}
 };
 
+// Combo sound — plays when 3+ interests tapped from same batch
+const playComboSound = () => {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now + i * 0.08);
+      gain.gain.setValueAtTime(0.1, now + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+      osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.2);
+    });
+  } catch {}
+};
+
 const playMilestoneSound = () => {
   try {
     const audioCtx = getAudioCtx();
@@ -391,7 +408,11 @@ export default function DiscoverPage() {
     setCollectedInterests(prev =>
       prev.includes(interest.name) ? prev : [...prev, interest.name]
     );
-    setRecentlySelected(prev => [...prev, interest.name]);
+    setRecentlySelected(prev => {
+      const next = [...prev, interest.name];
+      if (next.length === 3) playComboSound();
+      return next;
+    });
     // Reset continue button timer — user is still active
     if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
     setShowContinue(false);
@@ -408,7 +429,7 @@ export default function DiscoverPage() {
 
     // Milestone celebrations
     const newCount = collectedInterests.length + 1;
-    if (newCount === 5 || newCount === 10 || newCount === 15 || newCount === 20 || newCount === 25) {
+    if ([5, 10, 15, 20, 25, 50, 75, 100, 150, 200].includes(newCount)) {
       playMilestoneSound();
       setMilestoneText(`${newCount} interests discovered!`);
       setTimeout(() => setMilestoneText(null), 2500);
@@ -453,7 +474,7 @@ export default function DiscoverPage() {
     setShowCustomInput(false);
 
     const newCount = collectedInterests.length + 1;
-    if (newCount === 5 || newCount === 10 || newCount === 15 || newCount === 20 || newCount === 25) {
+    if ([5, 10, 15, 20, 25, 50, 75, 100, 150, 200].includes(newCount)) {
       playMilestoneSound();
       setMilestoneText(`${newCount} interests discovered!`);
       setTimeout(() => setMilestoneText(null), 2500);
@@ -820,7 +841,25 @@ export default function DiscoverPage() {
           <>
             {/* Desktop: fixed right sidebar — big glowing pills */}
             <div className="hidden md:block fixed right-0 top-[60px] bottom-[80px] w-64 z-20">
-              <div className="h-full overflow-y-auto flex flex-col justify-end py-4 pr-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
+              {/* Sticky interest counter — top of sidebar */}
+              <div className="px-5 py-4">
+                <motion.div
+                  className="flex items-center justify-center gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-400/10 via-amber-400/10 to-yellow-400/10 border border-yellow-300/25"
+                  style={{ boxShadow: '0 0 20px rgba(253,224,71,0.15)' }}
+                >
+                  <motion.span
+                    key={addedCount}
+                    initial={addedCount > 0 ? { scale: 1.4, color: '#fde047' } : {}}
+                    animate={{ scale: 1, color: '#fde047' }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                    className="text-3xl font-black text-yellow-300"
+                  >
+                    {addedCount}
+                  </motion.span>
+                  <span className="text-yellow-300/50 text-sm font-bold">interests</span>
+                </motion.div>
+              </div>
+              <div className="h-[calc(100%-72px)] overflow-y-auto flex flex-col justify-end py-4 pr-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
                     <motion.button
