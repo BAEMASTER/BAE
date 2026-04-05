@@ -117,14 +117,13 @@ function TalkPreview() {
             Went to hot yoga this morning
           </p>
         </div>
-        {/* BAE response */}
-        <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light">
-          That&apos;s a very specific kind of discipline. What got you into that?
-        </p>
-        {/* Interest pills with framing text */}
+        {/* BAE observation + pills + framing */}
         <div>
           <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light mb-3">
-            Tap to add to your interests:
+            That&apos;s a very specific kind of discipline. Love that.
+          </p>
+          <p className="text-base sm:text-xl leading-[1.7] text-white/90 font-light mb-3">
+            Tap to add any to your interests:
           </p>
           <div className="flex flex-wrap gap-2">
             <GoldPill>Hot Yoga</GoldPill>
