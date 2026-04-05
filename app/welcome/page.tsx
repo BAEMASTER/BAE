@@ -411,41 +411,34 @@ export default function WelcomePage() {
           ) : (
             <motion.div
               key="name-entry"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="text-center max-w-lg w-full px-4"
+              initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.4, ease: 'circOut' } }}
+              className="text-center max-w-md w-full px-4"
             >
               <h2
-                className="text-4xl sm:text-6xl font-black mb-2 text-white"
-                style={{ filter: 'drop-shadow(0 0 40px rgba(255,180,255,0.3))' }}
+                className="text-5xl sm:text-7xl font-black mb-10 sm:mb-14 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
               >
-                Let&apos;s Talk.
-              </h2>
-              <h2
-                className="text-3xl sm:text-5xl font-black mb-6 sm:mb-12 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
-                style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
-              >
-                And Make it Interesting.
+                What&apos;s your name?
               </h2>
 
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <input
                   ref={inputRef}
                   value={name}
                   onChange={e => setName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleGo()}
                   placeholder="Your first name"
-                  className="w-full px-8 py-5 rounded-2xl bg-white/8 border border-white/15 text-white text-xl sm:text-2xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/40 focus:bg-white/10 focus:shadow-[0_0_40px_rgba(253,224,71,0.15)] transition-all"
+                  className="w-full px-8 py-6 rounded-2xl bg-white/8 border-2 border-white/15 text-white text-2xl sm:text-3xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_60px_rgba(253,224,71,0.2)] transition-all"
                 />
                 <motion.button
-                  whileHover={{ scale: 1.04, boxShadow: '0 0 80px rgba(253,224,71,0.6), 0 0 120px rgba(245,158,11,0.3)' }}
+                  whileHover={{ scale: 1.05, boxShadow: '0 0 100px rgba(253,224,71,0.7), 0 0 160px rgba(245,158,11,0.35)' }}
                   whileTap={{ scale: 0.96 }}
                   onClick={handleGo}
-                  className="w-full py-5 rounded-2xl font-black text-xl sm:text-2xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.1em]"
-                  style={{ boxShadow: '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)' }}
+                  className="w-full py-6 rounded-2xl font-black text-2xl sm:text-3xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.12em]"
+                  style={{ boxShadow: '0 0 60px rgba(253,224,71,0.5), 0 0 120px rgba(245,158,11,0.25)' }}
                 >
-                  Let&apos;s Talk
+                  I&apos;m Ready
                 </motion.button>
               </div>
             </motion.div>
