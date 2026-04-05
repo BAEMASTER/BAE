@@ -44,15 +44,15 @@ function playReactionSound() {
 // --- Beat data ---
 const BEATS = [
   {
-    headline: 'Talk.',
-    sub: 'BAE gets to know you through conversation.',
-    sub2: 'Your interests reveal themselves naturally.',
+    headline: 'It starts with a conversation.',
+    sub: 'Talk to BAE. Your interests reveal themselves naturally.',
+    sub2: '',
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
-    headline: 'Build.',
-    sub: 'Every interest becomes part of your BAE room.',
-    sub2: 'baewithme.com/you — a space that\'s purely you.',
+    headline: 'Everything you love, in one place.',
+    sub: 'Your BAE room. Your interests. Your link to share.',
+    sub2: '',
     glowColor: 'rgba(253,224,71,0.4)',
   },
   {
@@ -80,12 +80,12 @@ function TalkPreview() {
   return (
     <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center gap-4 text-left">
       <p className="text-white/40 text-sm font-medium">BAE</p>
-      <p className="text-white text-base sm:text-lg font-medium">What have you been up to today?</p>
+      <p className="text-white text-base sm:text-lg font-medium">What did you do today that actually felt good?</p>
       <div className="border-l-2 border-amber-400/30 pl-4">
-        <p className="text-white/70 text-base sm:text-lg font-medium">Just got back from hot yoga actually</p>
+        <p className="text-white/70 text-base sm:text-lg font-medium">Went to hot yoga this morning</p>
       </div>
       <p className="text-white/40 text-sm font-medium">BAE</p>
-      <p className="text-white text-base sm:text-lg font-medium">You actually went in this heat? That takes commitment.</p>
+      <p className="text-white text-base sm:text-lg font-medium">That&apos;s a very specific kind of discipline. Is that a recent thing or have you always been that way?</p>
       <div className="flex flex-wrap gap-2 mt-2">
         <GoldPill>Hot Yoga</GoldPill>
         <GoldPill>Fitness</GoldPill>
@@ -136,6 +136,9 @@ function ConnectPreview() {
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-lg">Alex</div>
         </div>
       </div>
+
+      {/* Human moment */}
+      <p className="text-center text-white/50 text-sm sm:text-base font-medium italic mb-2">&ldquo;Wait, you do hot yoga too?!&rdquo;</p>
 
       {/* Shared interests */}
       <div className="flex flex-wrap justify-center gap-1.5 mb-3">
@@ -280,7 +283,7 @@ export default function WelcomePage() {
               {/* Left: Text */}
               <div className="flex-shrink-0 md:w-[40%] text-center md:text-left">
                 <h1
-                  className="text-7xl sm:text-8xl md:text-[9rem] font-black leading-none mb-6 md:mb-8 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight mb-6 md:mb-8 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
@@ -293,14 +296,16 @@ export default function WelcomePage() {
                 >
                   {current.sub}
                 </motion.p>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.35, duration: 0.5 }}
-                  className="text-base sm:text-lg md:text-xl font-semibold text-white/50"
-                >
-                  {current.sub2}
-                </motion.p>
+                {current.sub2 && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.35, duration: 0.5 }}
+                    className="text-base sm:text-lg md:text-xl font-semibold text-white/50"
+                  >
+                    {current.sub2}
+                  </motion.p>
+                )}
               </div>
 
               {/* Right: Interactive preview */}
