@@ -317,9 +317,9 @@ export default function WelcomePage() {
           {!showName ? (
             <motion.div
               key={`beat-${beat}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.5 } }}
-              exit={{ opacity: 0, scale: 1.08, filter: 'blur(6px)', transition: { duration: 0.3 } }}
+              initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.4, ease: 'circOut' } }}
+              exit={{ opacity: 0, scale: 2, filter: 'blur(20px)', transition: { duration: 0.4, ease: 'circIn' } }}
               className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-6 md:gap-12"
             >
               {/* Left: Text */}
