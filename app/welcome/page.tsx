@@ -131,7 +131,7 @@ function TalkPreview() {
             <GoldPill>Wellness</GoldPill>
             <GoldPill>Discipline</GoldPill>
             <GoldPill>Mind-body</GoldPill>
-            <GoldPill>Self-care</GoldPill>
+            <GoldPill>Meditation</GoldPill>
           </div>
         </div>
       </div>
