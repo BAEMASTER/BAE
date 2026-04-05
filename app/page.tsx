@@ -64,7 +64,14 @@ export default function HomePage() {
         </h1>
 
         {/* CTA */}
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.96 }} onClick={() => router.push('/talk')} animate={{ boxShadow: ['0 0 30px rgba(245,158,11,0.3)', '0 0 50px rgba(245,158,11,0.5)', '0 0 30px rgba(245,158,11,0.3)'] }} transition={{ duration: 2, repeat: Infinity }} className="px-16 sm:px-24 py-6 sm:py-7 rounded-full font-black text-xl sm:text-2xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-wide">
+        <motion.button
+          whileHover={{ scale: 1.07, boxShadow: '0 0 80px rgba(253,224,71,0.6), 0 0 120px rgba(245,158,11,0.3)' }}
+          whileTap={{ scale: 0.96 }}
+          onClick={() => router.push('/talk')}
+          animate={{ boxShadow: ['0 0 40px rgba(253,224,71,0.35), 0 0 80px rgba(245,158,11,0.15)', '0 0 60px rgba(253,224,71,0.5), 0 0 100px rgba(245,158,11,0.25)', '0 0 40px rgba(253,224,71,0.35), 0 0 80px rgba(245,158,11,0.15)'] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="px-20 sm:px-32 py-7 sm:py-8 rounded-full font-extrabold text-xl sm:text-2xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.15em]"
+        >
           Start Talking
         </motion.button>
       </section>
