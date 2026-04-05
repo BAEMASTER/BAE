@@ -142,10 +142,9 @@ export default function WelcomePage() {
           {!showName ? (
             <motion.div
               key={`beat-${beat}`}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -30, scale: 1.05 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.5 } }}
+              exit={{ opacity: 0, scale: 1.15, filter: 'blur(8px)', transition: { duration: 0.3 } }}
               className="text-center max-w-3xl"
             >
               {/* Big headline */}
@@ -160,17 +159,17 @@ export default function WelcomePage() {
 
               {/* Sub lines — bold, warm, readable */}
               <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
                 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4"
               >
                 {current.sub}
               </motion.p>
               <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
                 className="text-lg sm:text-2xl font-semibold text-white/60"
               >
                 {current.sub2}
@@ -179,9 +178,9 @@ export default function WelcomePage() {
           ) : (
             <motion.div
               key="name-entry"
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
               className="text-center max-w-lg w-full"
             >
               <h2
