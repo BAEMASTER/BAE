@@ -5,12 +5,13 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Each column has words of similar length — prevents pill resize on rotation
+// Mix of intellectual + lifestyle + creative = the whole human
 const COLUMNS = [
-  ['Italian Food', 'Photography', 'Psychology', 'Live Music', 'Meditation', 'Vinyl Records'],
-  ['Art Museums', 'Parenting', 'Gardening', 'Podcasts', 'Sneakers', 'Cooking'],
-  ['Running', 'Surfing', 'Dancing', 'Hiking', 'Coffee', 'Chess'],
+  ['Italian Food', 'Photography', 'Psychology', 'Vinyl Records', 'Meditation', 'Investing'],
+  ['Art Museums', 'Parenting', 'Gardening', 'Podcasts', 'Cooking', 'Physics'],
+  ['Running', 'Surfing', 'Dancing', 'Hiking', 'Chess', 'EDM'],
   ['AI', 'Yoga', 'Film', 'Jazz', 'Dogs', 'Sci-Fi'],
-  ['Standup Comedy', 'Hot Yoga', 'Philosophy', 'Travel', 'Anime', 'Fitness'],
+  ['Standup Comedy', 'Philosophy', 'Travel', 'Hot Yoga', 'Anime', 'Fitness'],
 ];
 
 export default function HomePage() {
