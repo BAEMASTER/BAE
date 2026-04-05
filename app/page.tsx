@@ -75,7 +75,7 @@ export default function HomePage() {
         <motion.button
           whileHover={{ scale: 1.07, boxShadow: '0 0 100px rgba(253,224,71,0.7), 0 0 160px rgba(245,158,11,0.35)' }}
           whileTap={{ scale: 0.96 }}
-          onClick={() => router.push('/talk')}
+          onClick={() => router.push('/welcome')}
           animate={{ boxShadow: ['0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)', '0 0 80px rgba(253,224,71,0.6), 0 0 140px rgba(245,158,11,0.3)', '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)'] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="px-20 sm:px-36 py-7 sm:py-9 rounded-full font-black text-2xl sm:text-3xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.15em]"

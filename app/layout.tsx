@@ -13,6 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const isAuthPage = pathname.startsWith('/auth');
   const isMatchPage = pathname.startsWith('/match');
   const isHomePage = pathname === '/';
+  const isWelcomePage = pathname === '/welcome';
 
   // Track online/offline presence for all authenticated users
   usePresence();
@@ -23,14 +24,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen">
-        {!isAuthPage && !isMatchPage && !isHomePage && <Header />}
+        {!isAuthPage && !isMatchPage && !isHomePage && !isWelcomePage && <Header />}
         {/* Incoming call overlay — show on all pages except match */}
         <AnimatePresence>
           {incomingCall && !isMatchPage && (
             <IncomingCallOverlay call={incomingCall} />
           )}
         </AnimatePresence>
-        {isMatchPage || isHomePage ? (
+        {isMatchPage || isHomePage || isWelcomePage ? (
           children
         ) : (
           <main
