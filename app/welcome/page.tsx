@@ -199,7 +199,7 @@ function BuildPreview() {
     <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 h-full flex flex-col items-center justify-center">
       <div className="w-full max-w-md text-center">
         <p
-          className="text-2xl sm:text-3xl md:text-4xl font-black mb-8 sm:mb-10"
+          className="text-2xl sm:text-3xl md:text-4xl font-black mb-6 sm:mb-10"
           style={{ filter: 'drop-shadow(0 0 30px rgba(253,224,71,0.4))' }}
         >
           <span className="text-white/50">baewithme.com/</span>
@@ -218,6 +218,7 @@ function BuildPreview() {
           value={sampleName}
           onChange={e => setSampleName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
           onClick={e => e.stopPropagation()}
+          onFocus={e => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
           placeholder="type your name"
           className="w-full px-6 py-4 rounded-2xl bg-white/8 border-2 border-amber-400/30 text-white text-xl sm:text-2xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/60 focus:bg-white/10 focus:shadow-[0_0_40px_rgba(253,224,71,0.15)] transition-all"
         />
