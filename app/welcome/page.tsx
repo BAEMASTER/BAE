@@ -1,33 +1,176 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- Reaction bar for Connect preview ---
+const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
+
+type FlyingEmoji = { id: number; emoji: string; originX: number };
+
+function FlyingReaction({ emoji, originX, onComplete }: { emoji: string; originX: number; onComplete: () => void }) {
+  const drift = useMemo(() => (Math.random() - 0.5) * 60, []);
+  useEffect(() => { const t = setTimeout(onComplete, 1000); return () => clearTimeout(t); }, []);
+  return (
+    <motion.div
+      initial={{ opacity: 1, x: 0, y: 0, scale: 1.5 }}
+      animate={{ opacity: 0, x: drift, y: '-30vh', scale: 0.8 }}
+      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+      className="absolute pointer-events-none"
+      style={{ left: `${originX}%`, bottom: '80px', fontSize: '36px', filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.5))' }}
+    >
+      {emoji}
+    </motion.div>
+  );
+}
+
+let sharedCtx: AudioContext | null = null;
+function playReactionSound() {
+  try {
+    if (!sharedCtx) sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (sharedCtx.state === 'suspended') sharedCtx.resume();
+    const now = sharedCtx.currentTime;
+    const osc = sharedCtx.createOscillator();
+    const gain = sharedCtx.createGain();
+    osc.connect(gain); gain.connect(sharedCtx.destination);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(784, now);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.start(now); osc.stop(now + 0.12);
+  } catch {}
+}
+
+// --- Beat data ---
 const BEATS = [
   {
     headline: 'Talk.',
     sub: 'BAE gets to know you through conversation.',
     sub2: 'Your interests reveal themselves naturally.',
-    bg: 'from-[#1A0033] via-[#4D004D] to-[#000033]',
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
     headline: 'Build.',
     sub: 'Every interest becomes part of your BAE room.',
     sub2: 'baewithme.com/you — a space that\'s purely you.',
-    bg: 'from-[#1A0033] via-[#4D004D] to-[#000033]',
     glowColor: 'rgba(253,224,71,0.4)',
   },
   {
     headline: 'Connect.',
     sub: 'Invite anyone into your room.',
     sub2: 'Shared interests glow. Real conversations happen.',
-    bg: 'from-[#1A0033] via-[#4D004D] to-[#000033]',
     glowColor: 'rgba(244,63,94,0.4)',
   },
 ];
 
+// --- Pill component ---
+function GoldPill({ children, small }: { children: string; small?: boolean }) {
+  return (
+    <span
+      className={`inline-block ${small ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-sm'} rounded-full font-bold text-black bg-[#fde047] border border-yellow-200`}
+      style={{ boxShadow: '0 0 16px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.3)' }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// --- Preview panels ---
+function TalkPreview() {
+  return (
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center gap-4 text-left">
+      <p className="text-white/40 text-sm font-medium">BAE</p>
+      <p className="text-white text-base sm:text-lg font-medium">What have you been up to today?</p>
+      <div className="border-l-2 border-amber-400/30 pl-4">
+        <p className="text-white/70 text-base sm:text-lg font-medium">Just got back from hot yoga actually</p>
+      </div>
+      <p className="text-white/40 text-sm font-medium">BAE</p>
+      <p className="text-white text-base sm:text-lg font-medium">You actually went in this heat? That takes commitment.</p>
+      <div className="flex flex-wrap gap-2 mt-2">
+        <GoldPill>Hot Yoga</GoldPill>
+        <GoldPill>Fitness</GoldPill>
+        <GoldPill>Wellness</GoldPill>
+      </div>
+    </div>
+  );
+}
+
+function BuildPreview() {
+  const interests = ['Hot Yoga', 'Italian Food', 'AI', 'Stand-up Comedy', 'Parenting', 'Jazz', 'Photography', 'Travel', 'Philosophy', 'Cooking', 'Fitness', 'Vinyl Records'];
+  return (
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-6 h-full flex flex-col justify-center">
+      <p className="text-white font-black text-xl sm:text-2xl mb-1">Jason R.</p>
+      <p className="text-white/30 text-sm font-medium mb-4">52 interests</p>
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-5">
+        {interests.map(i => <GoldPill key={i} small>{i}</GoldPill>)}
+      </div>
+      <p className="text-amber-400/60 text-sm font-semibold">baewithme.com/jason</p>
+    </div>
+  );
+}
+
+function ConnectPreview() {
+  const [flying, setFlying] = useState<FlyingEmoji[]>([]);
+  const idRef = useRef(0);
+  const barRef = useRef<HTMLDivElement>(null);
+
+  const handleReaction = (emoji: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    playReactionSound();
+    const barRect = barRef.current?.getBoundingClientRect();
+    const btnRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (!barRect) return;
+    const originX = ((btnRect.left + btnRect.width / 2 - barRect.left) / barRect.width) * 100;
+    const id = idRef.current++;
+    setFlying(prev => [...prev, { id, emoji, originX }]);
+  };
+
+  return (
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 sm:p-5 h-full flex flex-col justify-between relative overflow-hidden">
+      {/* Video placeholders */}
+      <div className="flex gap-3 mb-3">
+        <div className="flex-1 aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-900/50 to-indigo-900/50 border border-white/5 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-lg">You</div>
+        </div>
+        <div className="flex-1 aspect-[4/3] rounded-xl bg-gradient-to-br from-violet-900/50 to-indigo-900/50 border border-white/5 flex items-center justify-center">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 flex items-center justify-center text-white/30 text-lg">Alex</div>
+        </div>
+      </div>
+
+      {/* Shared interests */}
+      <div className="flex flex-wrap justify-center gap-1.5 mb-3">
+        <GoldPill small>Hot Yoga</GoldPill>
+        <GoldPill small>Cooking</GoldPill>
+        <GoldPill small>Travel</GoldPill>
+      </div>
+
+      {/* Flying emojis */}
+      <AnimatePresence>
+        {flying.map(f => (
+          <FlyingReaction key={f.id} emoji={f.emoji} originX={f.originX} onComplete={() => setFlying(prev => prev.filter(x => x.id !== f.id))} />
+        ))}
+      </AnimatePresence>
+
+      {/* Reaction bar — FUNCTIONAL */}
+      <div ref={barRef} className="flex justify-center gap-2 sm:gap-3 py-2 px-3 rounded-full bg-white/5 border border-white/10">
+        {REACTION_EMOJIS.map(emoji => (
+          <motion.button
+            key={emoji}
+            whileTap={{ scale: 1.4 }}
+            onClick={(e) => handleReaction(emoji, e)}
+            className="text-xl sm:text-2xl hover:scale-110 transition-transform cursor-pointer select-none"
+          >
+            {emoji}
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const PREVIEWS = [TalkPreview, BuildPreview, ConnectPreview];
+
+// --- Main page ---
 export default function WelcomePage() {
   const router = useRouter();
   const [beat, setBeat] = useState(0);
@@ -49,24 +192,21 @@ export default function WelcomePage() {
 
   const handleGo = () => {
     const trimmed = name.trim();
-    if (trimmed) {
-      router.push(`/talk?name=${encodeURIComponent(trimmed)}`);
-    } else {
-      router.push('/talk');
-    }
+    router.push(trimmed ? `/talk?name=${encodeURIComponent(trimmed)}` : '/talk');
   };
 
   const current = BEATS[beat];
+  const Preview = PREVIEWS[beat];
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033]">
-      {/* Background glow — matches homepage energy */}
+      {/* Background glow */}
       <div className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" />
       </div>
 
-      {/* Accent glow that shifts per beat */}
+      {/* Accent glow per beat */}
       <AnimatePresence mode="wait">
         <motion.div
           key={`glow-${beat}`}
@@ -83,30 +223,9 @@ export default function WelcomePage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Particle sparkles */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-white/30 rounded-full"
-            style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
-            animate={{
-              opacity: [0, 0.8, 0],
-              scale: [0, 1.5, 0],
-              y: [0, -30 - Math.random() * 50],
-            }}
-            transition={{
-              duration: 2 + Math.random() * 3,
-              repeat: Infinity,
-              delay: Math.random() * 4,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Tap to continue + progress dots */}
+      {/* Progress dots + tap hint */}
       {!showName && (
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-5">
+        <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-4">
           <motion.button
             onClick={advance}
             animate={{ boxShadow: ['0 0 15px rgba(253,224,71,0.2)', '0 0 30px rgba(253,224,71,0.4)', '0 0 15px rgba(253,224,71,0.2)'] }}
@@ -134,8 +253,12 @@ export default function WelcomePage() {
 
       {/* Content */}
       <section
-        className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6"
-        onClick={() => !showName && advance()}
+        className="relative z-10 flex items-center justify-center min-h-screen px-4 sm:px-8 py-16 sm:py-0"
+        onClick={(e) => {
+          // Don't advance if clicking reaction bar
+          if ((e.target as HTMLElement).closest('[data-reaction-bar]')) return;
+          if (!showName) advance();
+        }}
         style={{ cursor: showName ? 'default' : 'pointer' }}
       >
         <AnimatePresence mode="wait">
@@ -144,36 +267,44 @@ export default function WelcomePage() {
               key={`beat-${beat}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, transition: { duration: 0.5 } }}
-              exit={{ opacity: 0, scale: 1.15, filter: 'blur(8px)', transition: { duration: 0.3 } }}
-              className="text-center max-w-3xl"
+              exit={{ opacity: 0, scale: 1.08, filter: 'blur(6px)', transition: { duration: 0.3 } }}
+              className="w-full max-w-6xl flex flex-col md:flex-row items-center gap-8 md:gap-12"
             >
-              {/* Big headline */}
-              <h1
-                className="text-8xl sm:text-[10rem] lg:text-[12rem] font-black leading-none mb-8 sm:mb-10 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
-                style={{
-                  filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))',
-                }}
-              >
-                {current.headline}
-              </h1>
+              {/* Left: Text */}
+              <div className="flex-shrink-0 md:w-[40%] text-center md:text-left">
+                <h1
+                  className="text-7xl sm:text-8xl md:text-[9rem] font-black leading-none mb-6 md:mb-8 bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
+                  style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.5)) drop-shadow(0 0 120px rgba(253,224,71,0.25))' }}
+                >
+                  {current.headline}
+                </h1>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3"
+                >
+                  {current.sub}
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35, duration: 0.5 }}
+                  className="text-base sm:text-lg md:text-xl font-semibold text-white/50"
+                >
+                  {current.sub2}
+                </motion.p>
+              </div>
 
-              {/* Sub lines — bold, warm, readable */}
-              <motion.p
+              {/* Right: Interactive preview */}
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4"
+                transition={{ delay: 0.15, duration: 0.5 }}
+                className="flex-1 w-full md:w-[60%] min-h-[280px] sm:min-h-[320px] md:min-h-[400px]"
               >
-                {current.sub}
-              </motion.p>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="text-lg sm:text-2xl font-semibold text-white/60"
-              >
-                {current.sub2}
-              </motion.p>
+                <Preview />
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div
