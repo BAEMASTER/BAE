@@ -27,18 +27,44 @@ function FlyingReaction({ emoji, originX, onComplete }: { emoji: string; originX
 }
 
 let sharedCtx: AudioContext | null = null;
-function playReactionSound() {
+function getCtx() {
+  if (!sharedCtx) sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  if (sharedCtx.state === 'suspended') sharedCtx.resume();
+  return sharedCtx;
+}
+
+// Each emoji gets its own character — different pitch + wave shape
+const EMOJI_SOUNDS: Record<string, { freq: number; type: OscillatorType; dur: number }> = {
+  '❤️': { freq: 523, type: 'sine', dur: 0.15 },       // C5 — warm
+  '🔥': { freq: 880, type: 'sawtooth', dur: 0.08 },   // A5 — snappy
+  '😂': { freq: 698, type: 'triangle', dur: 0.1 },    // F5 — playful
+  '🤯': { freq: 1047, type: 'sine', dur: 0.18 },      // C6 — high shimmer
+  '👏': { freq: 587, type: 'square', dur: 0.06 },      // D5 — percussive pop
+  '🧠': { freq: 784, type: 'sine', dur: 0.2 },        // G5 — rich harmonic
+};
+
+function playReactionSound(emoji?: string) {
   try {
-    if (!sharedCtx) sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (sharedCtx.state === 'suspended') sharedCtx.resume();
-    const now = sharedCtx.currentTime;
-    const osc = sharedCtx.createOscillator();
-    const gain = sharedCtx.createGain();
-    osc.connect(gain); gain.connect(sharedCtx.destination);
-    osc.type = 'sine'; osc.frequency.setValueAtTime(784, now);
+    const ctx = getCtx();
+    const s = (emoji && EMOJI_SOUNDS[emoji]) || { freq: 784, type: 'sine' as OscillatorType, dur: 0.12 };
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = s.type; osc.frequency.setValueAtTime(s.freq, now);
     gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    osc.start(now); osc.stop(now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + s.dur);
+    osc.start(now); osc.stop(now + s.dur);
+    // Brain gets a second harmonic overtone
+    if (emoji === '🧠') {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc2.type = 'sine'; osc2.frequency.setValueAtTime(1568, now); // G6
+      gain2.gain.setValueAtTime(0.04, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc2.start(now); osc2.stop(now + 0.25);
+    }
   } catch {}
 }
 
@@ -168,7 +194,7 @@ function ConnectPreview() {
 
   const handleReaction = (emoji: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    playReactionSound();
+    playReactionSound(emoji);
     const barRect = barRef.current?.getBoundingClientRect();
     const btnRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     if (!barRect) return;
@@ -212,7 +238,7 @@ function ConnectPreview() {
         transition={{ duration: 2, repeat: Infinity }}
         className="text-center text-amber-300/60 text-xs font-semibold mb-2"
       >
-        Go ahead
+        The only social media with a brain. Tap to React!
       </motion.p>
       <div ref={barRef} className="flex justify-center gap-2 sm:gap-3 py-2 px-3 rounded-full bg-white/5 border border-white/10">
         {REACTION_EMOJIS.map(emoji => (
