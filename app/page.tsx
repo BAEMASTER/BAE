@@ -38,17 +38,19 @@ export default function HomePage() {
           {pills.map((p, i) => (
             <div
               key={i}
-              className={`${i < 3 ? '' : 'hidden sm:block'} px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-black bg-[#fde047] border border-yellow-200 overflow-hidden`}
+              className={`${i < 3 ? '' : 'hidden sm:block'} relative px-5 py-2.5 sm:px-6 sm:py-3 rounded-full text-sm sm:text-base font-bold text-black bg-[#fde047] border border-yellow-200`}
               style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' }}
             >
+              {/* Invisible sizer — keeps pill width stable */}
+              <span className="invisible whitespace-nowrap">{p}</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={p}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.3 }}
-                  className="block whitespace-nowrap"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 flex items-center justify-center whitespace-nowrap"
                 >
                   {p}
                 </motion.span>
