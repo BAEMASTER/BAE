@@ -342,22 +342,20 @@ export default function WelcomePage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Progress dots */}
+      {/* Next button */}
       {!showName && (
-        <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-3">
-          {BEATS.map((_, i) => (
-            <motion.div
-              key={i}
-              className="w-3 h-3 rounded-full cursor-pointer"
-              animate={{
-                backgroundColor: i === beat ? '#fde047' : 'rgba(255,255,255,0.15)',
-                scale: i === beat ? 1.3 : 1,
-                boxShadow: i === beat ? '0 0 14px rgba(253,224,71,0.7)' : '0 0 0px transparent',
-              }}
-              transition={{ duration: 0.4 }}
-              onClick={(e) => { e.stopPropagation(); setBeat(i); }}
-            />
-          ))}
+        <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
+          <motion.button
+            onClick={(e) => { e.stopPropagation(); advance(); }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-8 py-3 rounded-full text-sm font-bold text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400"
+            style={{ boxShadow: '0 0 20px rgba(253,224,71,0.3)' }}
+          >
+            {beat < BEATS.length - 1 ? 'Next' : "Let\u2019s go"}
+          </motion.button>
+          {/* Step indicator */}
+          <p className="text-white/20 text-xs font-medium">{beat + 1} / {BEATS.length}</p>
         </div>
       )}
 
