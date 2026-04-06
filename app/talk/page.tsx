@@ -147,12 +147,7 @@ export default function DiscoverPage() {
   const [activeJoke, setActiveJoke] = useState<number | null>(null); // msgIdx of unreacted joke
   const userMsgCountRef = useRef(0);
   const lastJokeAtRef = useRef(0);
-  // Deep dive cluster state
-  const [deepDivePrompt, setDeepDivePrompt] = useState<string | null>(null);
-  const [deepDiveInput, setDeepDiveInput] = useState('');
-  const [deepDiveCluster, setDeepDiveCluster] = useState<string[]>([]);
   const batchTapTimestamps = useRef<number[]>([]);
-  const deepDiveInputRef = useRef<HTMLInputElement>(null);
   const continueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Helper: save to Firestore only for signed-in (non-guest) users
@@ -432,15 +427,6 @@ export default function DiscoverPage() {
 
         if (isFastTap) {
           playComboSound();
-          // 60-70% chance to trigger deep dive
-          if (Math.random() < 0.65) {
-            const cluster = next.slice();
-            setTimeout(() => {
-              setDeepDiveCluster(cluster);
-              // Ask AI for the deep dive prompt
-              triggerDeepDive(cluster);
-            }, 600);
-          }
         }
       }
       return next;
@@ -524,70 +510,6 @@ export default function DiscoverPage() {
     await fetchResponse(newMessages);
   };
 
-  const triggerDeepDive = async (cluster: string[]) => {
-    // Ask AI for a contextual deep-dive prompt
-    const askMsg = `(The user just rapidly tapped 3 interests: ${cluster.join(', ')}. They're clearly into this area. Generate a deep dive prompt. Say something like "You're really into this." then ask them to add something specific — use "your favorite" framing contrasted against the generic category. Example: "think your favorite dish, not just Italian Food." Keep it to 2 sentences. Wrap your response in [DEEPDIVE]...[/DEEPDIVE] tags.)`;
-    try {
-      const res = await fetch('/api/discover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...conversationHistory, { role: 'user', content: askMsg }],
-          existingInterests: interestNames(existingInterests),
-        }),
-      });
-      const data = await res.json();
-      const match = data.text?.match(/\[DEEPDIVE\]([\s\S]*?)\[\/DEEPDIVE\]/);
-      if (match) {
-        setDeepDivePrompt(match[1].trim());
-        setTimeout(() => deepDiveInputRef.current?.focus(), 400);
-      } else {
-        // Fallback
-        setDeepDivePrompt("You're really into this. Add something specific — think your favorite, not just the category. The details are where the magic is.");
-        setTimeout(() => deepDiveInputRef.current?.focus(), 400);
-      }
-    } catch {
-      setDeepDivePrompt("You're really into this. Add something specific — think your favorite, not just the category.");
-      setTimeout(() => deepDiveInputRef.current?.focus(), 400);
-    }
-  };
-
-  const handleDeepDiveSubmit = async () => {
-    const value = deepDiveInput.trim();
-    if (!value) return;
-
-    // Add as interest
-    const newInterest = createInterest(value, 'profile');
-    const updated = addStructuredInterests(existingInterests, [newInterest]);
-    setExistingInterests(updated);
-    setCollectedInterests(prev => prev.includes(value) ? prev : [...prev, value]);
-    playAddSound();
-    await saveToFirestore({ interests: updated });
-
-    // Send to Talk for follow-up
-    const contextMsg = `(User just added a specific insider interest: "${value}" from the cluster: ${deepDiveCluster.join(', ')}. This is a hand-typed interest — the strongest signal. Respond with a warm brief one-liner, then ask a genuinely curious open-ended follow-up about THAT SPECIFIC THING. Not the category. The exact thing they typed. Sound like a curious friend who just got a great recommendation. Then stay in this topic area for 2-3 more questions before naturally bridging to something new.)`;
-    const newMessages: ChatMessage[] = [...conversationHistory, { role: 'user', content: contextMsg }];
-    setConversationHistory(newMessages);
-
-    setDeepDivePrompt(null);
-    setDeepDiveInput('');
-    setDeepDiveCluster([]);
-    batchTapTimestamps.current = [];
-
-    await saveToFirestore({ discoverConversation: newMessages });
-    await fetchResponse(newMessages);
-  };
-
-  const handleDeepDiveSkip = () => {
-    setDeepDivePrompt(null);
-    setDeepDiveInput('');
-    setDeepDiveCluster([]);
-    batchTapTimestamps.current = [];
-    // Continue normally — no commentary
-    if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
-    continueTimerRef.current = setTimeout(() => setShowContinue(true), 3000);
-  };
-
   const handleJokeReaction = async (msgIdx: number, reaction: string) => {
     if (jokeReactions[msgIdx]) return;
     setJokeReactions(prev => ({ ...prev, [msgIdx]: reaction }));
@@ -621,14 +543,12 @@ export default function DiscoverPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="relative my-8 py-10 px-6 sm:px-10 rounded-2xl text-center"
+            className="relative my-4 py-6 px-4 sm:px-8 rounded-2xl"
             style={{
-              background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.12) 0%, rgba(253,224,71,0.04) 40%, transparent 70%)',
+              background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.1) 0%, rgba(253,224,71,0.03) 40%, transparent 70%)',
             }}
           >
-            <p className="text-xl sm:text-2xl md:text-3xl leading-relaxed text-white font-medium italic">
-              {jokeText}
-            </p>
+            <span className="whitespace-pre-wrap">{jokeText}</span>
             {/* Reaction bar — 1.5s delay for punchline to breathe */}
             <AnimatePresence>
               {!reacted && (
@@ -637,35 +557,24 @@ export default function DiscoverPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: 1.5, duration: 0.5 }}
-                  className="flex justify-center gap-4 mt-8"
+                  className="flex justify-center gap-5 mt-6"
                 >
-                  {[
-                    { emoji: '🧀', label: 'cheesy!' },
-                    { emoji: '😂', label: 'hilarious!' },
-                    { emoji: '🙄', label: 'so bad!' },
-                  ].map(r => (
+                  {['🧀', '😂', '🤣'].map(emoji => (
                     <motion.button
-                      key={r.label}
-                      whileTap={{ scale: 1.3 }}
-                      onClick={() => handleJokeReaction(msgIdx, r.label)}
-                      className="flex flex-col items-center gap-1.5 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer"
+                      key={emoji}
+                      whileTap={{ scale: 1.4 }}
+                      onClick={() => {
+                        playAddSound();
+                        handleJokeReaction(msgIdx, emoji);
+                      }}
+                      className="text-3xl p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer min-w-[48px] min-h-[48px] flex items-center justify-center"
                     >
-                      <span className="text-2xl">{r.emoji}</span>
-                      <span className="text-xs font-bold text-white/50">{r.label}</span>
+                      {emoji}
                     </motion.button>
                   ))}
                 </motion.div>
               )}
             </AnimatePresence>
-            {reacted && (
-              <motion.p
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mt-4 text-sm font-bold text-amber-300/60"
-              >
-                You said: {reacted}
-              </motion.p>
-            )}
           </motion.div>
           {afterJoke && <span>{afterJoke}</span>}
         </>
@@ -774,7 +683,7 @@ export default function DiscoverPage() {
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}
               onClick={() => setShowCustomInput(true)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-black text-yellow-300 border-2 border-dashed border-yellow-300/40 hover:border-yellow-300/60 hover:bg-yellow-300/10 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-black text-black bg-amber-400/80 border-2 border-amber-300 hover:bg-amber-400 transition-all cursor-pointer"
             >
               + Add your own
             </motion.button>
@@ -1092,7 +1001,7 @@ export default function DiscoverPage() {
                     if (continueTimerRef.current) clearTimeout(continueTimerRef.current);
                     handleContinue();
                   }}
-                  className="px-6 py-3 rounded-full bg-gradient-to-r from-violet-500/25 to-fuchsia-500/20 border border-violet-400/25 text-white/80 text-sm font-bold hover:from-violet-500/35 hover:to-fuchsia-500/30 transition-all"
+                  className="px-8 py-3.5 rounded-full font-black text-base text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_20px_rgba(253,224,71,0.3)] hover:shadow-[0_0_30px_rgba(253,224,71,0.4)] transition-all"
                 >
                   Continue
                 </motion.button>
@@ -1132,56 +1041,6 @@ export default function DiscoverPage() {
             )}
           </AnimatePresence>
 
-          {/* Deep Dive Prompt */}
-          <AnimatePresence>
-            {deepDivePrompt && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.5 }}
-                className="relative my-8 py-8 px-6 sm:px-10 rounded-2xl text-center"
-                style={{
-                  background: 'radial-gradient(ellipse at center, rgba(253,224,71,0.1) 0%, rgba(253,224,71,0.03) 50%, transparent 70%)',
-                }}
-              >
-                <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 font-medium mb-6">
-                  {deepDivePrompt}
-                </p>
-                <div className="max-w-md mx-auto space-y-4">
-                  <input
-                    ref={deepDiveInputRef}
-                    value={deepDiveInput}
-                    onChange={e => setDeepDiveInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleDeepDiveSubmit()}
-                    onClick={e => e.stopPropagation()}
-                    placeholder="Get specific..."
-                    className="w-full px-6 py-4 rounded-xl bg-white/5 border-2 border-amber-400/30 text-white text-lg text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/60 focus:bg-white/8 focus:shadow-[0_0_30px_rgba(253,224,71,0.15)] transition-all"
-                  />
-                  <div className="flex justify-center gap-3">
-                    {deepDiveInput.trim() && (
-                      <motion.button
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleDeepDiveSubmit}
-                        className="px-8 py-3 rounded-full font-black text-base text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400"
-                        style={{ boxShadow: '0 0 20px rgba(253,224,71,0.3)' }}
-                      >
-                        Add it
-                      </motion.button>
-                    )}
-                    <button
-                      onClick={handleDeepDiveSkip}
-                      className="px-6 py-3 rounded-full text-sm font-bold text-white/30 hover:text-white/50 transition-colors"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <div ref={scrollEndRef} />
         </div>

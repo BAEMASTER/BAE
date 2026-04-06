@@ -404,7 +404,7 @@ export default function WelcomePage() {
       )}
 
       {/* Content */}
-      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-8 pt-6 sm:pt-8 pb-28 sm:pb-32">
+      <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-8 pt-4 sm:pt-6 pb-32 sm:pb-36">
         <AnimatePresence mode="wait">
           {!showSignup ? (
             <motion.div
