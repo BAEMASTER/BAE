@@ -1256,7 +1256,7 @@ function MatchPage() {
 
       {/* HEADER */}
       <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 h-12 sm:h-14 backdrop-blur-xl bg-[#1A0033]/80 border-b border-purple-400/20 lg:justify-center lg:h-16 lg:bg-transparent lg:backdrop-blur-none lg:border-none">
-        <div className="text-2xl font-extrabold bg-gradient-to-r from-yellow-300 to-violet-400 bg-clip-text text-transparent lg:text-3xl lg:from-pink-400 lg:to-violet-400 lg:drop-shadow-[0_0_20px_rgba(236,72,153,0.4)]">
+        <div className="text-3xl font-black bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent lg:text-4xl drop-shadow-[0_0_20px_rgba(253,224,71,0.4)]">
           BAE
         </div>
       </header>
