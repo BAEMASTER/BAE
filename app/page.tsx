@@ -224,7 +224,7 @@ export default function HomePage() {
               onClick={() => router.push('/talk')}
               className="text-white/30 text-sm font-medium hover:text-white/50 transition-colors mt-1"
             >
-              or keep Talking →
+              or keep Talking to add more interests →
             </button>
           </div>
         ) : (
