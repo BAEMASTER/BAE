@@ -3,6 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getApps, initializeApp } from 'firebase/app';
+import Header from '@/components/Header';
 
 // --- Interest columns ---
 const COLUMNS = [
@@ -57,6 +60,17 @@ export default function HomePage() {
   const [indices, setIndices] = useState([0, 0, 0, 0, 0]);
   const [floatingEmoji, setFloatingEmoji] = useState<{ id: number; emoji: string; idx: number } | null>(null);
   const idRef = useRef(0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
+    const app = getApps().length ? getApps()[0] : initializeApp(config);
+    const auth = getAuth(app);
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user && !user.isAnonymous);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const timers = COLUMNS.map((col, colIdx) =>
@@ -81,13 +95,16 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
+      {/* Nav for logged-in users */}
+      {isLoggedIn && <Header />}
+
       <div className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
         <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" />
       </div>
 
 
-      <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen">
+      <section className={`relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen ${isLoggedIn ? 'pt-[72px]' : ''}`}>
         {/* Interest pills */}
         <div className="flex justify-center gap-2.5 sm:gap-3 mb-5 sm:mb-12">
           {pills.map((p, i) => (
@@ -142,12 +159,12 @@ export default function HomePage() {
         <motion.button
           whileHover={{ scale: 1.07, boxShadow: '0 0 100px rgba(253,224,71,0.7), 0 0 160px rgba(245,158,11,0.35)' }}
           whileTap={{ scale: 0.96 }}
-          onClick={() => router.push('/welcome')}
+          onClick={() => router.push(isLoggedIn ? '/talk' : '/welcome')}
           animate={{ boxShadow: ['0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)', '0 0 80px rgba(253,224,71,0.6), 0 0 140px rgba(245,158,11,0.3)', '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)'] }}
           transition={{ duration: 2, repeat: Infinity }}
           className="px-24 sm:px-36 py-7 sm:py-9 rounded-full font-black text-3xl sm:text-4xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.2em]"
         >
-          ENTER
+          {isLoggedIn ? 'TALK' : 'ENTER'}
         </motion.button>
       </section>
     </main>
