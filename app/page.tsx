@@ -89,7 +89,7 @@ export default function HomePage() {
 
       <section className="relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen">
         {/* Interest pills */}
-        <div className="flex justify-center gap-2.5 sm:gap-3 mb-8 sm:mb-12">
+        <div className="flex justify-center gap-2.5 sm:gap-3 mb-5 sm:mb-12">
           {pills.map((p, i) => (
             <div
               key={i}
@@ -113,13 +113,13 @@ export default function HomePage() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-6xl sm:text-8xl lg:text-9xl font-black leading-[1.1] mb-8 sm:mb-12 drop-shadow-[0_0_60px_rgba(255,180,255,0.4)]">
+        <h1 className="text-5xl sm:text-8xl lg:text-9xl font-black leading-[1.1] mb-5 sm:mb-12 drop-shadow-[0_0_60px_rgba(255,180,255,0.4)]">
           Be Yourself on{' '}
           <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">BAE</span>
         </h1>
 
         {/* Reaction bar */}
-        <div className="flex justify-center gap-3 sm:gap-5 py-4 px-6 sm:px-10 rounded-full bg-white/5 border border-white/10 mb-8 sm:mb-12">
+        <div className="flex justify-center gap-3 sm:gap-5 py-3 sm:py-4 px-5 sm:px-10 rounded-full bg-white/5 border border-white/10 mb-5 sm:mb-12">
           {REACTION_EMOJIS.map((emoji, idx) => (
             <motion.button
               key={emoji}

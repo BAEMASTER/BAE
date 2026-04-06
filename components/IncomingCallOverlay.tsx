@@ -9,6 +9,9 @@ import type { IncomingCall } from '@/lib/hooks/useIncomingCalls';
 export default function IncomingCallOverlay({ call }: { call: IncomingCall }) {
   const router = useRouter();
   const [handling, setHandling] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
 
   const handleAnswer = async () => {
     if (handling) return;
@@ -33,6 +36,7 @@ export default function IncomingCallOverlay({ call }: { call: IncomingCall }) {
   const handleDecline = async () => {
     if (handling) return;
     setHandling(true);
+    setDismissed(true);
 
     try {
       await fetch('/api/direct-call', {
