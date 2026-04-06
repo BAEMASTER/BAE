@@ -777,61 +777,6 @@ export default function DiscoverPage() {
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col">
 
-      {/* Top bar */}
-      <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 bg-black/20 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/profile')}
-            className="p-1.5 text-white/30 hover:text-white/60 transition-colors"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <span className="text-sm font-bold text-white/50 tracking-wide">Talk</span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Discovery counter + add your own */}
-          <div className="flex items-center gap-2">
-            <motion.div
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-300/10 to-amber-300/10 border border-yellow-300/20"
-            >
-              <Sparkles size={16} className="text-yellow-300" />
-              <motion.span
-                key={addedCount}
-                initial={addedCount > 0 ? { scale: 1.5 } : {}}
-                animate={{ scale: 1 }}
-                className="text-yellow-300 font-black text-base"
-              >
-                {addedCount}
-              </motion.span>
-              <span className="text-yellow-300/50 text-xs font-bold">interests</span>
-            </motion.div>
-
-          </div>
-
-          <button
-            onClick={async () => {
-              if (!user) return;
-              try {
-                await fetch('/api/clear-interview', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ uid: user.uid }),
-                });
-                setMessages([]);
-                setConversationHistory([]);
-                setSuggestedInterests([]);
-                setCollectedInterests([]);
-                setStarted(false);
-                setIsFirstVisit(true);
-              } catch {}
-            }}
-            className="text-white/15 text-[11px] hover:text-white/40 transition-colors"
-          >
-            Start over
-          </button>
-        </div>
-      </div>
 
       {/* Interest conveyor belt — right sidebar (desktop) / bottom strip (mobile) */}
       <AnimatePresence>
