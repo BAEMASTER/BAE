@@ -41,7 +41,7 @@ export default function GuidelinesPage() {
         <li>Nudity or sexually explicit behavior during video calls</li>
         <li>Harassment, bullying, threats, or intimidation of any kind</li>
         <li>Hate speech, racism, sexism, homophobia, or any form of discrimination</li>
-        <li>Any involvement of minors — BAE is strictly 18+</li>
+        <li>Any involvement of children under 13 — BAE is 13+</li>
         <li>Recording or capturing other users&apos; video or audio without consent</li>
         <li>Impersonating another person</li>
         <li>Spam, solicitation, or commercial activity</li>

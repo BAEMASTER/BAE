@@ -88,7 +88,7 @@ export default function PrivacyPage() {
       <p>To exercise your CCPA rights, contact us at <a href="mailto:support@baewithme.com">support@baewithme.com</a>. We will respond to verifiable requests within 45 days.</p>
 
       <h2>8. Children&apos;s Privacy</h2>
-      <p>BAE is not intended for anyone under the age of 18. We do not knowingly collect personal information from minors. If we become aware that we have collected data from a user under 18, we will immediately delete their account and all associated data. If you believe a minor is using BAE, please contact us at <a href="mailto:support@baewithme.com">support@baewithme.com</a>.</p>
+      <p>BAE is not intended for anyone under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that we have collected data from a user under 13, we will immediately delete their account and all associated data. If you believe a child under 13 is using BAE, please contact us at <a href="mailto:support@baewithme.com">support@baewithme.com</a>.</p>
 
       <h2>9. International Users</h2>
       <p>BAE is operated from the United States. If you are accessing BAE from outside the United States, please be aware that your information may be transferred to, stored, and processed in the United States, where data protection laws may differ from those in your country. By using BAE, you consent to this transfer.</p>

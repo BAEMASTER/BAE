@@ -69,7 +69,7 @@ const isAdult = (dob: string): boolean => {
     age--;
   }
   
-  return age >= 18;
+  return age >= 13;
 };
 
 // Format year/month/day into ISO date string
@@ -205,7 +205,6 @@ export default function ProfilePage() {
   const [setupComplete, setSetupComplete] = useState(false); // only true after Firestore confirms name+city+country
   const [exampleIdx, setExampleIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
-  const [showTalkTransition, setShowTalkTransition] = useState(false);
 
   // --- Username state ---
   const [username, setUsername] = useState('');
@@ -214,7 +213,7 @@ export default function ProfilePage() {
   const [usernameError, setUsernameError] = useState('');
   const [usernameCopied, setUsernameCopied] = useState(false);
 
-  // Check if locked: NO birthdate OR birthdate < 18
+  // Check if locked: NO birthdate OR birthdate < 13
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
   const isProfileLocked = !birthDate || !isAdult(birthDate);
 
@@ -438,7 +437,7 @@ export default function ProfilePage() {
   const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
   const isSetupIncomplete = !setupComplete;
 
-  // AGE/DOB LOCKED VIEW - shows if NO DOB or DOB < 18
+  // AGE/DOB LOCKED VIEW - shows if NO DOB or DOB < 13
   if (isProfileLocked) {
     return (
       <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4">
@@ -450,7 +449,7 @@ export default function ProfilePage() {
           <div className="text-6xl mb-6">🔒</div>
           <h2 className="text-3xl font-black mb-4">Age Verification Required</h2>
           <p className="text-lg text-white/70 mb-8">
-            You must be 18+ to use BAE. Please update your birthdate below.
+            You must be 13+ to use BAE. Please update your birthdate below.
           </p>
           
           <div className="mb-6 p-4 bg-white/10 rounded-2xl border border-white/20">
@@ -502,7 +501,7 @@ export default function ProfilePage() {
                 exit={{ opacity: 0, y: -10 }}
                 className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
               >
-                You must be 18+ to use BAE
+                You must be 13+ to use BAE
               </motion.div>
             )}
           </AnimatePresence>
@@ -523,48 +522,6 @@ export default function ProfilePage() {
           >
             Verify & Continue
           </button>
-        </motion.div>
-      </main>
-    );
-  }
-
-  // TRANSITION TO TALK — shows after setup, before redirecting to Talk
-  if (showTalkTransition) {
-    return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center max-w-lg"
-        >
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.1] mb-4"
-          >
-            Here's how you build your interest profile on BAE...
-          </motion.h1>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.7 }}
-            className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.1] mb-14"
-          >
-            <span className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-200 bg-clip-text text-transparent">you Talk!</span>
-          </motion.h1>
-          <motion.button
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 0.5 }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => router.push('/talk')}
-            className="px-16 py-6 rounded-full font-black text-2xl sm:text-3xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40 shadow-[0_0_50px_rgba(253,224,71,0.4)]"
-          >
-            Let's Talk. And Make it Interesting.
-          </motion.button>
         </motion.div>
       </main>
     );
@@ -619,7 +576,7 @@ export default function ProfilePage() {
         setDisplayName(data.displayName);
         setSetupComplete(true);
         setNameLocationSetupError('');
-        setShowTalkTransition(true);
+        router.push('/talk');
       } catch (e: any) {
         console.error('Setup save failed', e);
         setNameLocationSetupError('Something went wrong. Try again.');

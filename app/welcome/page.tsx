@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getApps, initializeApp } from 'firebase/app';
+import { createInterest } from '@/lib/structuredInterests';
 
 // --- Reaction bar ---
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
@@ -228,29 +232,117 @@ const PREVIEWS = [TalkPreview, ConnectPreview];
 export default function WelcomePage() {
   const router = useRouter();
   const [beat, setBeat] = useState(0);
-  const [showName, setShowName] = useState(false);
-  const [name, setName] = useState('');
+  const [showSignup, setShowSignup] = useState(false);
   const [launching, setLaunching] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Firebase
+  const [app] = useState(() => {
+    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
+    return getApps().length ? getApps()[0] : initializeApp(config);
+  });
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Signup state
+  const [user, setUser] = useState<any>(null);
+  const [firstName, setFirstName] = useState('');
+  const [city, setCity] = useState('');
+  const [signupInterests, setSignupInterests] = useState<string[]>([]);
+  const [interestInput, setInterestInput] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const firstNameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u && !u.isAnonymous) {
+        setUser(u);
+        setFirstName(u.displayName?.split(' ')[0] || '');
+      }
+    });
+    return () => unsub();
+  }, [auth]);
 
   const advance = () => {
     if (beat < BEATS.length - 1) {
       setBeat(prev => prev + 1);
     } else {
-      setShowName(true);
+      setShowSignup(true);
     }
   };
 
   useEffect(() => {
-    if (showName) setTimeout(() => inputRef.current?.focus(), 600);
-  }, [showName]);
+    if (showSignup && user) setTimeout(() => firstNameRef.current?.focus(), 600);
+  }, [showSignup, user]);
 
-  const handleGo = () => {
-    setLaunching(true);
-    const trimmed = name.trim();
-    setTimeout(() => {
-      router.push(trimmed ? `/talk?name=${encodeURIComponent(trimmed)}` : '/talk');
-    }, 500);
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    try {
+      await signInWithPopup(auth, provider);
+    } catch {
+      try { await signInWithRedirect(auth, provider); } catch {}
+    }
+  };
+
+  const handleAddInterest = () => {
+    const val = interestInput.trim();
+    if (!val || signupInterests.length >= 3) return;
+    setSignupInterests(prev => [...prev, val]);
+    setInterestInput('');
+    if (signupInterests.length === 2) {
+      playChordSound();
+    } else {
+      playCollectSound();
+    }
+  };
+
+  const handleSignupComplete = async () => {
+    if (!firstName.trim() || !city.trim() || signupInterests.length < 3 || !user || isSaving) return;
+    setIsSaving(true);
+    try {
+      const interests = signupInterests.map(name => createInterest(name, 'profile'));
+      await setDoc(doc(db, 'users', user.uid), {
+        displayName: firstName.trim(),
+        firstName: firstName.trim(),
+        city: city.trim(),
+        interests,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      setLaunching(true);
+      setTimeout(() => router.push('/talk'), 500);
+    } catch (e) {
+      console.error('Signup failed', e);
+      setIsSaving(false);
+    }
+  };
+
+  // Sound for adding interest
+  const playCollectSound = () => {
+    try {
+      const ctx = getCtx(); const now = ctx.currentTime;
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(); osc.stop(now + 0.15);
+    } catch {}
+  };
+
+  const playChordSound = () => {
+    try {
+      const ctx = getCtx(); const now = ctx.currentTime;
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator(); const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now + i * 0.08);
+        gain.gain.setValueAtTime(0.1, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+        osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.2);
+      });
+    } catch {}
   };
 
   const current = BEATS[beat];
@@ -296,7 +388,7 @@ export default function WelcomePage() {
       </AnimatePresence>
 
       {/* Next button */}
-      {!showName && (
+      {!showSignup && (
         <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
           <motion.button
             onClick={(e) => { e.stopPropagation(); advance(); }}
@@ -314,7 +406,7 @@ export default function WelcomePage() {
       {/* Content */}
       <section className="relative z-10 flex items-center justify-center min-h-dvh px-4 sm:px-8 pt-6 sm:pt-8 pb-28 sm:pb-32">
         <AnimatePresence mode="wait">
-          {!showName ? (
+          {!showSignup ? (
             <motion.div
               key={`beat-${beat}`}
               initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
@@ -352,40 +444,109 @@ export default function WelcomePage() {
             </motion.div>
           ) : (
             <motion.div
-              key="name-entry"
+              key="signup"
               initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.4, ease: 'circOut' } }}
-              className="text-center max-w-lg w-full px-4"
+              className="text-center max-w-md w-full px-4"
             >
               <h2
-                className="text-5xl sm:text-7xl md:text-8xl font-black mb-4 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
-                style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
+                className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+                style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
               >
-                What&apos;s your name?
+                Let&apos;s Talk.
               </h2>
-              <p className="text-xl sm:text-2xl text-white/50 font-semibold mb-10 sm:mb-14">
-                Let&apos;s make BAE yours.
+              <p className="text-lg sm:text-xl text-white/50 font-semibold mb-8">
+                And Make it Interesting.
               </p>
 
-              <div className="space-y-6">
-                <input
-                  ref={inputRef}
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleGo()}
-                  placeholder="Your first name"
-                  className="w-full px-8 py-6 rounded-2xl bg-white/8 border-2 border-white/15 text-white text-2xl sm:text-3xl text-center font-semibold placeholder:text-white/20 outline-none focus:border-amber-400/50 focus:bg-white/10 focus:shadow-[0_0_60px_rgba(253,224,71,0.2)] transition-all"
-                />
+              {/* Step 1: Google Auth */}
+              {!user ? (
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 0 100px rgba(253,224,71,0.7), 0 0 160px rgba(245,158,11,0.35)' }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={handleGo}
-                  className="w-full py-6 rounded-2xl font-black text-2xl sm:text-3xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.12em]"
-                  style={{ boxShadow: '0 0 60px rgba(253,224,71,0.5), 0 0 120px rgba(245,158,11,0.25)' }}
+                  onClick={handleGoogleSignIn}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full py-5 rounded-2xl font-black text-xl bg-white text-black flex items-center justify-center gap-3"
                 >
-                  Talk on BAE
+                  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                  Continue with Google
                 </motion.button>
-              </div>
+              ) : (
+                /* Step 2: Name + City + 3 Interests */
+                <div className="space-y-4 text-left">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      ref={firstNameRef}
+                      value={firstName}
+                      onChange={e => setFirstName(e.target.value)}
+                      placeholder="First name"
+                      className="px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/40 font-semibold"
+                    />
+                    <input
+                      value={city}
+                      onChange={e => setCity(e.target.value)}
+                      placeholder="City"
+                      className="px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/40 font-semibold"
+                    />
+                  </div>
+
+                  <p className="text-white/50 text-sm font-semibold text-center mt-2">
+                    Add 3 interests to get started
+                  </p>
+
+                  {signupInterests.length > 0 && (
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {signupInterests.map(interest => (
+                        <motion.span
+                          key={interest}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+                          className="px-4 py-2 rounded-full text-sm font-bold text-black bg-[#fde047] border border-yellow-200"
+                          style={{ boxShadow: '0 0 20px rgba(253,224,71,0.5), 0 0 6px rgba(253,224,71,0.3)' }}
+                        >
+                          ✓ {interest}
+                        </motion.span>
+                      ))}
+                    </div>
+                  )}
+
+                  {signupInterests.length < 3 && (
+                    <div className="flex gap-2">
+                      <input
+                        value={interestInput}
+                        onChange={e => setInterestInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddInterest()}
+                        placeholder={`Interest ${signupInterests.length + 1} of 3`}
+                        className="flex-1 px-5 py-4 rounded-xl bg-white/8 border-2 border-amber-400/30 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/60 focus:shadow-[0_0_20px_rgba(253,224,71,0.1)] font-semibold"
+                      />
+                      <motion.button
+                        onClick={handleAddInterest}
+                        disabled={!interestInput.trim()}
+                        whileTap={{ scale: 0.95 }}
+                        className={`px-5 rounded-xl font-black text-lg ${
+                          interestInput.trim() ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/20'
+                        }`}
+                      >
+                        +
+                      </motion.button>
+                    </div>
+                  )}
+
+                  <motion.button
+                    onClick={handleSignupComplete}
+                    disabled={!firstName.trim() || !city.trim() || signupInterests.length < 3 || isSaving}
+                    whileHover={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? { scale: 1.03 } : {}}
+                    whileTap={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? { scale: 0.97 } : {}}
+                    className={`w-full py-5 rounded-2xl font-black text-xl transition-all mt-2 ${
+                      firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving
+                        ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)]'
+                        : 'bg-white/5 text-white/20 cursor-not-allowed'
+                    }`}
+                  >
+                    {isSaving ? 'Setting up...' : 'Talk on BAE'}
+                  </motion.button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

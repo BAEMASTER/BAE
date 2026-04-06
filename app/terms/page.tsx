@@ -10,7 +10,7 @@ export default function TermsPage() {
       <p>By accessing or using BAE through our website at baewithme.com or any associated applications (the &quot;Platform&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, please do not use BAE.</p>
 
       <h2>1. Eligibility</h2>
-      <p>You must be at least 18 years of age to create an account or use BAE. By using the Platform, you represent and warrant that you are at least 18 years old and have the legal capacity to enter into these Terms. We reserve the right to request proof of age at any time and to terminate accounts that violate this requirement.</p>
+      <p>You must be at least 13 years of age to create an account or use BAE. By using the Platform, you represent and warrant that you are at least 13 years old. Users under 18 represent that they have parental or guardian consent. We reserve the right to request proof of age at any time and to terminate accounts that violate this requirement.</p>
 
       <h2>2. Account Registration</h2>
       <p>To use BAE, you must create an account using Google OAuth authentication. You agree to provide accurate and complete information during registration, including your first name, last name, and general location (city and state). You are responsible for maintaining the confidentiality of your account and for all activities that occur under your account.</p>
@@ -64,7 +64,7 @@ export default function TermsPage() {
       <p>We reserve the right to investigate reports and take appropriate action, including warning, suspending, or permanently banning users who violate these Terms. We may also cooperate with law enforcement authorities when required by law or when we believe in good faith that such cooperation is necessary to protect the safety of our users or the public.</p>
 
       <h2>9. Protection of Minors</h2>
-      <p>BAE is strictly for users aged 18 and over. We have a zero-tolerance policy regarding the presence of minors on the Platform. If we discover or reasonably suspect that a user is under 18, we will immediately terminate their account and delete all associated data. If you believe a minor is using BAE, please report it immediately to <a href="mailto:support@baewithme.com">support@baewithme.com</a>.</p>
+      <p>BAE is for users aged 13 and over. Users under 18 must have parental or guardian consent. We have a zero-tolerance policy regarding the presence of children under 13. If we discover or reasonably suspect that a user is under 13, we will immediately terminate their account and delete all associated data. If you believe a child under 13 is using BAE, please report it immediately to <a href="mailto:support@baewithme.com">support@baewithme.com</a>.</p>
 
       <h2>10. Disclaimers</h2>
       <p>BAE is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. We make no warranties, express or implied, regarding the Platform, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement.</p>
