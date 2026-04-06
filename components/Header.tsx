@@ -21,7 +21,21 @@ export default function Header() {
       if (u && !u.isAnonymous) {
         try {
           const snap = await getDoc(doc(db, 'users', u.uid));
-          if (snap.exists()) setUsername(snap.data().username || null);
+          if (snap.exists()) {
+            const data = snap.data();
+            // Try username field on user doc first, then look up in usernames collection
+            if (data.username) {
+              setUsername(data.username);
+            } else if (data.displayName) {
+              // Fallback: check usernames collection for this uid
+              const { getDocs, collection, query, where } = await import('firebase/firestore');
+              const q = query(collection(db, 'usernames'), where('uid', '==', u.uid));
+              const uSnap = await getDocs(q);
+              if (!uSnap.empty) {
+                setUsername(uSnap.docs[0].id);
+              }
+            }
+          }
         } catch {}
       } else {
         setUsername(null);
