@@ -36,7 +36,8 @@
       "Bash(your interests and get your own BAE room.\":*)",
       "Bash(find:*)",
       "Bash(git rm:*)",
-      "Bash(npx firebase:*)"
+      "Bash(npx firebase:*)",
+      "Bash(grep:*)"
     ]
   }
 }

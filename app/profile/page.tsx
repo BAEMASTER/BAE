@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   StructuredInterest,
@@ -166,15 +166,6 @@ function InterestPill({ interest, pinned, onRemove, onTogglePin, canPin }: {
 
 export default function ProfilePage() {
   const router = useRouter();
-
-  // --- Firebase ---
-  const [app] = useState(() => {
-    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
-    const apps = getApps();
-    return apps.length ? apps[0] : initializeApp(config);
-  });
-  const auth = getAuth(app);
-  const db = getFirestore(app);
 
   // --- State ---
   const [user, setUser] = useState<User | null>(null);

@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db as firestore } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Send, Sparkles, Search } from 'lucide-react';
 import {
@@ -113,13 +113,6 @@ const playMilestoneSound = () => {
 
 export default function DiscoverPage() {
   const router = useRouter();
-
-  const [firebaseApp] = useState(() => {
-    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
-    return getApps().length ? getApps()[0] : initializeApp(config);
-  });
-  const auth = getAuth(firebaseApp);
-  const firestore = getFirestore(firebaseApp);
 
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);

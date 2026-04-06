@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { onAuthStateChanged, getAuth, signInAnonymously, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { onAuthStateChanged, signInAnonymously, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, Loader2, Send, User as UserIcon } from 'lucide-react';
 import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
@@ -85,14 +85,6 @@ export default function BaeLinkPage() {
   const params = useParams();
   const router = useRouter();
   const username = (params.username as string)?.toLowerCase();
-
-  // Firebase setup
-  const [firebaseApp] = useState(() => {
-    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
-    return getApps().length ? getApps()[0] : initializeApp(config);
-  });
-  const auth = getAuth(firebaseApp);
-  const db = getFirestore(firebaseApp);
 
   // State
   const [pageState, setPageState] = useState<PageState>('loading');

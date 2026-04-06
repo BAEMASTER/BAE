@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { getApps, initializeApp } from 'firebase/app';
+import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebaseClient';
 import { createInterest } from '@/lib/structuredInterests';
 
 // --- Reaction bar ---
@@ -225,14 +225,6 @@ export default function WelcomePage() {
   const [beat, setBeat] = useState(0);
   const [showSignup, setShowSignup] = useState(false);
   const [launching, setLaunching] = useState(false);
-
-  // Firebase
-  const [app] = useState(() => {
-    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
-    return getApps().length ? getApps()[0] : initializeApp(config);
-  });
-  const auth = getAuth(app);
-  const db = getFirestore(app);
 
   // Signup state
   const [user, setUser] = useState<any>(null);
