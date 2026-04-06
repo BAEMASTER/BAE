@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebaseClient';
 import { createInterest } from '@/lib/structuredInterests';
 
@@ -236,18 +236,22 @@ export default function WelcomePage() {
   const firstNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || !db) return;
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u && !u.isAnonymous) {
-        // Check if user already has a profile — skip welcome entirely
+        // Check if user already has a completed profile — skip everything
         try {
-          const { getDoc: gd } = await import('firebase/firestore');
-          const snap = await gd(doc(db, 'users', u.uid));
-          if (snap.exists() && snap.data().displayName?.trim()) {
-            router.push('/talk');
-            return;
+          const snap = await getDoc(doc(db, 'users', u.uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.displayName?.trim() && data.city?.trim()) {
+              // Existing user — go to homepage (logged-in state with nav)
+              router.push('/');
+              return;
+            }
           }
         } catch {}
+        // New user or incomplete profile — show signup form
         setUser(u);
         setFirstName(u.displayName?.split(' ')[0] || '');
       }
