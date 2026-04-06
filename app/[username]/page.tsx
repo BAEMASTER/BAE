@@ -247,11 +247,13 @@ export default function BaeLinkPage() {
 
   // --- Auth handler ---
   const handleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithPopup(auth, provider);
     } catch {
       try {
-        await signInWithRedirect(auth, new GoogleAuthProvider());
+        await signInWithRedirect(auth, provider);
       } catch (e) {
         console.error('Sign in failed', e);
       }

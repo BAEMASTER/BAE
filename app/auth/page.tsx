@@ -64,6 +64,7 @@ export default function AuthPage() {
       setLoading(true);
       setBusy(true);
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
 
       let user: User;
 
