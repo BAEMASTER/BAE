@@ -94,7 +94,7 @@ const BEATS = [
     glowColor: 'rgba(253,224,71,0.4)',
   },
   {
-    headline: 'Now, invite your people to your room.',
+    headline: 'Invite your people to your room.',
     sub: 'Shared interests glow between you. Reactions fly. Conversations come alive.',
     glowColor: 'rgba(244,63,94,0.4)',
   },
