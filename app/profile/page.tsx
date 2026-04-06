@@ -105,19 +105,11 @@ const extractSpotifyTrackId = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
-// --- Interest Pill (tap to reveal actions, double-tap to pin) ---
-function InterestPill({ interest, pinned, onRemove, onTogglePin, canPin }: {
+// --- Interest Pill ---
+function InterestPill({ interest, onRemove }: {
   interest: string;
-  pinned: boolean;
   onRemove: (i: string) => void;
-  onTogglePin: (i: string) => void;
-  canPin: boolean;
 }) {
-  const [active, setActive] = useState(false);
-  const pinnedStyle = pinned
-    ? 'text-black bg-yellow-300 border-2 border-amber-400 shadow-[0_0_20px_rgba(253,224,71,0.9),0_0_40px_rgba(245,158,11,0.3)] font-black'
-    : GOLD_PILL_CLASSES;
-
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.7 }}
@@ -125,41 +117,15 @@ function InterestPill({ interest, pinned, onRemove, onTogglePin, canPin }: {
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       whileHover={{ scale: 1.05 }}
-      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${pinnedStyle} ${active ? 'ring-2 ring-violet-400/60' : ''}`}
-      onClick={() => setActive(a => !a)}
-      onMouseEnter={() => setActive(true)}
-      onMouseLeave={() => setActive(false)}
+      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES}`}
     >
-      {pinned && <span className="mr-1">✦</span>}
       {interest}
-      <AnimatePresence>
-        {active && (
-          <>
-            <motion.button
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10"
-            >
-              ×
-            </motion.button>
-            {(canPin || pinned) && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                onClick={(e) => { e.stopPropagation(); onTogglePin(interest); }}
-                className={`absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shadow-lg z-10 ${
-                  pinned ? 'bg-amber-500 text-black' : 'bg-violet-500 text-white'
-                }`}
-              >
-                ✦
-              </motion.button>
-            )}
-          </>
-        )}
-      </AnimatePresence>
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
+        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-black shadow-lg z-10"
+      >
+        ×
+      </button>
     </motion.span>
   );
 }
@@ -201,6 +167,7 @@ export default function ProfilePage() {
   // --- Spotify state ---
   const [spotifySong, setSpotifySong] = useState('');
   const [spotifyInput, setSpotifyInput] = useState('');
+  const [showSpotifyInput, setShowSpotifyInput] = useState(true);
 
   // --- Links state ---
   const [links, setLinks] = useState({ website: '', instagram: '', other: '' });
@@ -252,6 +219,7 @@ export default function ProfilePage() {
           if (data.spotifySong) {
             setSpotifySong(data.spotifySong);
             setSpotifyInput(`https://open.spotify.com/track/${data.spotifySong}`);
+            setShowSpotifyInput(false);
           }
           if (data.links) {
             setLinks({
@@ -336,16 +304,6 @@ export default function ProfilePage() {
     catch(e) { console.error(e); }
   };
 
-  const handleTogglePin = async (val: string) => {
-    const updated = togglePin(structuredInterests, val);
-    setStructuredInterests(updated);
-    playAddSound();
-    if (!user) return;
-    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); showRoomToast(); }
-    catch(e) { console.error(e); }
-  };
-
-  const currentPinnedCount = structuredInterests.filter(i => i.pinned).length;
 
   // --- Username handlers ---
   useEffect(() => {
@@ -433,6 +391,7 @@ export default function ProfilePage() {
     const trackId = extractSpotifyTrackId(val);
     if (trackId) {
       setSpotifySong(trackId);
+      setShowSpotifyInput(false);
       if (!user) return;
       try {
         await setDoc(doc(db, 'users', user.uid), { spotifySong: trackId, updatedAt: new Date().toISOString() }, { merge: true });
@@ -775,7 +734,7 @@ export default function ProfilePage() {
                 <motion.button
                   onClick={shareBaeLink}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2 rounded-full bg-white/10 text-white/80 font-bold text-sm border border-white/20 hover:bg-white/15 transition-colors"
+                  className="px-5 py-2 rounded-full bg-yellow-300 text-black font-bold text-sm shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
                 >
                   Share
                 </motion.button>
@@ -843,23 +802,15 @@ export default function ProfilePage() {
               {interests.length}
             </span>
           </div>
-          <p className="text-white/30 text-xs mb-4">Tap to pin your top 5 — the ones you could talk about all day. <span className="text-amber-300/50">✦ = pinned</span></p>
-
           <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
             <AnimatePresence>
-              {interests.map(i => {
-                const si = structuredInterests.find(s => s.name === i);
-                return (
-                  <InterestPill
-                    key={i}
-                    interest={i}
-                    pinned={!!si?.pinned}
-                    onRemove={handleRemoveInterest}
-                    onTogglePin={handleTogglePin}
-                    canPin={currentPinnedCount < 5}
-                  />
-                );
-              })}
+              {interests.map(i => (
+                <InterestPill
+                  key={i}
+                  interest={i}
+                  onRemove={handleRemoveInterest}
+                />
+              ))}
             </AnimatePresence>
             {interests.length === 0 && (
               <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
@@ -875,7 +826,7 @@ export default function ProfilePage() {
               placeholder="Add an interest (comma-separated for multiple)"
               className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
             />
-            <button onClick={addInterest} className="px-6 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-400 hover:to-indigo-400 text-white rounded-full font-bold transition-colors">Add</button>
+            <button onClick={addInterest} className="px-6 py-2.5 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black rounded-full font-black transition-colors shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)]">Add</button>
           </div>
 
           {/* Talk to BAE invitation */}
@@ -883,9 +834,9 @@ export default function ProfilePage() {
             onClick={() => router.push('/talk')}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
-            className="w-full mt-5 py-3 text-center text-white/50 hover:text-white/70 transition-colors text-sm font-medium"
+            className="w-full mt-5 py-3 text-center bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black rounded-full font-black text-sm shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
           >
-            <span className="text-violet-400">✦</span> Talk to BAE to discover more interests <span className="text-violet-400">✦</span>
+            Talk to BAE to discover more interests
           </motion.button>
         </motion.section>
 
@@ -902,25 +853,37 @@ export default function ProfilePage() {
             Your Song <span className="text-lg">♪</span>
           </h2>
 
-          <input
-            value={spotifyInput}
-            onChange={e => handleSpotifyInput(e.target.value)}
-            placeholder="Paste a Spotify song link"
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all font-mono text-sm"
-          />
+          {showSpotifyInput && (
+            <input
+              value={spotifyInput}
+              onChange={e => handleSpotifyInput(e.target.value)}
+              placeholder="Paste a Spotify song link"
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all font-mono text-sm"
+            />
+          )}
 
           {spotifySong ? (
-            <div className="mt-4 rounded-xl overflow-hidden">
-              <iframe
-                src={`https://open.spotify.com/embed/track/${spotifySong}?theme=0`}
-                width="100%"
-                height="80"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                className="rounded-xl"
-                style={{ border: 'none' }}
-              />
-            </div>
+            <>
+              <div className="mt-4 rounded-xl overflow-hidden">
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${spotifySong}?theme=0`}
+                  width="100%"
+                  height="80"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="rounded-xl"
+                  style={{ border: 'none' }}
+                />
+              </div>
+              {!showSpotifyInput && (
+                <button
+                  onClick={() => setShowSpotifyInput(true)}
+                  className="mt-2 text-yellow-300/60 text-xs hover:text-yellow-300 transition-colors font-bold"
+                >
+                  Change song
+                </button>
+              )}
+            </>
           ) : (
             <p className="text-white/20 text-sm mt-3 italic">Add a song that represents you</p>
           )}
@@ -991,7 +954,7 @@ export default function ProfilePage() {
         >
           <button
             onClick={() => setSettingsOpen(o => !o)}
-            className="flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors font-bold text-lg"
+            className="flex items-center gap-2 text-yellow-300 hover:text-yellow-200 transition-colors font-bold text-lg border border-yellow-300/25 rounded-full px-5 py-2"
           >
             Settings
             <motion.span
@@ -1118,7 +1081,7 @@ export default function ProfilePage() {
 
                   <button
                     onClick={saveProfile}
-                    className="w-full py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg hover:shadow-violet-500/25 transition-shadow"
+                    className="w-full py-3 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black font-black rounded-xl shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
                   >
                     Save Changes
                   </button>
@@ -1140,7 +1103,7 @@ export default function ProfilePage() {
                   {username && (
                     <button
                       onClick={() => { setUsernameStatus('idle'); }}
-                      className="text-white/25 text-xs hover:text-white/40 transition-colors"
+                      className="text-yellow-300/60 text-xs hover:text-yellow-300 transition-colors font-bold"
                     >
                       Change username
                     </button>

@@ -85,7 +85,7 @@ function playAddSound() {
 const BEATS = [
   {
     headline: 'It starts with a conversation.',
-    sub: 'Talk to BAE. Your interests reveal themselves naturally.',
+    sub: 'Your interests reveal themselves naturally.',
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
@@ -236,14 +236,24 @@ export default function WelcomePage() {
   const firstNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    if (!auth) return;
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (u && !u.isAnonymous) {
+        // Check if user already has a profile — skip welcome entirely
+        try {
+          const { getDoc: gd } = await import('firebase/firestore');
+          const snap = await gd(doc(db, 'users', u.uid));
+          if (snap.exists() && snap.data().displayName?.trim()) {
+            router.push('/talk');
+            return;
+          }
+        } catch {}
         setUser(u);
         setFirstName(u.displayName?.split(' ')[0] || '');
       }
     });
     return () => unsub();
-  }, [auth]);
+  }, [auth, db, router]);
 
   const advance = () => {
     if (beat < BEATS.length - 1) {
@@ -436,14 +446,11 @@ export default function WelcomePage() {
               {!user ? (
                 <>
                   <h2
-                    className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+                    className="text-4xl sm:text-6xl font-black mb-10 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
                     style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
                   >
-                    Let&apos;s Talk.
+                    Join BAE
                   </h2>
-                  <p className="text-lg sm:text-xl text-white/50 font-semibold mb-10">
-                    And Make it Interesting.
-                  </p>
                   <motion.button
                     onClick={handleGoogleSignIn}
                     whileHover={{ scale: 1.03 }}

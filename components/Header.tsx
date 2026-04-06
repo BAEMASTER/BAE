@@ -88,7 +88,6 @@ export default function Header() {
     <>
       <NavLink href="/explorer" label="Explorer" />
       <NavLink href="/talk" label="Talk" />
-      <NavLink href={username ? `/${username}` : '/profile'} label="My Room" />
       <NavLink href="/profile" label="Profile" />
     </>
   );

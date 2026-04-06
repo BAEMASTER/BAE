@@ -552,7 +552,7 @@ export default function DiscoverPage() {
                   transition={{ delay: 1.5, duration: 0.5 }}
                   className="flex justify-center gap-5 mt-6"
                 >
-                  {['🧀', '😂', '🤣'].map(emoji => (
+                  {['🧀', '😂', '🙄'].map(emoji => (
                     <motion.button
                       key={emoji}
                       whileTap={{ scale: 1.4 }}
@@ -660,7 +660,7 @@ export default function DiscoverPage() {
                 }}
                 placeholder="Type an interest..."
                 autoFocus
-                className="px-4 py-2.5 rounded-full bg-white/10 border-2 border-dashed border-yellow-300/30 text-white text-sm outline-none focus:border-yellow-300/50 w-44 placeholder:text-white/25 font-medium"
+                className="px-4 py-2.5 rounded-full bg-white/10 border-2 border-dashed border-yellow-300/30 text-white text-base outline-none focus:border-yellow-300/50 w-48 placeholder:text-white/25 font-medium"
               />
               <motion.button
                 whileTap={{ scale: 0.95 }}

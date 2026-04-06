@@ -4,9 +4,6 @@ import Header from '@/components/Header';
 import { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { usePresence } from '@/lib/hooks/usePresence';
-import { useIncomingCalls } from '@/lib/hooks/useIncomingCalls';
-import IncomingCallOverlay from '@/components/IncomingCallOverlay';
-import { AnimatePresence } from 'framer-motion';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -18,19 +15,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   // Track online/offline presence for all authenticated users
   usePresence();
 
-  // Listen for incoming direct calls (not on match page — already in a call)
-  const incomingCall = useIncomingCalls();
-  
   return (
     <html lang="en">
       <body className="min-h-screen">
         {!isAuthPage && !isMatchPage && !isHomePage && !isWelcomePage && <Header />}
-        {/* Incoming call overlay — show on all pages except match */}
-        <AnimatePresence>
-          {incomingCall && !isMatchPage && (
-            <IncomingCallOverlay call={incomingCall} />
-          )}
-        </AnimatePresence>
         {isMatchPage || isHomePage || isWelcomePage ? (
           children
         ) : (
