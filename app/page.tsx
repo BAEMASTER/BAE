@@ -63,13 +63,16 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const config = process.env.NEXT_PUBLIC_FIREBASE_CONFIG ? JSON.parse(process.env.NEXT_PUBLIC_FIREBASE_CONFIG) : {};
-    const app = getApps().length ? getApps()[0] : initializeApp(config);
-    const auth = getAuth(app);
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setIsLoggedIn(!!user && !user.isAnonymous);
-    });
-    return () => unsub();
+    const raw = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
+    if (!raw) return;
+    try {
+      const app = getApps().length ? getApps()[0] : initializeApp(JSON.parse(raw));
+      const auth = getAuth(app);
+      const unsub = onAuthStateChanged(auth, (user) => {
+        setIsLoggedIn(!!user && !user.isAnonymous);
+      });
+      return () => unsub();
+    } catch {}
   }, []);
 
   useEffect(() => {
