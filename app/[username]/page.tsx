@@ -10,6 +10,39 @@ import { Phone, PhoneOff, Loader2, Send, User as UserIcon } from 'lucide-react';
 import { parseInterests, interestNames, createInterest, addInterests as addStructuredInterests, StructuredInterest } from '@/lib/structuredInterests';
 import { formatPublicName } from '@/lib/formatName';
 
+// --- Sounds ---
+let sharedCtx: AudioContext | null = null;
+function getCtx() {
+  if (!sharedCtx) sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  if (sharedCtx.state === 'suspended') sharedCtx.resume();
+  return sharedCtx;
+}
+function playCollectSound() {
+  try {
+    const ctx = getCtx(); const now = ctx.currentTime;
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(660, now);
+    osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(); osc.stop(now + 0.15);
+  } catch {}
+}
+function playChordSound() {
+  try {
+    const ctx = getCtx(); const now = ctx.currentTime;
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now + i * 0.08);
+      gain.gain.setValueAtTime(0.1, now + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+      osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.2);
+    });
+  } catch {}
+}
+
 // --- Waiting room messages (softly positive) ---
 const WAITING_MESSAGES = [
   "Take a breath. Something good is about to happen.",
@@ -70,9 +103,16 @@ export default function BaeLinkPage() {
   const [waitingMessageIdx, setWaitingMessageIdx] = useState(0);
   const [breathePhase, setBreathePhase] = useState<'in' | 'out'>('in');
 
-  // Guest entry state
-  const [guestName, setGuestName] = useState('');
+  // Mini signup state
+  const [signupStep, setSignupStep] = useState<'auth' | 'profile'>('auth');
+  const [firstName, setFirstName] = useState('');
+  const [city, setCity] = useState('');
+  const [signupInterests, setSignupInterests] = useState<string[]>([]);
+  const [interestInput, setInterestInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+
+  // Legacy guest name (kept for backward compat with initiateCall)
+  const guestName = firstName;
 
   // Host lobby state
   const [isOwner, setIsOwner] = useState(false);
@@ -137,8 +177,7 @@ export default function BaeLinkPage() {
             return;
           }
 
-          // Check if this is an anonymous guest (from guest entry)
-          // Don't reset pageState if we're already joining (handleGuestJoin in progress)
+          // Anonymous users need to sign in properly
           if (user.isAnonymous) {
             setPageState(prev => prev === 'loading' ? 'guest-entry' : prev);
             return;
@@ -151,12 +190,14 @@ export default function BaeLinkPage() {
             const interests = parseInterests(profile.interests);
             if (profile.displayName?.trim() && interests.length >= 1) {
               setVisitorProfile(profile);
+              setFirstName(profile.displayName?.split(' ')[0] || '');
               initiateCall(user.uid, data);
               return;
             }
           }
-          // Signed in but no profile — still show guest entry for speed
-          setGuestName(user.displayName?.split(' ')[0] || '');
+          // Signed in but no profile — show mini signup step 2
+          setFirstName(user.displayName?.split(' ')[0] || '');
+          setSignupStep('profile');
           setPageState('guest-entry');
         });
 
@@ -292,21 +333,39 @@ export default function BaeLinkPage() {
     }
   };
 
-  const handleGuestJoin = async () => {
-    if (!guestName.trim() || !owner || isJoining) return;
+  // --- Mini signup: add interest pill ---
+  const handleAddSignupInterest = () => {
+    const val = interestInput.trim();
+    if (!val || signupInterests.length >= 3) return;
+    setSignupInterests(prev => [...prev, val]);
+    setInterestInput('');
+    if (signupInterests.length === 2) {
+      // Third interest — chord resolution
+      playChordSound();
+    } else {
+      playCollectSound();
+    }
+  };
+
+  // --- Mini signup: complete profile and join ---
+  const handleMiniSignupJoin = async () => {
+    if (!firstName.trim() || !city.trim() || signupInterests.length < 3 || !visitorUser || !owner || isJoining) return;
     setIsJoining(true);
     try {
-      // Sign in anonymously to get a temp uid for Daily.co
-      let user = visitorUser;
-      if (!user) {
-        const cred = await signInAnonymously(auth);
-        user = cred.user;
-        setVisitorUser(user);
-      }
-      // Go straight to the call — pass guest info as query params
-      await initiateCall(user.uid, owner);
+      // Save profile to Firestore
+      const interests = signupInterests.map(name => createInterest(name, 'profile'));
+      await setDoc(doc(db, 'users', visitorUser.uid), {
+        displayName: firstName.trim(),
+        firstName: firstName.trim(),
+        city: city.trim(),
+        interests,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+
+      // Now initiate the call
+      await initiateCall(visitorUser.uid, owner);
     } catch (e) {
-      console.error('Guest join failed', e);
+      console.error('Mini signup join failed', e);
       setIsJoining(false);
     }
   };
@@ -491,7 +550,7 @@ export default function BaeLinkPage() {
     );
   }
 
-  // Guest entry — just type your name and join
+  // Mini signup — sign in + profile to join
   if (pageState === 'guest-entry' || pageState === 'need-auth' || pageState === 'need-onboarding') {
     return (
       <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
@@ -504,7 +563,7 @@ export default function BaeLinkPage() {
             BAE with {ownerPublicName}
           </h1>
 
-          {/* Owner interests preview — the hook */}
+          {/* Owner interests preview */}
           {ownerInterestNames.length > 0 && (
             <div className="flex flex-wrap justify-center gap-2 mb-8 mt-4">
               {ownerInterestNames.slice(0, 10).map(interest => (
@@ -520,41 +579,105 @@ export default function BaeLinkPage() {
             </div>
           )}
 
-          {/* Just type your name */}
-          <div className="space-y-4 mt-6">
-            <input
-              value={guestName}
-              onChange={e => setGuestName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleGuestJoin()}
-              placeholder="What's your name?"
-              autoFocus
-              className="w-full px-6 py-5 rounded-2xl bg-white/10 border-2 border-white/15 text-white text-xl text-center placeholder:text-white/25 outline-none focus:border-yellow-300/40 focus:ring-2 focus:ring-yellow-300/15 font-bold"
-            />
+          {/* Step 1: Google Auth */}
+          {signupStep === 'auth' && !visitorUser?.uid ? (
+            <div className="space-y-4 mt-6">
+              <motion.button
+                onClick={handleSignIn}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="w-full py-5 rounded-2xl font-black text-xl bg-white text-black flex items-center justify-center gap-3"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continue with Google
+              </motion.button>
+              <p className="text-white/20 text-xs mt-4">
+                Sign in to join {ownerPublicName}&apos;s room
+              </p>
+            </div>
+          ) : (
+            /* Step 2: Name + City + 3 Interests */
+            <div className="space-y-4 mt-6 text-left">
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  placeholder="First name"
+                  autoFocus
+                  className="px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/40 font-semibold"
+                />
+                <input
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  placeholder="City"
+                  className="px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/40 font-semibold"
+                />
+              </div>
 
-            <motion.button
-              onClick={handleGuestJoin}
-              disabled={!guestName.trim() || isJoining}
-              whileHover={guestName.trim() && !isJoining ? { scale: 1.03 } : {}}
-              whileTap={guestName.trim() && !isJoining ? { scale: 0.97 } : {}}
-              className={`w-full py-5 rounded-2xl font-black text-xl transition-all ${
-                guestName.trim() && !isJoining
-                  ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)]'
-                  : 'bg-white/5 text-white/20 cursor-not-allowed'
-              }`}
-            >
-              {isJoining ? 'Joining...' : 'Join'}
-            </motion.button>
-          </div>
+              {/* Interests */}
+              <p className="text-white/50 text-sm font-semibold text-center mt-2">
+                Add 3 interests to get started
+              </p>
 
-          <p className="text-white/20 text-xs mt-6">
-            No account needed. Just jump in.
-          </p>
-          <button
-            onClick={handleSignIn}
-            className="text-violet-300/50 text-xs mt-3 hover:text-violet-300/80 transition-colors underline"
-          >
-            Already on BAE? Sign in
-          </button>
+              {/* Collected interest pills */}
+              {signupInterests.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2">
+                  {signupInterests.map(interest => (
+                    <motion.span
+                      key={interest}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+                      className="px-4 py-2 rounded-full text-sm font-bold text-black bg-[#fde047] border border-yellow-200"
+                      style={{ boxShadow: '0 0 20px rgba(253,224,71,0.5), 0 0 6px rgba(253,224,71,0.3)' }}
+                    >
+                      ✓ {interest}
+                    </motion.span>
+                  ))}
+                </div>
+              )}
+
+              {/* Interest input */}
+              {signupInterests.length < 3 && (
+                <div className="flex gap-2">
+                  <input
+                    value={interestInput}
+                    onChange={e => setInterestInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddSignupInterest()}
+                    placeholder={`Interest ${signupInterests.length + 1} of 3`}
+                    className="flex-1 px-5 py-4 rounded-xl bg-white/8 border-2 border-amber-400/30 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/60 focus:shadow-[0_0_20px_rgba(253,224,71,0.1)] font-semibold"
+                  />
+                  <motion.button
+                    onClick={handleAddSignupInterest}
+                    disabled={!interestInput.trim()}
+                    whileTap={{ scale: 0.95 }}
+                    className={`px-5 rounded-xl font-black text-lg ${
+                      interestInput.trim()
+                        ? 'bg-amber-400 text-black'
+                        : 'bg-white/5 text-white/20'
+                    }`}
+                  >
+                    +
+                  </motion.button>
+                </div>
+              )}
+
+              {/* Join button */}
+              <motion.button
+                onClick={handleMiniSignupJoin}
+                disabled={!firstName.trim() || !city.trim() || signupInterests.length < 3 || isJoining}
+                whileHover={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isJoining ? { scale: 1.03 } : {}}
+                whileTap={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isJoining ? { scale: 0.97 } : {}}
+                className={`w-full py-5 rounded-2xl font-black text-xl transition-all mt-2 ${
+                  firstName.trim() && city.trim() && signupInterests.length >= 3 && !isJoining
+                    ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)]'
+                    : 'bg-white/5 text-white/20 cursor-not-allowed'
+                }`}
+              >
+                {isJoining ? 'Joining...' : 'Join Room'}
+              </motion.button>
+            </div>
+          )}
         </motion.div>
       </main>
     );

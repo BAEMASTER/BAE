@@ -82,7 +82,7 @@ export default function Header() {
     <>
       <NavLink href="/explorer" label="Explorer" />
       <NavLink href="/talk" label="Talk" />
-      {username && <NavLink href={`/${username}`} label="My Room" />}
+      <NavLink href={username ? `/${username}` : '/profile'} label="My Room" />
       <NavLink href="/profile" label="Profile" />
     </>
   );
@@ -91,7 +91,7 @@ export default function Header() {
     <>
       <NavLink href="/explorer" label="Explorer" mobile />
       <NavLink href="/talk" label="Talk" mobile />
-      {username && <NavLink href={`/${username}`} label="My Room" mobile />}
+      <NavLink href={username ? `/${username}` : '/profile'} label="My Room" mobile />
       <NavLink href="/profile" label="Profile" mobile />
     </>
   );
