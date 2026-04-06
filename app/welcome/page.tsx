@@ -84,8 +84,8 @@ function playAddSound() {
 // --- Two beats only ---
 const BEATS = [
   {
-    headline: 'It starts with a conversation.',
-    sub: 'Your interests reveal themselves naturally.',
+    headline: 'Make Your BAE More...YOU!',
+    sub: 'Talk authentically about your life. Tap what resonates. Your interests make your conversations on BAE more fun and real.',
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
@@ -125,27 +125,27 @@ function TalkPreview() {
         <p className="text-lg sm:text-2xl md:text-3xl leading-[1.6] text-white/60 font-light">
           Tap what fits you:
         </p>
-        <div className="flex flex-wrap gap-3 sm:gap-4">
+        <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3">
           {TALK_PILLS.map(pill => {
             const isAdded = added.has(pill);
             return (
               <motion.button
                 key={pill}
-                whileTap={!isAdded ? { scale: 0.92 } : {}}
+                whileTap={!isAdded ? { scale: 0.95 } : {}}
                 onClick={(e) => handleTap(pill, e)}
-                className={`inline-flex items-center gap-2 px-6 py-3 sm:px-8 sm:py-4 rounded-full text-lg sm:text-xl font-black transition-all select-none ${
+                className={`inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full text-sm sm:text-base font-bold transition-colors select-none ${
                   isAdded
                     ? 'text-emerald-300 bg-emerald-400/15 border-2 border-emerald-400/30'
                     : 'text-black bg-[#fde047] border-2 border-yellow-200 cursor-pointer'
                 }`}
                 style={!isAdded ? {
-                  boxShadow: '0 0 30px rgba(253,224,71,0.55), 0 0 10px rgba(253,224,71,0.35)',
+                  boxShadow: '0 0 20px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.3)',
                 } : {
-                  boxShadow: '0 0 20px rgba(52,211,153,0.3)',
+                  boxShadow: '0 0 14px rgba(52,211,153,0.25)',
                 }}
               >
                 {isAdded ? (
-                  <motion.span initial={{ rotate: -180, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>✓</motion.span>
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>✓</motion.span>
                 ) : (
                   <span className="font-black">+</span>
                 )}
