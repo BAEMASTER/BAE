@@ -1,21 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut, User, getAuth } from 'firebase/auth';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
-import { getApps, initializeApp } from 'firebase/app';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebaseClient';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
 export default function Header() {
-  const [app] = useState(() => {
-    if (getApps().length) return getApps()[0];
-    const raw = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
-    if (!raw) return null;
-    try { return initializeApp(JSON.parse(raw)); } catch { return null; }
-  });
-  const auth = app ? getAuth(app) : null;
-  const db = app ? getFirestore(app) : null;
 
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState<string | null>(null);

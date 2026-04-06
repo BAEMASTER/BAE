@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getApps, initializeApp } from 'firebase/app';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebaseClient';
 import Header from '@/components/Header';
 
 // --- Interest columns ---
@@ -63,16 +63,11 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const raw = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
-    if (!raw) return;
-    try {
-      const app = getApps().length ? getApps()[0] : initializeApp(JSON.parse(raw));
-      const auth = getAuth(app);
-      const unsub = onAuthStateChanged(auth, (user) => {
-        setIsLoggedIn(!!user && !user.isAnonymous);
-      });
-      return () => unsub();
-    } catch {}
+    if (!auth) return;
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user && !user.isAnonymous);
+    });
+    return () => unsub();
   }, []);
 
   useEffect(() => {
