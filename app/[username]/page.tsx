@@ -45,18 +45,16 @@ function playChordSound() {
 
 // --- Waiting room messages (softly positive) ---
 const WAITING_MESSAGES = [
-  "Take a breath. Something good is about to happen.",
+  "To BAE or not to BAE, that is the question.",
+  "Don't worry, BAE happy.",
+  "All we need is BAE.",
+  "BAE right back.",
   "No filters. No likes. Just two people.",
-  "The best conversations start with presence.",
-  "You're about to have a real conversation.",
-  "Breathe in... breathe out... you're here.",
-  "Every great connection starts with showing up.",
   "Two people. One moment. No script.",
-  "You showed up. That's already enough.",
   "Something real is about to happen.",
-  "Let your guard down. This is a safe space.",
-  "The world gets better one conversation at a time.",
   "Be curious. Be kind. Be you.",
+  "The best conversations start with showing up.",
+  "Every great connection starts with presence.",
 ];
 
 type OwnerProfile = {
