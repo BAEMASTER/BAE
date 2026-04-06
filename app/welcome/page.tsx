@@ -10,21 +10,19 @@ import { createInterest } from '@/lib/structuredInterests';
 
 // --- Reaction bar ---
 const REACTION_EMOJIS = ['❤️', '🔥', '😂', '🤯', '👏', '🧠'];
-type FlyingEmoji = { id: number; emoji: string; originX: number };
 
-function FlyingReaction({ emoji, originX, onComplete }: { emoji: string; originX: number; onComplete: () => void }) {
-  const drift = useMemo(() => (Math.random() - 0.5) * 80, []);
-  useEffect(() => { const t = setTimeout(onComplete, 1200); return () => clearTimeout(t); }, []);
+function FloatingEmoji({ emoji, onComplete }: { emoji: string; onComplete: () => void }) {
+  useEffect(() => { const t = setTimeout(onComplete, 900); return () => clearTimeout(t); }, []);
   return (
-    <motion.div
-      initial={{ opacity: 1, x: 0, y: 0, scale: 1.8 }}
-      animate={{ opacity: 0, x: drift, y: '-35vh', scale: 0.8 }}
-      transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute pointer-events-none"
-      style={{ left: `${originX}%`, bottom: '100px', fontSize: '48px', filter: 'drop-shadow(0 0 12px rgba(253,224,71,0.6))' }}
+    <motion.span
+      initial={{ opacity: 1, y: 0, scale: 1.2 }}
+      animate={{ opacity: 0, y: -60, scale: 0.9 }}
+      transition={{ duration: 0.8, ease: 'easeOut' }}
+      className="absolute pointer-events-none -top-12 left-1/2 -translate-x-1/2 text-3xl sm:text-4xl"
+      style={{ filter: 'drop-shadow(0 0 8px rgba(253,224,71,0.5))' }}
     >
       {emoji}
-    </motion.div>
+    </motion.span>
   );
 }
 
@@ -163,19 +161,14 @@ function TalkPreview() {
 
 // --- Connect Preview — full width, cinematic ---
 function ConnectPreview() {
-  const [flying, setFlying] = useState<FlyingEmoji[]>([]);
+  const [activeFloat, setActiveFloat] = useState<{ id: number; emoji: string; idx: number } | null>(null);
   const idRef = useRef(0);
-  const barRef = useRef<HTMLDivElement>(null);
 
-  const handleReaction = (emoji: string, e: React.MouseEvent) => {
+  const handleReaction = (emoji: string, idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
     playReactionSound(emoji);
-    const barRect = barRef.current?.getBoundingClientRect();
-    const btnRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    if (!barRect) return;
-    const originX = ((btnRect.left + btnRect.width / 2 - barRect.left) / barRect.width) * 100;
     const id = idRef.current++;
-    setFlying(prev => [...prev, { id, emoji, originX }]);
+    setActiveFloat({ id, emoji, idx });
   };
 
   return (
@@ -201,23 +194,21 @@ function ConnectPreview() {
           <span className="px-5 py-2.5 sm:px-7 sm:py-3 rounded-full text-base sm:text-lg font-bold text-black bg-[#fde047] border border-yellow-200" style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' }}>Travel</span>
         </div>
 
-        {/* Flying emojis */}
-        <AnimatePresence>
-          {flying.map(f => (
-            <FlyingReaction key={f.id} emoji={f.emoji} originX={f.originX} onComplete={() => setFlying(prev => prev.filter(x => x.id !== f.id))} />
-          ))}
-        </AnimatePresence>
-
-        {/* Reaction bar */}
-        <div ref={barRef} className="flex justify-center gap-3 sm:gap-5 py-3 sm:py-4 px-6 sm:px-8 rounded-full bg-white/5 border border-white/10 max-w-lg mx-auto">
-          {REACTION_EMOJIS.map(emoji => (
+        {/* Reaction bar — emojis float up from their own position */}
+        <div className="flex justify-center gap-3 sm:gap-5 py-3 sm:py-4 px-6 sm:px-8 rounded-full bg-white/5 border border-white/10 max-w-lg mx-auto">
+          {REACTION_EMOJIS.map((emoji, idx) => (
             <motion.button
               key={emoji}
               whileTap={{ scale: 1.4 }}
-              onClick={(e) => handleReaction(emoji, e)}
-              className="text-2xl sm:text-3xl hover:scale-110 transition-transform cursor-pointer select-none p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              onClick={(e) => handleReaction(emoji, idx, e)}
+              className="relative text-2xl sm:text-3xl hover:scale-110 transition-transform cursor-pointer select-none p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               {emoji}
+              <AnimatePresence>
+                {activeFloat && activeFloat.idx === idx && (
+                  <FloatingEmoji key={activeFloat.id} emoji={activeFloat.emoji} onComplete={() => setActiveFloat(null)} />
+                )}
+              </AnimatePresence>
             </motion.button>
           ))}
         </div>
