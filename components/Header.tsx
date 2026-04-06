@@ -86,7 +86,6 @@ export default function Header() {
 
   const navLinks = (
     <>
-      <NavLink href="/explorer" label="Explorer" />
       <NavLink href="/talk" label="Talk" />
       <NavLink href="/profile" label="Profile" />
     </>
