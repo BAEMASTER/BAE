@@ -93,8 +93,15 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
-      {/* Nav for logged-in users */}
-      {isLoggedIn && <Header />}
+      {/* Nav for logged-in users / sign-in for returning visitors */}
+      {isLoggedIn ? <Header /> : (
+        <button
+          onClick={() => router.push('/auth')}
+          className="absolute top-5 right-5 z-20 text-white/20 text-sm font-medium hover:text-white/40 transition-colors"
+        >
+          Sign in
+        </button>
+      )}
 
       <div className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
@@ -165,15 +172,6 @@ export default function HomePage() {
           {isLoggedIn ? 'TALK' : 'ENTER'}
         </motion.button>
 
-        {/* Sign in shortcut for returning users */}
-        {!isLoggedIn && (
-          <button
-            onClick={() => router.push('/auth')}
-            className="mt-6 text-white/25 text-sm font-medium hover:text-white/50 transition-colors"
-          >
-            Already on BAE? Sign in
-          </button>
-        )}
       </section>
     </main>
   );
