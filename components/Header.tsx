@@ -1,13 +1,22 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { auth, db } from '@/lib/firebaseClient';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut, User, getAuth } from 'firebase/auth';
+import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import { getApps, initializeApp } from 'firebase/app';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
 export default function Header() {
+  const [app] = useState(() => {
+    if (getApps().length) return getApps()[0];
+    const raw = process.env.NEXT_PUBLIC_FIREBASE_CONFIG;
+    if (!raw) return null;
+    try { return initializeApp(JSON.parse(raw)); } catch { return null; }
+  });
+  const auth = app ? getAuth(app) : null;
+  const db = app ? getFirestore(app) : null;
+
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -16,6 +25,7 @@ export default function Header() {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!auth || !db) return;
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u && !u.isAnonymous) {
@@ -23,18 +33,7 @@ export default function Header() {
           const snap = await getDoc(doc(db, 'users', u.uid));
           if (snap.exists()) {
             const data = snap.data();
-            // Try username field on user doc first, then look up in usernames collection
-            if (data.username) {
-              setUsername(data.username);
-            } else if (data.displayName) {
-              // Fallback: check usernames collection for this uid
-              const { getDocs, collection, query, where } = await import('firebase/firestore');
-              const q = query(collection(db, 'usernames'), where('uid', '==', u.uid));
-              const uSnap = await getDocs(q);
-              if (!uSnap.empty) {
-                setUsername(uSnap.docs[0].id);
-              }
-            }
+            setUsername(data.username || null);
           }
         } catch {}
       } else {
@@ -42,7 +41,7 @@ export default function Header() {
       }
     });
     return () => unsub();
-  }, []);
+  }, [auth, db]);
 
   // Close menu on route change
   useEffect(() => {
@@ -54,6 +53,7 @@ export default function Header() {
   };
 
   const doSignOut = async () => {
+    if (!auth) return;
     try {
       setBusy(true);
       await signOut(auth);
