@@ -96,7 +96,7 @@ const BEATS = [
 ];
 
 // --- Talk Preview — full width, cinematic ---
-const TALK_PILLS = ['Hot Yoga', 'Fitness', 'Wellness', 'Discipline', 'Mind-body', 'Meditation'];
+const TALK_PILLS = ['Hot Yoga', 'Fitness', 'Wellness', 'Mind-body'];
 
 function TalkPreview() {
   const [added, setAdded] = useState<Set<string>>(new Set());
@@ -382,7 +382,7 @@ export default function WelcomePage() {
 
       {/* Next button */}
       {!showSignup && (
-        <div className="absolute bottom-6 sm:bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
+        <div className="absolute bottom-3 sm:bottom-8 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
           <motion.button
             onClick={(e) => { e.stopPropagation(); advance(); }}
             whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(253,224,71,0.5)' }}

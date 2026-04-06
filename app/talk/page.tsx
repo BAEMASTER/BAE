@@ -1046,24 +1046,6 @@ export default function DiscoverPage() {
       >
         <div className="max-w-2xl mx-auto">
           <div className="flex gap-2 items-center">
-            {messages.length > 2 && !isStreaming && (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  const count = newTopicCount + 1;
-                  setNewTopicCount(count);
-                  if (isGuestTalk && collectedInterests.length >= 15 && count >= 3) {
-                    setShowSignupNudge(true);
-                  }
-                  handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)');
-                }}
-                className="flex-shrink-0 px-6 py-3.5 rounded-full bg-violet-500/15 border border-violet-400/20 text-violet-200 text-base font-bold hover:bg-violet-500/25 transition-all"
-              >
-                New topic
-              </motion.button>
-            )}
             <input
               ref={inputRef}
               value={input}
@@ -1071,7 +1053,7 @@ export default function DiscoverPage() {
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder={isStreaming ? '' : 'Say something...'}
               disabled={isStreaming}
-              className={`flex-1 min-w-0 px-5 py-3.5 rounded-full bg-white/8 border text-white text-base placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 transition-all disabled:opacity-30 font-medium ${showContinue && !isStreaming ? 'border-amber-400/40 shadow-[0_0_20px_rgba(253,224,71,0.15)] animate-pulse' : 'border-white/12'}`}
+              className={`flex-1 min-w-0 px-6 py-4 rounded-full bg-white/8 border text-white text-base sm:text-lg placeholder:text-white/20 outline-none focus:border-violet-400/30 focus:bg-white/10 transition-all disabled:opacity-30 font-medium ${showContinue && !isStreaming ? 'border-amber-400/40 shadow-[0_0_20px_rgba(253,224,71,0.15)] animate-pulse' : 'border-white/12'}`}
             />
             <motion.button
               onClick={() => handleSend()}
@@ -1086,6 +1068,27 @@ export default function DiscoverPage() {
               <Send size={18} />
             </motion.button>
           </div>
+          {/* New topic — below input */}
+          {messages.length > 2 && !isStreaming && (
+            <div className="flex justify-center mt-2">
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  const count = newTopicCount + 1;
+                  setNewTopicCount(count);
+                  if (isGuestTalk && collectedInterests.length >= 15 && count >= 3) {
+                    setShowSignupNudge(true);
+                  }
+                  handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)');
+                }}
+                className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/40 text-sm font-bold hover:bg-white/10 hover:text-white/60 transition-all"
+              >
+                New topic
+              </motion.button>
+            </div>
+          )}
         </div>
       </div>
     </main>
