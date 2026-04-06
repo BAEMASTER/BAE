@@ -1,20 +1,32 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { auth } from '@/lib/firebaseClient';
+import { auth, db } from '@/lib/firebaseClient';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter, usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
 export default function Header() {
   const [user, setUser] = useState<User | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u && !u.isAnonymous) {
+        try {
+          const snap = await getDoc(doc(db, 'users', u.uid));
+          if (snap.exists()) setUsername(snap.data().username || null);
+        } catch {}
+      } else {
+        setUsername(null);
+      }
+    });
     return () => unsub();
   }, []);
 
@@ -70,6 +82,7 @@ export default function Header() {
     <>
       <NavLink href="/explorer" label="Explorer" />
       <NavLink href="/talk" label="Talk" />
+      {username && <NavLink href={`/${username}`} label="My Room" />}
       <NavLink href="/profile" label="Profile" />
     </>
   );
@@ -78,6 +91,7 @@ export default function Header() {
     <>
       <NavLink href="/explorer" label="Explorer" mobile />
       <NavLink href="/talk" label="Talk" mobile />
+      {username && <NavLink href={`/${username}`} label="My Room" mobile />}
       <NavLink href="/profile" label="Profile" mobile />
     </>
   );

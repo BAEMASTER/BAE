@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { onAuthStateChanged, getAuth, signInAnonymously, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, Loader2, Send, User as UserIcon } from 'lucide-react';
@@ -38,6 +38,7 @@ type OwnerProfile = {
 type PageState =
   | 'loading'
   | 'not-found'
+  | 'host-lobby'       // Owner is in their own room — sees waiting visitors
   | 'guest-entry'      // Guest just needs to type their name
   | 'need-auth'        // Visitor needs to sign in (fallback)
   | 'need-onboarding'  // Visitor signed in but needs name + interests
@@ -72,6 +73,12 @@ export default function BaeLinkPage() {
   // Guest entry state
   const [guestName, setGuestName] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+
+  // Host lobby state
+  const [isOwner, setIsOwner] = useState(false);
+  type WaitingVisitor = { callId: string; visitorUid: string; visitorName: string; createdAt: string };
+  const [waitingVisitors, setWaitingVisitors] = useState<WaitingVisitor[]>([]);
+  const [admitting, setAdmitting] = useState<string | null>(null);
 
   // Quick onboarding state (legacy — kept for signed-in users who need setup)
   const [onboardName, setOnboardName] = useState('');
@@ -123,6 +130,13 @@ export default function BaeLinkPage() {
           }
           setVisitorUser(user);
 
+          // Check if this is the OWNER visiting their own room
+          if (user.uid === data.uid) {
+            setIsOwner(true);
+            setPageState('host-lobby');
+            return;
+          }
+
           // Check if this is an anonymous guest (from guest entry)
           // Don't reset pageState if we're already joining (handleGuestJoin in progress)
           if (user.isAnonymous) {
@@ -164,7 +178,7 @@ export default function BaeLinkPage() {
         const res = await fetch('/api/direct-call', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ownerUid: ownerData.uid, visitorUid }),
+          body: JSON.stringify({ ownerUid: ownerData.uid, visitorUid, guestName: guestName.trim() || null }),
         });
         const data = await res.json();
         if (data.callId) {
@@ -216,6 +230,38 @@ export default function BaeLinkPage() {
     }
   }, [db, router, guestName]);
 
+  // Host lobby: listen for waiting visitors
+  useEffect(() => {
+    if (!isOwner || !owner || pageState !== 'host-lobby') return;
+    const q = query(
+      collection(db, 'directCalls'),
+      where('ownerUid', '==', owner.uid),
+      where('status', '==', 'ringing')
+    );
+    const unsub = onSnapshot(q, async (snap) => {
+      const visitors: WaitingVisitor[] = [];
+      for (const d of snap.docs) {
+        const data = d.data();
+        let name = 'Someone';
+        try {
+          const vSnap = await getDoc(doc(db, 'users', data.visitorUid));
+          if (vSnap.exists()) {
+            name = formatPublicName(vSnap.data().displayName || 'Someone');
+          }
+        } catch {}
+        // Check for guest name in the call data or fallback
+        visitors.push({
+          callId: d.id,
+          visitorUid: data.visitorUid,
+          visitorName: data.guestName || name,
+          createdAt: data.createdAt,
+        });
+      }
+      setWaitingVisitors(visitors);
+    }, () => setWaitingVisitors([]));
+    return () => unsub();
+  }, [isOwner, owner, pageState, db]);
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -226,6 +272,26 @@ export default function BaeLinkPage() {
   }, []);
 
   // --- Guest join handler ---
+  // --- Host admits a waiting visitor ---
+  const handleAdmit = async (visitor: WaitingVisitor) => {
+    if (admitting) return;
+    setAdmitting(visitor.callId);
+    try {
+      const res = await fetch('/api/direct-call', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callId: visitor.callId, action: 'accept' }),
+      });
+      const data = await res.json();
+      if (data.roomUrl) {
+        router.push(`/match?directCall=true&roomUrl=${encodeURIComponent(data.roomUrl)}&partnerId=${encodeURIComponent(visitor.visitorUid)}`);
+      }
+    } catch (e) {
+      console.error('Admit failed', e);
+      setAdmitting(null);
+    }
+  };
+
   const handleGuestJoin = async () => {
     if (!guestName.trim() || !owner || isJoining) return;
     setIsJoining(true);
@@ -355,6 +421,76 @@ export default function BaeLinkPage() {
     );
   }
 
+  // Host lobby — owner is in their room
+  if (pageState === 'host-lobby') {
+    return (
+      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white pt-[72px]">
+        <div className="max-w-2xl mx-auto px-6 py-12 text-center">
+          <h1 className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+            style={{ filter: 'drop-shadow(0 0 40px rgba(253,224,71,0.4))' }}>
+            Your Room
+          </h1>
+          <p className="text-white/50 text-lg font-medium mb-2">baewithme.com/{username}</p>
+          <p className="text-white/30 text-sm mb-10">Share your link — anyone who taps it will appear here.</p>
+
+          {/* Waiting visitors */}
+          {waitingVisitors.length === 0 ? (
+            <motion.div
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="py-16"
+            >
+              <p className="text-white/25 text-xl font-medium">No one here yet.</p>
+              <p className="text-white/15 text-sm mt-2">When someone taps your link, they&apos;ll show up here.</p>
+            </motion.div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-amber-300/70 text-sm font-bold mb-6">
+                {waitingVisitors.length} {waitingVisitors.length === 1 ? 'person' : 'people'} waiting
+              </p>
+              {waitingVisitors.map(v => (
+                <motion.div
+                  key={v.callId}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10"
+                >
+                  <div className="text-left">
+                    <p className="text-white font-bold text-lg">{v.visitorName}</p>
+                    <p className="text-white/30 text-sm">Waiting to join</p>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAdmit(v)}
+                    disabled={admitting === v.callId}
+                    className="px-6 py-3 rounded-full font-black text-base text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 disabled:opacity-50"
+                    style={{ boxShadow: '0 0 20px rgba(253,224,71,0.3)' }}
+                  >
+                    {admitting === v.callId ? 'Connecting...' : 'Let in'}
+                  </motion.button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* Share link */}
+          <div className="mt-12">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                navigator.clipboard.writeText(`https://baewithme.com/${username}`);
+              }}
+              className="px-8 py-3 rounded-full text-sm font-bold text-amber-300 border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 transition-colors"
+            >
+              Copy room link
+            </motion.button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   // Guest entry — just type your name and join
   if (pageState === 'guest-entry' || pageState === 'need-auth' || pageState === 'need-onboarding') {
     return (
@@ -454,11 +590,15 @@ export default function BaeLinkPage() {
           {pageState === 'ringing' ? (
             <>
               <h2 className="text-2xl font-black mb-2">
-                Calling {ownerPublicName}...
+                Waiting for {ownerPublicName}...
               </h2>
-              <div className="flex items-center justify-center gap-2 text-violet-300 mb-6">
-                <Phone className="w-4 h-4 animate-pulse" />
-                <span className="text-sm">Ringing</span>
+              <div className="flex items-center justify-center gap-2 text-amber-300/70 mb-6">
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-3 h-3 rounded-full bg-amber-400"
+                />
+                <span className="text-sm">You&apos;re in the waiting room</span>
               </div>
             </>
           ) : (

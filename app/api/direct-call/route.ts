@@ -4,7 +4,7 @@ import { db } from "@/lib/firebaseAdmin";
 // POST /api/direct-call — initiate a call (creates a ringing record)
 export async function POST(req: NextRequest) {
   try {
-    const { ownerUid, visitorUid } = await req.json();
+    const { ownerUid, visitorUid, guestName } = await req.json();
     if (!ownerUid || !visitorUid) {
       return NextResponse.json({ error: "ownerUid and visitorUid required" }, { status: 400 });
     }
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       callId: callRef.id,
       ownerUid,
       visitorUid,
+      guestName: guestName || null,
       status: "ringing",
       roomUrl: null,
       createdAt: new Date().toISOString(),
