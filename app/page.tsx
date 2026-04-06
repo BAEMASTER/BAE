@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/lib/firebaseClient';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebaseClient';
 import Header from '@/components/Header';
 
 // --- Interest columns ---
@@ -61,11 +62,19 @@ export default function HomePage() {
   const [floatingEmoji, setFloatingEmoji] = useState<{ id: number; emoji: string; idx: number } | null>(null);
   const idRef = useRef(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!auth) return;
-    const unsub = onAuthStateChanged(auth, (user) => {
+    if (!auth || !db) return;
+    const unsub = onAuthStateChanged(auth, async (user) => {
       setIsLoggedIn(!!user && !user.isAnonymous);
+      if (user && !user.isAnonymous) {
+        try {
+          const snap = await getDoc(doc(db, 'users', user.uid));
+          if (snap.exists()) setUsername(snap.data().username || null);
+        } catch {}
+      }
     });
     return () => unsub();
   }, []);
@@ -160,17 +169,76 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Enter button */}
-        <motion.button
-          whileHover={{ scale: 1.07, boxShadow: '0 0 100px rgba(253,224,71,0.7), 0 0 160px rgba(245,158,11,0.35)' }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() => router.push(isLoggedIn ? '/talk' : '/welcome')}
-          animate={{ boxShadow: ['0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)', '0 0 80px rgba(253,224,71,0.6), 0 0 140px rgba(245,158,11,0.3)', '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)'] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="px-24 sm:px-36 py-7 sm:py-9 rounded-full font-black text-3xl sm:text-4xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.2em]"
-        >
-          {isLoggedIn ? 'TALK' : 'ENTER'}
-        </motion.button>
+        {/* CTA — different for logged-in vs new visitors */}
+        {isLoggedIn && username ? (
+          <div className="flex flex-col items-center gap-5 sm:gap-6">
+            {/* Room link — the star */}
+            <motion.div
+              animate={{ boxShadow: ['0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.1)', '0 0 50px rgba(253,224,71,0.35), 0 0 80px rgba(253,224,71,0.15)', '0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.1)'] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="px-8 sm:px-12 py-5 sm:py-6 rounded-2xl bg-black/30 backdrop-blur-sm border-2 border-amber-400/30"
+            >
+              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-center">
+                <span className="text-white/50">baewithme.com/</span>
+                <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent" style={{ filter: 'drop-shadow(0 0 30px rgba(253,224,71,0.4))' }}>
+                  {username}
+                </span>
+              </p>
+            </motion.div>
+
+            {/* Action buttons */}
+            <div className="flex gap-3 sm:gap-4">
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(253,224,71,0.5)' }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://baewithme.com/${username}`);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="px-8 sm:px-12 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400"
+                style={{ boxShadow: '0 0 30px rgba(253,224,71,0.3)' }}
+              >
+                {copied ? 'Copied!' : 'Copy Link'}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(`https://baewithme.com/${username}`);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }
+                }}
+                className="px-8 sm:px-12 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-white/80 bg-white/10 border-2 border-white/20 hover:bg-white/15 transition-all"
+              >
+                Share
+              </motion.button>
+            </div>
+
+            {/* Talk link */}
+            <button
+              onClick={() => router.push('/talk')}
+              className="text-white/30 text-sm font-medium hover:text-white/50 transition-colors mt-1"
+            >
+              or keep Talking →
+            </button>
+          </div>
+        ) : (
+          <motion.button
+            whileHover={{ scale: 1.07, boxShadow: '0 0 100px rgba(253,224,71,0.7), 0 0 160px rgba(245,158,11,0.35)' }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => router.push('/welcome')}
+            animate={{ boxShadow: ['0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)', '0 0 80px rgba(253,224,71,0.6), 0 0 140px rgba(245,158,11,0.3)', '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(245,158,11,0.2)'] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="px-24 sm:px-36 py-7 sm:py-9 rounded-full font-black text-3xl sm:text-4xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 tracking-[0.2em]"
+          >
+            ENTER
+          </motion.button>
+        )}
 
       </section>
     </main>
