@@ -56,6 +56,23 @@ export function playCollectSound() {
   } catch {}
 }
 
+export function playReactionSendSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(660, now);
+    gain.gain.setValueAtTime(0.04, now); // quieter than receive sound
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } catch {}
+}
+
 export function playReactionReceivedSound() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();

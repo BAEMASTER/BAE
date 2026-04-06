@@ -13,7 +13,7 @@ import { parseInterests, interestNames, createInterest, addInterests as addStruc
 import { formatPublicName } from '@/lib/formatName';
 import { isBlockedInterest } from '@/lib/interestBlocklist';
 import { Plus } from 'lucide-react';
-import { Confetti, MegaVibeCelebration, ReactionCascade, playMegaVibeSound, playCollectSound, playReactionReceivedSound, playSharedInterestSound } from '@/components/match';
+import { Confetti, MegaVibeCelebration, ReactionCascade, playMegaVibeSound, playCollectSound, playReactionSendSound, playReactionReceivedSound, playSharedInterestSound } from '@/components/match';
 
 const scrollbarStyle = `
   .interests-scroll::-webkit-scrollbar {
@@ -1215,6 +1215,7 @@ function MatchPage() {
 
     const id = ++reactionIdCounter.current;
     setReactionCascades(prev => [...prev, { id, emoji, originX }]);
+    playReactionSendSound();
 
     // Send to partner (1 emoji per tap)
     if (callObjectRef.current) {
