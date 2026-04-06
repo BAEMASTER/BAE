@@ -89,8 +89,13 @@ const BEATS = [
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
+    headline: 'Make Your BAE the Most Fun Place to Meet.',
+    sub: 'Your interests. Your song. Your links. Your room.',
+    glowColor: 'rgba(253,224,71,0.4)',
+  },
+  {
     headline: 'Now, invite your people to your room.',
-    sub: 'Shared interests glow. Have so much fun.',
+    sub: 'Shared interests glow between you. Reactions fly. Conversations come alive.',
     glowColor: 'rgba(244,63,94,0.4)',
   },
 ];
@@ -217,7 +222,70 @@ function ConnectPreview() {
   );
 }
 
-const PREVIEWS = [TalkPreview, ConnectPreview];
+// --- Profile Preview — aspirational room card with Spotify ---
+const PROFILE_INTERESTS = ['Hot Yoga', 'Italian Food', 'AI', 'Stand-up Comedy', 'Jazz', 'Travel', 'Philosophy', 'Cooking'];
+
+function ProfilePreview() {
+  return (
+    <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8 w-full overflow-hidden">
+      <div className="max-w-2xl mx-auto">
+        {/* Name + location */}
+        <div className="text-center mb-5">
+          <h3 className="text-2xl sm:text-3xl font-black text-white mb-1">Alex M.</h3>
+          <p className="text-white/40 text-sm font-medium">Brooklyn, NY</p>
+        </div>
+
+        {/* Interests */}
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-6">
+          {PROFILE_INTERESTS.map(interest => (
+            <span
+              key={interest}
+              className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-xs sm:text-sm font-bold text-black bg-[#fde047] border border-yellow-200"
+              style={{ boxShadow: '0 0 16px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.25)' }}
+            >
+              {interest}
+            </span>
+          ))}
+        </div>
+
+        {/* Spotify embed */}
+        <div className="mb-5 rounded-xl overflow-hidden">
+          <iframe
+            src="https://open.spotify.com/embed/track/6GWOLPRxzswlHk93sT509g?theme=0&utm_source=generator"
+            width="100%"
+            height="80"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            className="border-0"
+          />
+        </div>
+
+        {/* Links */}
+        <div className="flex justify-center gap-3 mb-5">
+          <span className="px-4 py-1.5 rounded-full text-xs font-semibold text-white/50 bg-white/5 border border-white/10">
+            alexm.design
+          </span>
+          <span className="px-4 py-1.5 rounded-full text-xs font-semibold text-white/50 bg-white/5 border border-white/10">
+            @alexcreates
+          </span>
+        </div>
+
+        {/* Room link */}
+        <div className="text-center">
+          <p
+            className="text-lg sm:text-xl font-black"
+            style={{ filter: 'drop-shadow(0 0 20px rgba(253,224,71,0.3))' }}
+          >
+            <span className="text-white/40">baewithme.com/</span>
+            <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">alex</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PREVIEWS = [TalkPreview, ProfilePreview, ConnectPreview];
 
 // --- Main page ---
 export default function WelcomePage() {
