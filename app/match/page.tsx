@@ -596,6 +596,18 @@ function MatchPage() {
         if (data?.type === 'interest-added' && !event?.fromId?.startsWith?.('local')) {
           setAddNotification({ name: data.name, interest: data.interest });
           setTimeout(() => setAddNotification(null), 2000);
+          // Update partner's interest list so shared interests glow in real-time
+          setTheirProfile((prev: any) => {
+            if (!prev) return prev;
+            const currentInterests = parseInterests(prev.interests);
+            const alreadyHas = currentInterests.some(
+              (i: any) => i.name.toLowerCase() === data.interest.toLowerCase()
+            );
+            if (alreadyHas) return prev;
+            const newEntry = createInterest(data.interest, 'match');
+            const updated = addStructuredInterests(currentInterests, [newEntry]);
+            return { ...prev, interests: updated };
+          });
         }
       });
 
@@ -1306,7 +1318,7 @@ function MatchPage() {
             playsInline
             disablePictureInPicture
             controlsList="nodownload noplaybackrate"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-contain bg-black"
           />
           {!isMatched && (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-indigo-900/40 to-purple-900/40">
@@ -2020,8 +2032,8 @@ function MatchPage() {
 
         <div className="flex-1" />
 
-        {/* Next button - right */}
-        {isMatched && (
+        {/* Next button - right (hide for direct calls — left End button is enough) */}
+        {isMatched && !isDirectCall && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
