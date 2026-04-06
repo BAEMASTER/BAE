@@ -9,9 +9,11 @@ service cloud.firestore {
     }
 
     // --- USERS (profile + state) ---
-    // Allow each user to read/write their own user doc (where your interests live)
+    // Anyone authenticated can read user profiles (needed for room pages, match, explorer)
+    // Only self can write
     match /users/{uid} {
-      allow read, write: if isSelf(uid);
+      allow read: if authed();
+      allow write: if isSelf(uid);
     }
 
     // If you prefer "state" as a separate doc under /users:
@@ -28,6 +30,34 @@ service cloud.firestore {
     match /queues/{interest}/waiting/{uid} {
       allow create, update, delete: if isSelf(uid);
       allow read: if false;
+    }
+
+    // --- DIRECT CALLS (incoming call notifications) ---
+    match /directCalls/{callId} {
+      // Host can read their incoming calls
+      allow read: if authed() && resource.data.ownerUid == request.auth.uid;
+      // Visitor can read calls they initiated
+      allow read: if authed() && resource.data.visitorUid == request.auth.uid;
+      // Both parties can update (accept/decline)
+      allow update: if authed() && (
+        resource.data.ownerUid == request.auth.uid ||
+        resource.data.visitorUid == request.auth.uid
+      );
+      // Only backend creates calls
+      allow create, delete: if false;
+    }
+
+    // --- USERNAMES (public lookup for BAE room links) ---
+    match /usernames/{username} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // --- PINGS ---
+    match /pings/{pingId} {
+      allow read: if authed();
+      allow create: if authed();
+      allow update, delete: if false;
     }
 
     // --- MATCHES (created by Cloud Functions, readable by participants only) ---
