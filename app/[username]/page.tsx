@@ -263,9 +263,30 @@ export default function BaeLinkPage() {
     }
   }, [db, router, guestName]);
 
-  // Host lobby: listen for waiting visitors
+  // Host lobby: clean up stale entries on mount, then listen
   useEffect(() => {
     if (!isOwner || !owner || pageState !== 'host-lobby') return;
+
+    // One-time cleanup of all stale ringing entries for this owner
+    (async () => {
+      try {
+        const { getDocs, updateDoc } = await import('firebase/firestore');
+        const staleQ = query(
+          collection(db, 'directCalls'),
+          where('ownerUid', '==', owner.uid),
+          where('status', '==', 'ringing')
+        );
+        const staleSnap = await getDocs(staleQ);
+        const now = Date.now();
+        for (const d of staleSnap.docs) {
+          const createdAt = d.data().createdAt ? new Date(d.data().createdAt).getTime() : 0;
+          if (now - createdAt > 5 * 60 * 1000) {
+            await updateDoc(doc(db, 'directCalls', d.id), { status: 'expired', endedAt: new Date().toISOString() });
+          }
+        }
+      } catch {}
+    })();
+
     const q = query(
       collection(db, 'directCalls'),
       where('ownerUid', '==', owner.uid),
@@ -273,8 +294,22 @@ export default function BaeLinkPage() {
     );
     const unsub = onSnapshot(q, async (snap) => {
       const visitors: WaitingVisitor[] = [];
+      const now = Date.now();
+      const STALE_MS = 5 * 60 * 1000; // 5 minutes
+
       for (const d of snap.docs) {
         const data = d.data();
+        const createdAt = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+
+        // Auto-expire stale entries
+        if (now - createdAt > STALE_MS) {
+          try {
+            const { updateDoc } = await import('firebase/firestore');
+            await updateDoc(doc(db, 'directCalls', d.id), { status: 'expired', endedAt: new Date().toISOString() });
+          } catch {}
+          continue;
+        }
+
         let name = 'Someone';
         try {
           const vSnap = await getDoc(doc(db, 'users', data.visitorUid));
@@ -282,7 +317,6 @@ export default function BaeLinkPage() {
             name = formatPublicName(vSnap.data().displayName || 'Someone');
           }
         } catch {}
-        // Check for guest name in the call data or fallback
         visitors.push({
           callId: d.id,
           visitorUid: data.visitorUid,
