@@ -164,6 +164,16 @@ export default function HomePage() {
         >
           {isLoggedIn ? 'TALK' : 'ENTER'}
         </motion.button>
+
+        {/* Sign in shortcut for returning users */}
+        {!isLoggedIn && (
+          <button
+            onClick={() => router.push('/auth')}
+            className="mt-6 text-white/25 text-sm font-medium hover:text-white/50 transition-colors"
+          >
+            Already on BAE? Sign in
+          </button>
+        )}
       </section>
     </main>
   );
