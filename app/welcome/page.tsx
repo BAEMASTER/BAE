@@ -449,103 +449,124 @@ export default function WelcomePage() {
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transition: { duration: 0.4, ease: 'circOut' } }}
               className="text-center max-w-md w-full px-4"
             >
-              <h2
-                className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
-                style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
-              >
-                Let&apos;s Talk.
-              </h2>
-              <p className="text-lg sm:text-xl text-white/50 font-semibold mb-8">
-                And Make it Interesting.
-              </p>
-
-              {/* Step 1: Google Auth */}
+              {/* Before auth: just the Google button */}
               {!user ? (
-                <motion.button
-                  onClick={handleGoogleSignIn}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full py-5 rounded-2xl font-black text-xl bg-white text-black flex items-center justify-center gap-3"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                  Continue with Google
-                </motion.button>
-              ) : (
-                /* Step 2: Name + City + 3 Interests */
-                <div className="space-y-4 text-left">
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      ref={firstNameRef}
-                      value={firstName}
-                      onChange={e => setFirstName(e.target.value)}
-                      placeholder="First name"
-                      className="px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/40 font-semibold"
-                    />
-                    <input
-                      value={city}
-                      onChange={e => setCity(e.target.value)}
-                      placeholder="City"
-                      className="px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/40 font-semibold"
-                    />
-                  </div>
-
-                  <p className="text-white/50 text-sm font-semibold text-center mt-2">
-                    Add 3 interests to get started
-                  </p>
-
-                  {signupInterests.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {signupInterests.map(interest => (
-                        <motion.span
-                          key={interest}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-                          className="px-4 py-2 rounded-full text-sm font-bold text-black bg-[#fde047] border border-yellow-200"
-                          style={{ boxShadow: '0 0 20px rgba(253,224,71,0.5), 0 0 6px rgba(253,224,71,0.3)' }}
-                        >
-                          ✓ {interest}
-                        </motion.span>
-                      ))}
-                    </div>
-                  )}
-
-                  {signupInterests.length < 3 && (
-                    <div className="flex gap-2">
-                      <input
-                        value={interestInput}
-                        onChange={e => setInterestInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleAddInterest()}
-                        placeholder={`Interest ${signupInterests.length + 1} of 3`}
-                        className="flex-1 px-5 py-4 rounded-xl bg-white/8 border-2 border-amber-400/30 text-white text-base text-center placeholder:text-white/25 outline-none focus:border-amber-400/60 focus:shadow-[0_0_20px_rgba(253,224,71,0.1)] font-semibold"
-                      />
-                      <motion.button
-                        onClick={handleAddInterest}
-                        disabled={!interestInput.trim()}
-                        whileTap={{ scale: 0.95 }}
-                        className={`px-5 rounded-xl font-black text-lg ${
-                          interestInput.trim() ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/20'
-                        }`}
-                      >
-                        +
-                      </motion.button>
-                    </div>
-                  )}
-
-                  <motion.button
-                    onClick={handleSignupComplete}
-                    disabled={!firstName.trim() || !city.trim() || signupInterests.length < 3 || isSaving}
-                    whileHover={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? { scale: 1.03 } : {}}
-                    whileTap={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? { scale: 0.97 } : {}}
-                    className={`w-full py-5 rounded-2xl font-black text-xl transition-all mt-2 ${
-                      firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving
-                        ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black shadow-[0_0_40px_rgba(253,224,71,0.3)]'
-                        : 'bg-white/5 text-white/20 cursor-not-allowed'
-                    }`}
+                <>
+                  <h2
+                    className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+                    style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
                   >
-                    {isSaving ? 'Setting up...' : 'Talk on BAE'}
+                    Let&apos;s Talk.
+                  </h2>
+                  <p className="text-lg sm:text-xl text-white/50 font-semibold mb-10">
+                    And Make it Interesting.
+                  </p>
+                  <motion.button
+                    onClick={handleGoogleSignIn}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="w-full py-5 rounded-2xl font-black text-xl bg-white text-black flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    Continue with Google
                   </motion.button>
-                </div>
+                </>
+              ) : (
+                /* After auth: personalized form */
+                <>
+                  <motion.h2
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-4xl sm:text-6xl font-black mb-8 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+                    style={{ filter: 'drop-shadow(0 0 60px rgba(253,224,71,0.4))' }}
+                  >
+                    Hi {firstName || 'there'}!
+                  </motion.h2>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-5"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        ref={firstNameRef}
+                        value={firstName}
+                        onChange={e => setFirstName(e.target.value)}
+                        placeholder="Your name"
+                        className="px-5 py-4 rounded-2xl bg-white/6 border-2 border-white/10 text-white text-lg text-center placeholder:text-white/20 outline-none focus:border-amber-400/40 focus:shadow-[0_0_20px_rgba(253,224,71,0.1)] font-semibold transition-all"
+                      />
+                      <input
+                        value={city}
+                        onChange={e => setCity(e.target.value)}
+                        placeholder="Your city"
+                        className="px-5 py-4 rounded-2xl bg-white/6 border-2 border-white/10 text-white text-lg text-center placeholder:text-white/20 outline-none focus:border-amber-400/40 focus:shadow-[0_0_20px_rgba(253,224,71,0.1)] font-semibold transition-all"
+                      />
+                    </div>
+
+                    <p className="text-white/40 text-base font-semibold text-center">
+                      Drop 3 things you love.
+                    </p>
+
+                    {signupInterests.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-2.5">
+                        {signupInterests.map(interest => (
+                          <motion.span
+                            key={interest}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+                            className="px-5 py-2.5 rounded-full text-base font-bold text-black bg-[#fde047] border border-yellow-200"
+                            style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35)' }}
+                          >
+                            ✓ {interest}
+                          </motion.span>
+                        ))}
+                      </div>
+                    )}
+
+                    {signupInterests.length < 3 && (
+                      <div className="flex gap-2">
+                        <input
+                          value={interestInput}
+                          onChange={e => setInterestInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleAddInterest()}
+                          placeholder={signupInterests.length === 0 ? 'e.g. Italian food' : signupInterests.length === 1 ? 'e.g. hiking' : 'one more...'}
+                          className="flex-1 px-5 py-4 rounded-2xl bg-white/6 border-2 border-amber-400/25 text-white text-lg text-center placeholder:text-white/20 outline-none focus:border-amber-400/50 focus:shadow-[0_0_25px_rgba(253,224,71,0.12)] font-semibold transition-all"
+                        />
+                        <motion.button
+                          onClick={handleAddInterest}
+                          disabled={!interestInput.trim()}
+                          whileTap={{ scale: 0.95 }}
+                          className={`px-6 rounded-2xl font-black text-xl ${
+                            interestInput.trim() ? 'bg-amber-400 text-black' : 'bg-white/5 text-white/15'
+                          } transition-all`}
+                        >
+                          +
+                        </motion.button>
+                      </div>
+                    )}
+
+                    <motion.button
+                      onClick={handleSignupComplete}
+                      disabled={!firstName.trim() || !city.trim() || signupInterests.length < 3 || isSaving}
+                      whileHover={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? { scale: 1.03 } : {}}
+                      whileTap={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? { scale: 0.97 } : {}}
+                      animate={firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving ? {
+                        boxShadow: ['0 0 30px rgba(253,224,71,0.3)', '0 0 50px rgba(253,224,71,0.5)', '0 0 30px rgba(253,224,71,0.3)']
+                      } : {}}
+                      transition={firstName.trim() && city.trim() && signupInterests.length >= 3 ? { duration: 2, repeat: Infinity } : {}}
+                      className={`w-full py-5 rounded-2xl font-black text-xl transition-all mt-2 ${
+                        firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving
+                          ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black'
+                          : 'bg-white/5 text-white/15 cursor-not-allowed'
+                      }`}
+                    >
+                      {isSaving ? 'Setting up...' : 'Talk on BAE'}
+                    </motion.button>
+                  </motion.div>
+                </>
               )}
             </motion.div>
           )}
