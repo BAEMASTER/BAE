@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { onAuthStateChanged, getAuth, signInAnonymously, type User } from 'firebase/auth';
+import { onAuthStateChanged, getAuth, type User } from 'firebase/auth';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +14,6 @@ import {
   addInterests as addStructuredInterests,
   removeInterest as removeStructuredInterest,
   countBySource,
-  mostRecentInterest,
   togglePin,
   pinnedNames,
 } from '@/lib/structuredInterests';
@@ -22,16 +21,8 @@ import { isBlockedInterest } from '@/lib/interestBlocklist';
 import { validateUsername } from '@/lib/reservedUsernames';
 
 // --- CONSTANTS ---
-const MIN_REQUIRED = 3;
 const NEUTRAL_PILL_CLASSES = 'text-white/80 bg-white/10 border border-white/20 backdrop-blur-sm';
 const GOLD_PILL_CLASSES = 'text-black bg-yellow-300 border border-yellow-200 shadow-[0_0_15px_rgba(253,224,71,0.8)] font-bold';
-
-const INTEREST_EXAMPLES = [
-  'Italian food', 'rock climbing', '90s hip hop', 'astrophysics',
-  'street photography', 'board games', 'Korean dramas', 'open source',
-  'jazz piano', 'sustainable fashion', 'lucid dreaming', 'manga',
-  'film noir', 'sourdough bread', 'muay thai', 'vintage synths',
-];
 
 const COUNTRIES = [
   'United States',
@@ -64,11 +55,11 @@ const isAdult = (dob: string): boolean => {
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
-  
+
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  
+
   return age >= 13;
 };
 
@@ -106,6 +97,12 @@ const playRemoveSound = () => {
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
     osc.start(); osc.stop(audioCtx.currentTime + 0.1);
   } catch {}
+};
+
+// --- Spotify URL parser ---
+const extractSpotifyTrackId = (url: string): string | null => {
+  const match = url.match(/\/track\/([a-zA-Z0-9]+)/);
+  return match ? match[1] : null;
 };
 
 // --- Interest Pill (tap to reveal actions, double-tap to pin) ---
@@ -198,13 +195,10 @@ export default function ProfilePage() {
   const interests = useMemo(() => interestNames(structuredInterests), [structuredInterests]);
   const [newInterest, setNewInterest] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [minInterestWarning, setMinInterestWarning] = useState(false);
   const [ageError, setAgeError] = useState(false);
   const [locationError, setLocationError] = useState(false);
   const [nameLocationSetupError, setNameLocationSetupError] = useState('');
-  const [setupComplete, setSetupComplete] = useState(false); // only true after Firestore confirms name+city+country
-  const [exampleIdx, setExampleIdx] = useState(0);
-  const [activeTab, setActiveTab] = useState<'interests' | 'stats' | 'info'>('interests');
+  const [setupComplete, setSetupComplete] = useState(false);
 
   // --- Username state ---
   const [username, setUsername] = useState('');
@@ -212,6 +206,23 @@ export default function ProfilePage() {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'saving' | 'saved'>('idle');
   const [usernameError, setUsernameError] = useState('');
   const [usernameCopied, setUsernameCopied] = useState(false);
+
+  // --- Spotify state ---
+  const [spotifySong, setSpotifySong] = useState('');
+  const [spotifyInput, setSpotifyInput] = useState('');
+
+  // --- Links state ---
+  const [links, setLinks] = useState({ website: '', instagram: '', other: '' });
+
+  // --- Settings collapsed ---
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // --- Room updated toast ---
+  const [roomToast, setRoomToast] = useState(false);
+  const showRoomToast = () => {
+    setRoomToast(true);
+    setTimeout(() => setRoomToast(false), 2000);
+  };
 
   // Check if locked: NO birthdate OR birthdate < 13
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
@@ -221,7 +232,6 @@ export default function ProfilePage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        // Not logged in - redirect to auth
         router.push('/auth');
         return;
       }
@@ -236,27 +246,33 @@ export default function ProfilePage() {
           setCity(data.city || '');
           setState(data.state || '');
           setCountry(data.country || '');
-          // Parse DOB into year/month/day
           if (data.birthDate) {
             const [year, month, day] = data.birthDate.split('-');
             setBirthYear(year || '');
             setBirthMonth(month || '');
             setBirthDay(day || '');
           }
-          
           if (data.username) {
             setUsername(data.username);
             setUsernameInput(data.username);
             setUsernameStatus('saved');
           }
           setStructuredInterests(parseInterests(data.interests));
-          // Mark setup complete if Firestore already has required fields
+          if (data.spotifySong) {
+            setSpotifySong(data.spotifySong);
+            setSpotifyInput(`https://open.spotify.com/track/${data.spotifySong}`);
+          }
+          if (data.links) {
+            setLinks({
+              website: data.links.website || '',
+              instagram: data.links.instagram || '',
+              other: data.links.other || '',
+            });
+          }
           if (data.displayName?.trim() && data.city?.trim() && data.country?.trim()) {
             setSetupComplete(true);
           }
         } else {
-          // Brand new user — pre-fill from Google auth as suggestion, but city/country stay empty
-          // so isSetupIncomplete triggers the setup screen
           setDisplayName(u.displayName || '');
         }
       } catch (e) { console.error('Profile load failed', e); }
@@ -265,28 +281,19 @@ export default function ProfilePage() {
     return () => unsub();
   }, [router]);
 
-  // Rotate placeholder examples
-  useEffect(() => {
-    const t = setInterval(() => setExampleIdx(i => (i + 1) % INTEREST_EXAMPLES.length), 2500);
-    return () => clearInterval(t);
-  }, []);
-
   // --- Handlers ---
   const saveProfile = async () => {
     if (!user) return;
-    
+
     const dob = formatDOB(birthYear, birthMonth, birthDay);
-    
-    // Check age when saving - require valid DOB
+
     if (!dob || !isAdult(dob)) {
       setAgeError(true);
       setTimeout(() => setAgeError(false), 3000);
       return;
     }
-    
     setAgeError(false);
 
-    // Require city and country
     if (!city.trim() || !country.trim()) {
       setLocationError(true);
       setTimeout(() => setLocationError(false), 3000);
@@ -296,10 +303,10 @@ export default function ProfilePage() {
 
     try {
       await setDoc(doc(db, 'users', user.uid), {
-        displayName, city, state, country, birthDate: dob,
+        displayName, firstName, lastName, city, state, country, birthDate: dob,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (e) { console.error('Save failed', e); }
@@ -309,7 +316,6 @@ export default function ProfilePage() {
     const raw = newInterest.trim();
     if (!raw || !user) return;
 
-    // Split on commas so "Italian food, hiking, yoga" → 3 separate pills
     const items = raw.split(',').map(s => s.trim()).filter(Boolean);
     const toAdd: StructuredInterest[] = [];
     for (const item of items) {
@@ -325,7 +331,7 @@ export default function ProfilePage() {
     const updated = addStructuredInterests(structuredInterests, toAdd);
     setStructuredInterests(updated);
     playAddSound();
-    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
+    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); showRoomToast(); }
     catch(e) { console.error(e); }
     setNewInterest('');
   };
@@ -335,7 +341,7 @@ export default function ProfilePage() {
     setStructuredInterests(updated);
     playRemoveSound();
     if (!user) return;
-    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
+    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); showRoomToast(); }
     catch(e) { console.error(e); }
   };
 
@@ -344,7 +350,7 @@ export default function ProfilePage() {
     setStructuredInterests(updated);
     playAddSound();
     if (!user) return;
-    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); }
+    try { await setDoc(doc(db, 'users', user.uid), { interests: updated, updatedAt: new Date().toISOString() }, { merge: true }); showRoomToast(); }
     catch(e) { console.error(e); }
   };
 
@@ -411,33 +417,58 @@ export default function ProfilePage() {
 
   const copyBaeLink = () => {
     if (!username) return;
-    navigator.clipboard.writeText(`${window.location.origin}/${username}`);
+    navigator.clipboard.writeText(`baewithme.com/${username}`);
     setUsernameCopied(true);
     setTimeout(() => setUsernameCopied(false), 2000);
   };
 
-  const handleBAEClick = () => {
-    if (isProfileLocked) return;
-    if (isSetupIncomplete) return;
-    if (interests.length < MIN_REQUIRED) {
-      setMinInterestWarning(true);
-      setTimeout(() => setMinInterestWarning(false), 1800);
-      return;
+  const shareBaeLink = async () => {
+    if (!username) return;
+    const url = `https://baewithme.com/${username}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'BAE with me', url });
+      } catch {}
+    } else {
+      navigator.clipboard.writeText(url);
+      setUsernameCopied(true);
+      setTimeout(() => setUsernameCopied(false), 2000);
     }
-    router.push('/match');
+  };
+
+  // --- Spotify handler ---
+  const handleSpotifyInput = async (val: string) => {
+    setSpotifyInput(val);
+    const trackId = extractSpotifyTrackId(val);
+    if (trackId) {
+      setSpotifySong(trackId);
+      if (!user) return;
+      try {
+        await setDoc(doc(db, 'users', user.uid), { spotifySong: trackId, updatedAt: new Date().toISOString() }, { merge: true });
+        showRoomToast();
+      } catch (e) { console.error(e); }
+    }
+  };
+
+  // --- Links handler ---
+  const saveLinks = async (newLinks: typeof links) => {
+    setLinks(newLinks);
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'users', user.uid), { links: newLinks, updatedAt: new Date().toISOString() }, { merge: true });
+      showRoomToast();
+    } catch (e) { console.error(e); }
   };
 
   if (!authReady) return <div className="min-h-screen flex items-center justify-center text-white font-black">Initializing BAE...</div>;
 
-  // REDIRECT TO AUTH IF NOT LOGGED IN
   if (!user) {
-    return null; // Will redirect via useEffect
+    return null;
   }
 
-  const requiredRemaining = Math.max(MIN_REQUIRED - interests.length, 0);
   const isSetupIncomplete = !setupComplete;
 
-  // AGE/DOB LOCKED VIEW - shows if NO DOB or DOB < 13
+  // AGE/DOB LOCKED VIEW
   if (isProfileLocked) {
     return (
       <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4">
@@ -451,12 +482,11 @@ export default function ProfilePage() {
           <p className="text-lg text-white/70 mb-8">
             You must be 13+ to use BAE. Please update your birthdate below.
           </p>
-          
+
           <div className="mb-6 p-4 bg-white/10 rounded-2xl border border-white/20">
             <label className="block text-sm font-semibold mb-4 text-left">Birthdate</label>
             <div className="grid grid-cols-3 gap-3">
-              {/* Month */}
-              <select 
+              <select
                 value={birthMonth}
                 onChange={(e) => setBirthMonth(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
@@ -466,9 +496,7 @@ export default function ProfilePage() {
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
-              
-              {/* Day */}
-              <select 
+              <select
                 value={birthDay}
                 onChange={(e) => setBirthDay(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
@@ -478,9 +506,7 @@ export default function ProfilePage() {
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
-              
-              {/* Year */}
-              <select 
+              <select
                 value={birthYear}
                 onChange={(e) => setBirthYear(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
@@ -516,7 +542,7 @@ export default function ProfilePage() {
             }
           `}</style>
 
-          <button 
+          <button
             onClick={saveProfile}
             className="w-full py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg"
           >
@@ -527,7 +553,7 @@ export default function ProfilePage() {
     );
   }
 
-  // NAME + LOCATION SETUP — shows if age verified but name/location missing
+  // NAME + LOCATION SETUP
   if (isSetupIncomplete) {
     const handleSetupSave = async () => {
       if (!firstName.trim() || !lastName.trim()) {
@@ -704,459 +730,452 @@ export default function ProfilePage() {
     );
   }
 
-  // FULL PROFILE FOR LOGGED-IN ADULTS
+  // ========================
+  // FULL PROFILE — SINGLE SCROLLABLE PAGE
+  // ========================
   return (
     <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 pb-16 px-4">
-
-      {/* HEADER */}
-      <h1 className="text-4xl sm:text-5xl font-black mb-6 flex items-center justify-center gap-3 flex-wrap drop-shadow-[0_0_30px_rgba(255,160,255,0.6)]">
-        <span>All About</span>
-        <motion.span
-          animate={{
-            boxShadow: ['0 0 15px rgba(253,224,71,0.6)', '0 0 25px rgba(253,224,71,0.9)', '0 0 15px rgba(253,224,71,0.6)']
-          }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="px-6 py-2 bg-yellow-300 text-black font-black rounded-full border-2 border-yellow-200 text-3xl sm:text-4xl"
-        >
-          YOU
-        </motion.span>
-      </h1>
-
-      {/* TAB BAR */}
-      <div className="flex gap-2 mb-6">
-        {([
-          { id: 'interests' as const, label: 'Interests' },
-          { id: 'stats' as const, label: 'Your BAE' },
-          { id: 'info' as const, label: 'Personal Info' },
-        ]).map(tab => (
-          <motion.button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            whileTap={{ scale: 0.95 }}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-              activeTab === tab.id
-                ? 'bg-yellow-300 text-black shadow-[0_0_12px_rgba(253,224,71,0.4)]'
-                : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/80'
-            }`}
+      {/* Room updated toast */}
+      <AnimatePresence>
+        {roomToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-sm font-semibold backdrop-blur-sm"
+            style={{ boxShadow: '0 0 20px rgba(253,224,71,0.15)' }}
           >
-            {tab.label}
-          </motion.button>
-        ))}
-      </div>
+            Your room has been updated
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* TAB CONTENT */}
-      <div className="w-full max-w-2xl">
-        <AnimatePresence mode="wait">
+      <div className="w-full max-w-2xl space-y-12">
 
-          {/* ===== INTERESTS TAB ===== */}
-          {activeTab === 'interests' && (
-            <motion.div
-              key="interests"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white/5 backdrop-blur-lg px-7 pt-7 pb-6 sm:px-8 sm:pt-8 sm:pb-7 rounded-3xl border border-white/10 shadow-2xl"
-            >
-              <div className="flex items-center gap-3 mb-1.5">
-                <h3 className="text-xl font-bold">Your Interests</h3>
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${interests.length >= MIN_REQUIRED ? 'bg-green-400/15 text-green-300' : 'bg-yellow-400/15 text-yellow-300'}`}>
-                  {interests.length >= MIN_REQUIRED
-                    ? `${interests.length} interests`
-                    : `${interests.length}/${MIN_REQUIRED} minimum`}
-                </span>
-              </div>
-              <p className="text-white/90 text-sm mb-1">Add everything you love! Your interests, your passions, your work, your favorite places and more!</p>
-              <p className="text-white/30 text-xs mb-5">Tap an interest to pin your top 5 — the ones you could talk about all day. <span className="text-amber-300/50">✦ = pinned</span></p>
-
-              <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
-                <AnimatePresence>
-                  {interests.map(i => {
-                    const si = structuredInterests.find(s => s.name === i);
-                    return (
-                      <InterestPill
-                        key={i}
-                        interest={i}
-                        pinned={!!si?.pinned}
-                        onRemove={handleRemoveInterest}
-                        onTogglePin={handleTogglePin}
-                        canPin={currentPinnedCount < 5}
-                      />
-                    );
-                  })}
-                </AnimatePresence>
-                {interests.length === 0 && (
-                  <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  value={newInterest}
-                  onChange={e => setNewInterest(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addInterest()}
-                  placeholder={`e.g. ${INTEREST_EXAMPLES[exampleIdx]}`}
-                  className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
-                />
-                <button onClick={addInterest} className="px-6 py-2.5 bg-pink-400 hover:bg-pink-300 text-white rounded-full font-bold transition-colors">Add</button>
-              </div>
-
-              {/* Discover — AI podcast entry */}
-              <motion.button
-                onClick={() => router.push('/talk')}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full mt-4 px-5 py-4 rounded-2xl text-left transition-all"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(99,102,241,0.1))',
-                  border: '1px solid rgba(139,92,246,0.25)',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500/60 to-indigo-500/60 border border-violet-400/30 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm">✦</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/90 text-sm font-semibold">Tell BAE About It</p>
-                    <p className="text-white/40 text-xs">Talk to BAE and build your interests through conversation</p>
-                  </div>
-                </div>
-              </motion.button>
-            </motion.div>
+        {/* ===== 1. HERO SECTION ===== */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-2"
+        >
+          <h1 className="text-4xl sm:text-5xl font-black mb-1 tracking-tight">
+            {displayName || 'You'}
+          </h1>
+          {city && (
+            <p className="text-white/40 text-lg font-medium">
+              {city}{state ? `, ${state}` : ''}{country ? ` — ${country}` : ''}
+            </p>
           )}
 
-          {/* ===== YOUR BAE (STATS) TAB ===== */}
-          {activeTab === 'stats' && (
-            <motion.div
-              key="stats"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
-            >
-              {/* YOUR BAE LINK */}
-              <div className="bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl">
-                <h4 className="text-lg font-bold mb-1">Your BAE Link</h4>
-                <p className="text-white/50 text-sm mb-4">Share this link so people can BAE with you</p>
+          {/* BAE Link or Username Claim */}
+          {username && usernameStatus === 'saved' ? (
+            <div className="mt-5">
+              <div className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-yellow-300/10 to-amber-300/5 border border-yellow-300/25">
+                <span className="text-yellow-300 font-mono font-bold text-lg tracking-wide">baewithme.com/{username}</span>
+              </div>
+              <div className="flex items-center justify-center gap-3 mt-3">
+                <motion.button
+                  onClick={copyBaeLink}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2 rounded-full bg-yellow-300 text-black font-bold text-sm shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
+                >
+                  {usernameCopied ? 'Copied!' : 'Copy'}
+                </motion.button>
+                <motion.button
+                  onClick={shareBaeLink}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-5 py-2 rounded-full bg-white/10 text-white/80 font-bold text-sm border border-white/20 hover:bg-white/15 transition-colors"
+                >
+                  Share
+                </motion.button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 p-5 rounded-2xl bg-white/5 border border-white/10">
+              <p className="text-white/50 text-sm mb-3">Claim your BAE room link</p>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <div className="flex items-center">
+                    <span className="text-white/30 text-sm font-mono pl-3 pr-1 py-3">baewithme.com/</span>
+                    <input
+                      value={usernameInput}
+                      onChange={e => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      placeholder="yourname"
+                      maxLength={30}
+                      className={`flex-1 px-2 py-3 bg-transparent text-white font-mono font-bold placeholder:text-white/20 outline-none ${
+                        usernameStatus === 'available' ? 'text-green-300' :
+                        usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'text-red-300' :
+                        ''
+                      }`}
+                    />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 h-px bg-white/20" />
+                  {usernameStatus === 'checking' && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 text-xs">checking...</div>
+                  )}
+                </div>
+                <motion.button
+                  onClick={claimUsername}
+                  whileTap={{ scale: 0.95 }}
+                  disabled={usernameStatus !== 'available'}
+                  className={`px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+                    usernameStatus === 'available'
+                      ? 'bg-yellow-300 text-black shadow-[0_0_12px_rgba(253,224,71,0.3)]'
+                      : 'bg-white/5 text-white/20 cursor-not-allowed'
+                  }`}
+                >
+                  {usernameStatus === 'saving' ? 'Claiming...' : 'Claim'}
+                </motion.button>
+              </div>
+              {usernameStatus === 'available' && (
+                <p className="text-green-400 text-xs font-medium mt-2">baewithme.com/{usernameInput.toLowerCase().trim()} is yours</p>
+              )}
+              {usernameError && (usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                <p className="text-red-400 text-xs font-medium mt-2">{usernameError}</p>
+              )}
+            </div>
+          )}
+        </motion.section>
 
-                {username && usernameStatus === 'saved' ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-violet-400/30 text-white font-mono text-sm truncate">
-                        {typeof window !== 'undefined' ? window.location.origin : ''}/{username}
-                      </div>
-                      <motion.button
-                        onClick={copyBaeLink}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 font-bold text-sm whitespace-nowrap"
-                      >
-                        {usernameCopied ? 'Copied!' : 'Copy'}
-                      </motion.button>
+        {/* ===== DIVIDER ===== */}
+        <div className="border-t border-white/10 my-8" />
+
+        {/* ===== 2. YOUR INTERESTS ===== */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-2xl font-black">Your Interests</h2>
+            <span className="text-sm font-bold px-3 py-1 rounded-full bg-yellow-300/15 text-yellow-300 border border-yellow-300/25">
+              {interests.length}
+            </span>
+          </div>
+          <p className="text-white/30 text-xs mb-4">Tap to pin your top 5 — the ones you could talk about all day. <span className="text-amber-300/50">✦ = pinned</span></p>
+
+          <div className="flex flex-wrap gap-3 mb-5 min-h-[3rem]">
+            <AnimatePresence>
+              {interests.map(i => {
+                const si = structuredInterests.find(s => s.name === i);
+                return (
+                  <InterestPill
+                    key={i}
+                    interest={i}
+                    pinned={!!si?.pinned}
+                    onRemove={handleRemoveInterest}
+                    onTogglePin={handleTogglePin}
+                    canPin={currentPinnedCount < 5}
+                  />
+                );
+              })}
+            </AnimatePresence>
+            {interests.length === 0 && (
+              <span className="text-white/20 text-sm italic">No interests yet — add some below</span>
+            )}
+          </div>
+
+          {/* Add interest input */}
+          <div className="flex gap-2">
+            <input
+              value={newInterest}
+              onChange={e => setNewInterest(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addInterest()}
+              placeholder="Add an interest (comma-separated for multiple)"
+              className="flex-1 px-4 py-2.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/30 transition-all focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 outline-none"
+            />
+            <button onClick={addInterest} className="px-6 py-2.5 bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-400 hover:to-indigo-400 text-white rounded-full font-bold transition-colors">Add</button>
+          </div>
+
+          {/* Talk to BAE invitation */}
+          <motion.button
+            onClick={() => router.push('/talk')}
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            className="w-full mt-5 py-3 text-center text-white/50 hover:text-white/70 transition-colors text-sm font-medium"
+          >
+            <span className="text-violet-400">✦</span> Talk to BAE to discover more interests <span className="text-violet-400">✦</span>
+          </motion.button>
+        </motion.section>
+
+        {/* ===== DIVIDER ===== */}
+        <div className="border-t border-white/10 my-8" />
+
+        {/* ===== 3. YOUR SONG ===== */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
+            Your Song <span className="text-lg">♪</span>
+          </h2>
+
+          <input
+            value={spotifyInput}
+            onChange={e => handleSpotifyInput(e.target.value)}
+            placeholder="Paste a Spotify song link"
+            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/30 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all font-mono text-sm"
+          />
+
+          {spotifySong ? (
+            <div className="mt-4 rounded-xl overflow-hidden">
+              <iframe
+                src={`https://open.spotify.com/embed/track/${spotifySong}?theme=0`}
+                width="100%"
+                height="80"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                className="rounded-xl"
+                style={{ border: 'none' }}
+              />
+            </div>
+          ) : (
+            <p className="text-white/20 text-sm mt-3 italic">Add a song that represents you</p>
+          )}
+        </motion.section>
+
+        {/* ===== DIVIDER ===== */}
+        <div className="border-t border-white/10 my-8" />
+
+        {/* ===== 4. YOUR LINKS ===== */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <h2 className="text-2xl font-black mb-4">Your Links</h2>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Website</label>
+              <input
+                value={links.website}
+                onChange={e => {
+                  const newLinks = { ...links, website: e.target.value };
+                  setLinks(newLinks);
+                }}
+                onBlur={() => saveLinks(links)}
+                placeholder="https://yoursite.com"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Instagram</label>
+              <input
+                value={links.instagram}
+                onChange={e => {
+                  const newLinks = { ...links, instagram: e.target.value };
+                  setLinks(newLinks);
+                }}
+                onBlur={() => saveLinks(links)}
+                placeholder="@yourhandle"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Other</label>
+              <input
+                value={links.other}
+                onChange={e => {
+                  const newLinks = { ...links, other: e.target.value };
+                  setLinks(newLinks);
+                }}
+                onBlur={() => saveLinks(links)}
+                placeholder="LinkedIn, Twitter, anything"
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+              />
+            </div>
+          </div>
+        </motion.section>
+
+        {/* ===== DIVIDER ===== */}
+        <div className="border-t border-white/10 my-8" />
+
+        {/* ===== 5. SETTINGS (COLLAPSIBLE) ===== */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <button
+            onClick={() => setSettingsOpen(o => !o)}
+            className="flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors font-bold text-lg"
+          >
+            Settings
+            <motion.span
+              animate={{ rotate: settingsOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="text-sm"
+            >
+              ▾
+            </motion.span>
+          </button>
+
+          <AnimatePresence>
+            {settingsOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">First Name</label>
+                      <input
+                        value={firstName}
+                        onChange={e => setFirstName(e.target.value)}
+                        placeholder="First name"
+                        className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+                      />
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Last Name</label>
+                      <input
+                        value={lastName}
+                        onChange={e => setLastName(e.target.value)}
+                        placeholder="Last name"
+                        className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">City</label>
+                      <input
+                        value={city}
+                        onChange={e => setCity(e.target.value)}
+                        placeholder="City"
+                        className={`w-full px-4 py-3 rounded-xl bg-white/10 border text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm ${locationError && !city.trim() ? 'border-red-400/70' : 'border-white/20'}`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">State/Province</label>
+                      <input
+                        value={state}
+                        onChange={e => setState(e.target.value)}
+                        placeholder="Optional"
+                        className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Country</label>
+                    <select
+                      value={country}
+                      onChange={e => setCountry(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl bg-white/10 border text-white outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm ${locationError && !country.trim() ? 'border-red-400/70' : 'border-white/20'}`}
+                      style={{ colorScheme: 'dark' }}
+                    >
+                      <option value="">Select country</option>
+                      {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Birthdate */}
+                  <div>
+                    <label className="block text-xs font-semibold text-white/40 mb-2 uppercase tracking-wider">Birthdate</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="px-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-violet-400/50" style={{ colorScheme: 'dark' }}>
+                        <option value="">Month</option>
+                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="px-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-violet-400/50" style={{ colorScheme: 'dark' }}>
+                        <option value="">Day</option>
+                        {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                      <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} className="px-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-sm outline-none focus:border-violet-400/50" style={{ colorScheme: 'dark' }}>
+                        <option value="">Year</option>
+                        {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {ageError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
+                      >
+                        You must be 13+ to use BAE
+                      </motion.div>
+                    )}
+                    {locationError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
+                      >
+                        City and country are required
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    onClick={saveProfile}
+                    className="w-full py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg hover:shadow-violet-500/25 transition-shadow"
+                  >
+                    Save Changes
+                  </button>
+
+                  <AnimatePresence>
+                    {saveSuccess && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="text-center text-green-400 font-semibold text-sm"
+                      >
+                        Saved!
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Change username */}
+                  {username && (
                     <button
                       onClick={() => { setUsernameStatus('idle'); }}
-                      className="text-white/30 text-xs hover:text-white/50 transition-colors"
+                      className="text-white/25 text-xs hover:text-white/40 transition-colors"
                     >
                       Change username
                     </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <input
-                          value={usernameInput}
-                          onChange={e => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                          placeholder="choose a username"
-                          maxLength={30}
-                          className={`w-full px-4 py-3 rounded-xl bg-white/10 border text-white placeholder:text-white/30 outline-none transition-all ${
-                            usernameStatus === 'available' ? 'border-green-400/50 focus:ring-2 focus:ring-green-400/20' :
-                            usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-400/50 focus:ring-2 focus:ring-red-400/20' :
-                            'border-white/20 focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20'
-                          }`}
-                        />
-                        {usernameStatus === 'checking' && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs">checking...</div>
-                        )}
-                      </div>
-                      <motion.button
-                        onClick={claimUsername}
-                        whileTap={{ scale: 0.95 }}
-                        disabled={usernameStatus !== 'available'}
-                        className={`px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
-                          usernameStatus === 'available'
-                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                            : 'bg-white/5 text-white/20 cursor-not-allowed'
-                        }`}
-                      >
-                        {usernameStatus === 'saving' ? 'Claiming...' : 'Claim'}
-                      </motion.button>
-                    </div>
-                    {usernameStatus === 'available' && (
-                      <p className="text-green-400 text-xs font-medium">
-                        {typeof window !== 'undefined' ? window.location.origin : ''}/{usernameInput.toLowerCase().trim()} is yours for the taking
-                      </p>
-                    )}
-                    {usernameError && (usernameStatus === 'taken' || usernameStatus === 'invalid') && (
-                      <p className="text-red-400 text-xs font-medium">{usernameError}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Hero stat */}
-              <div className="bg-white/5 backdrop-blur-lg p-8 rounded-3xl border border-white/10 shadow-2xl text-center">
-                <motion.div
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  className="text-6xl font-black bg-gradient-to-r from-yellow-300 to-amber-400 bg-clip-text text-transparent"
-                >
-                  0
-                </motion.div>
-                <p className="text-white/50 text-sm font-medium mt-1">Conversations</p>
-              </div>
-
-              {/* Stat grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                  <div className="text-3xl font-black text-amber-300">{interests.length}</div>
-                  <p className="text-white/40 text-xs font-medium mt-1">Total Interests</p>
+                  )}
                 </div>
-                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                  <div className="text-3xl font-black text-emerald-300">{countBySource(structuredInterests, 'match') + countBySource(structuredInterests, 'explorer')}</div>
-                  <p className="text-white/40 text-xs font-medium mt-1">Collected from Others</p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                  <div className="text-3xl font-black text-sky-300">0</div>
-                  <p className="text-white/40 text-xs font-medium mt-1">Interests You Spread</p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                  <div className="text-3xl font-black text-violet-300">0</div>
-                  <p className="text-white/40 text-xs font-medium mt-1">MEGAVIBEs</p>
-                </div>
-              </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
 
-              {/* Latest Interest */}
-              {structuredInterests.length > 0 && (() => {
-                const recent = mostRecentInterest(structuredInterests);
-                if (!recent) return null;
-                const dateStr = recent.addedAt
-                  ? new Date(recent.addedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                  : '—';
-                return (
-                  <div className="bg-white/5 backdrop-blur-lg p-4 rounded-2xl border border-white/10 flex items-center justify-between">
-                    <div>
-                      <p className="text-white/40 text-xs font-medium mb-1">Most recent interest added</p>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-300/15 text-yellow-200 border border-yellow-300/25">
-                        {recent.name}
-                      </span>
-                    </div>
-                    <span className="text-white/25 text-xs">{dateStr}</span>
-                  </div>
-                );
-              })()}
-
-              {/* Conversations */}
-              <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Conversations</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Longest conversation</span>
-                    <span className="text-lg font-bold text-yellow-300">—</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Average length</span>
-                    <span className="text-lg font-bold text-yellow-300">—</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Total shared interests discovered</span>
-                    <span className="text-lg font-bold text-yellow-300">0</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Connections */}
-              <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Connections</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Farthest match</span>
-                    <span className="text-lg font-bold text-yellow-300">—</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Countries connected</span>
-                    <span className="text-lg font-bold text-yellow-300">0</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Cities connected</span>
-                    <span className="text-lg font-bold text-yellow-300">0</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">People saved</span>
-                    <span className="text-lg font-bold text-yellow-300">0</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Impact */}
-              <div className="bg-white/5 backdrop-blur-lg p-5 rounded-2xl border border-white/10">
-                <h4 className="text-sm font-bold text-white/60 mb-3 tracking-wide uppercase">Your Impact</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">Interests you spread to others</span>
-                    <span className="text-lg font-bold text-yellow-300">0</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-white/50 text-sm">People your interests traveled to</span>
-                    <span className="text-lg font-bold text-yellow-300">0</span>
-                  </div>
-                </div>
-              </div>
-
-            </motion.div>
-          )}
-
-          {/* ===== PERSONAL INFO TAB ===== */}
-          {activeTab === 'info' && (
-            <motion.div
-              key="info"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white/5 backdrop-blur-lg p-6 rounded-3xl border border-white/10 shadow-2xl"
-            >
-              <h3 className="text-xl font-bold mb-4">Personal Info</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display Name" className="input" />
-                <input value={city} onChange={e => setCity(e.target.value)} placeholder="City *" className={`input ${locationError && !city.trim() ? 'border-red-400/70' : ''}`} />
-                <input value={state} onChange={e => setState(e.target.value)} placeholder="State/Province" className="input" />
-                <select value={country} onChange={e => setCountry(e.target.value)} className={`input ${locationError && !country.trim() ? 'border-red-400/70' : ''}`}>
-                  <option value="">Country *</option>
-                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <AnimatePresence>
-                {locationError && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mb-3 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm font-semibold text-center"
-                  >
-                    City and country are required to save your profile
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <h4 className="font-semibold mt-4 mb-3">Birthdate</h4>
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} className="input">
-                  <option value="">Month</option>
-                  {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-                <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)} className="input">
-                  <option value="">Day</option>
-                  {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-                <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)} className="input">
-                  <option value="">Year</option>
-                  {Array.from({ length: 125 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button onClick={saveProfile} className="w-full mt-6 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg hover:shadow-violet-500/25 transition-shadow">Save Changes</button>
-
-              <AnimatePresence>
-                {saveSuccess && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-3 text-center text-green-400 font-semibold text-sm"
-                  >
-                    Saved!
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
-        </AnimatePresence>
-      </div>
-
-      {/* BAE BUTTON — persistent across all tabs */}
-      <div className="mt-10 flex flex-col items-center gap-3">
-        {interests.length >= MIN_REQUIRED ? (
-          <>
-            <p className="text-white/50 text-sm font-medium">Your profile is ready. Go meet someone.</p>
-            <motion.button
-              onClick={handleBAEClick}
-              animate={{
-                boxShadow: [
-                  '0 0 20px rgba(245,158,11,0.4), 0 0 60px rgba(249,115,22,0.15)',
-                  '0 0 30px rgba(245,158,11,0.7), 0 0 80px rgba(249,115,22,0.3)',
-                  '0 0 20px rgba(245,158,11,0.4), 0 0 60px rgba(249,115,22,0.15)',
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-16 py-6 rounded-full font-black text-white text-2xl bg-gradient-to-r from-amber-500 to-orange-500 border-2 border-amber-300/30"
-            >
-              BAE With Someone Now
-            </motion.button>
-          </>
-        ) : (
-          <>
-            <p className="text-white/30 text-sm">Add {requiredRemaining} more interest{requiredRemaining !== 1 ? 's' : ''} to get started</p>
-            <div className="px-16 py-6 rounded-full font-black text-white/30 text-2xl bg-white/5 border border-white/10 cursor-not-allowed">
-              BAE With Someone Now
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Legal links */}
-      <div className="mt-8 mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-white/25 font-medium">
-        <a href="/terms" className="hover:text-white/50 transition-colors">Terms of Service</a>
-        <span className="text-white/15">|</span>
-        <a href="/privacy" className="hover:text-white/50 transition-colors">Privacy Policy</a>
-        <span className="text-white/15">|</span>
-        <a href="/guidelines" className="hover:text-white/50 transition-colors">Community Guidelines</a>
+        {/* Legal links */}
+        <div className="mt-12 mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-white/25 font-medium">
+          <a href="/terms" className="hover:text-white/50 transition-colors">Terms of Service</a>
+          <span className="text-white/15">|</span>
+          <a href="/privacy" className="hover:text-white/50 transition-colors">Privacy Policy</a>
+          <span className="text-white/15">|</span>
+          <a href="/guidelines" className="hover:text-white/50 transition-colors">Community Guidelines</a>
+        </div>
       </div>
 
       <style jsx>{`
-        .input {
-          width: 100%;
-          padding: 0.625rem 1rem;
-          border-radius: 1rem;
-          border: 1px solid rgba(255,255,255,0.2);
-          background: rgba(255,255,255,0.05);
-          color: white;
-          outline: none;
-        }
-        .input:focus {
-          border-color: #8b5cf6;
-          box-shadow: 0 0 0 2px rgba(139,92,246,0.3);
-        }
-        select {
-          color-scheme: dark;
-        }
         select option {
           background: #1A0033;
           color: white;
         }
       `}</style>
-
     </main>
   );
 }
