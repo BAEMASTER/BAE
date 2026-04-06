@@ -217,6 +217,8 @@ function MatchPage() {
   // --- REACTIONS ---
   const [reactionCascades, setReactionCascades] = useState<Array<{ id: number; emoji: string; originX: number }>>([]);
   const reactionIdCounter = useRef(0);
+  const [sentCounts, setSentCounts] = useState<Record<string, number>>({});
+  const [receivedCounts, setReceivedCounts] = useState<Record<string, number>>({});
 
   // --- SHARED INTERESTS ---
   const myInterestNames = useMemo(() => interestNames(parseInterests(myProfile?.interests)), [myProfile?.interests]);
@@ -592,6 +594,7 @@ function MatchPage() {
             originX: data.originX,
           }]);
           playReactionReceivedSound();
+          setReceivedCounts(prev => ({ ...prev, [data.emoji]: (prev[data.emoji] || 0) + 1 }));
         }
         if (data?.type === 'interest-added' && !event?.fromId?.startsWith?.('local')) {
           setAddNotification({ name: data.name, interest: data.interest });
@@ -1215,6 +1218,7 @@ function MatchPage() {
 
     const id = ++reactionIdCounter.current;
     setReactionCascades(prev => [...prev, { id, emoji, originX }]);
+    setSentCounts(prev => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
     playReactionSendSound();
 
     // Send to partner (1 emoji per tap)
@@ -2012,6 +2016,25 @@ function MatchPage() {
               </motion.div>
             </motion.button>
           </div>
+          {/* Reaction stat rows — sent (white) and received (gold) */}
+          {(Object.keys(sentCounts).length > 0 || Object.keys(receivedCounts).length > 0) && (
+            <div className="pointer-events-none mt-1.5 flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-2.5 px-5 lg:gap-3 lg:px-6">
+                {REACTION_EMOJIS.map(emoji => (
+                  <span key={`s-${emoji}`} className="text-[11px] font-bold text-white/30 w-[30px] lg:w-[34px] text-center tabular-nums">
+                    {sentCounts[emoji] || ''}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2.5 px-5 lg:gap-3 lg:px-6">
+                {REACTION_EMOJIS.map(emoji => (
+                  <span key={`r-${emoji}`} className="text-[11px] font-bold text-amber-300/50 w-[30px] lg:w-[34px] text-center tabular-nums">
+                    {receivedCounts[emoji] || ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
