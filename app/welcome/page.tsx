@@ -222,10 +222,34 @@ function ConnectPreview() {
   );
 }
 
+function playPillSound() {
+  try {
+    const ctx = getCtx(); const now = ctx.currentTime;
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(660, now);
+    osc.frequency.exponentialRampToValueAtTime(1320, now + 0.12);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(); osc.stop(now + 0.15);
+  } catch {}
+}
+
 // --- Profile Preview — aspirational room card with Spotify ---
 const PROFILE_INTERESTS = ['Hot Yoga', 'Italian Food', 'AI', 'Stand-up Comedy', 'Jazz', 'Travel', 'Philosophy', 'Cooking'];
 
 function ProfilePreview() {
+  const [extraInterests, setExtraInterests] = useState<string[]>([]);
+  const [input, setInput] = useState('');
+
+  const handleAdd = () => {
+    const val = input.trim();
+    if (!val) return;
+    setExtraInterests(prev => [...prev, val]);
+    setInput('');
+    playPillSound();
+  };
+
   return (
     <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-3xl p-6 sm:p-8 w-full overflow-hidden">
       <div className="max-w-2xl mx-auto">
@@ -236,16 +260,41 @@ function ProfilePreview() {
         </div>
 
         {/* Interests */}
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-6">
-          {PROFILE_INTERESTS.map(interest => (
-            <span
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-2.5 mb-4">
+          {[...PROFILE_INTERESTS, ...extraInterests].map(interest => (
+            <motion.span
               key={interest}
+              initial={PROFILE_INTERESTS.includes(interest) ? {} : { scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 12 }}
               className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-xs sm:text-sm font-bold text-black bg-[#fde047] border border-yellow-200"
               style={{ boxShadow: '0 0 16px rgba(253,224,71,0.45), 0 0 6px rgba(253,224,71,0.25)' }}
             >
               {interest}
-            </span>
+            </motion.span>
           ))}
+        </div>
+
+        {/* Interactive add interest */}
+        <div className="flex justify-center gap-2 mb-5">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            onClick={e => e.stopPropagation()}
+            placeholder="Add an interest..."
+            className="px-4 py-2 rounded-full bg-white/6 border-2 border-amber-400/25 text-white text-sm text-center placeholder:text-white/20 outline-none focus:border-amber-400/50 focus:shadow-[0_0_15px_rgba(253,224,71,0.1)] font-semibold w-48 sm:w-56 transition-all"
+          />
+          {input.trim() && (
+            <motion.button
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              onClick={handleAdd}
+              className="px-4 rounded-full font-black text-sm bg-amber-400 text-black"
+            >
+              +
+            </motion.button>
+          )}
         </div>
 
         {/* Spotify embed */}
@@ -308,17 +357,21 @@ export default function WelcomePage() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u && !u.isAnonymous) {
         // Check if user already has a completed profile — skip everything
-        try {
-          const snap = await getDoc(doc(db, 'users', u.uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data.displayName?.trim() && data.city?.trim()) {
-              // Existing user — go to homepage (logged-in state with nav)
-              router.push('/');
-              return;
+        if (db) {
+          try {
+            const snap = await getDoc(doc(db, 'users', u.uid));
+            if (snap.exists()) {
+              const data = snap.data();
+              // ANY existing profile with a name = existing user, skip signup
+              if (data.displayName?.trim()) {
+                router.push('/');
+                return;
+              }
             }
+          } catch (e) {
+            console.error('Profile check failed:', e);
           }
-        } catch {}
+        }
         // New user or incomplete profile — show signup form
         setUser(u);
         setFirstName(u.displayName?.split(' ')[0] || '');
@@ -362,15 +415,25 @@ export default function WelcomePage() {
   };
 
   const handleSignupComplete = async () => {
-    if (!firstName.trim() || !city.trim() || signupInterests.length < 3 || !user || isSaving) return;
+    if (!firstName.trim() || !city.trim() || signupInterests.length < 3 || !user || !db || isSaving) return;
     setIsSaving(true);
     try {
-      const interests = signupInterests.map(name => createInterest(name, 'profile'));
+      // Merge new interests with any existing ones (never overwrite)
+      const newInterests = signupInterests.map(name => createInterest(name, 'profile'));
+      let mergedInterests = newInterests;
+      try {
+        const existing = await getDoc(doc(db, 'users', user.uid));
+        if (existing.exists() && existing.data().interests?.length) {
+          const { addInterests, parseInterests } = await import('@/lib/structuredInterests');
+          mergedInterests = addInterests(parseInterests(existing.data().interests), newInterests);
+        }
+      } catch {}
+
       await setDoc(doc(db, 'users', user.uid), {
         displayName: firstName.trim(),
         firstName: firstName.trim(),
         city: city.trim(),
-        interests,
+        interests: mergedInterests,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
@@ -482,7 +545,7 @@ export default function WelcomePage() {
               {/* Headline */}
               <div>
                 <h1
-                  className="text-4xl sm:text-6xl md:text-8xl font-black leading-[1.15] mb-3 sm:mb-4 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+                  className="text-3xl sm:text-4xl md:text-5xl font-black leading-[1.15] mb-2 sm:mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
                   style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
                 >
                   {current.headline}
@@ -491,7 +554,7 @@ export default function WelcomePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-xl sm:text-2xl md:text-3xl font-semibold text-white/70"
+                  className="text-base sm:text-lg md:text-xl font-semibold text-white/60"
                 >
                   {current.sub}
                 </motion.p>

@@ -1053,9 +1053,9 @@ export default function DiscoverPage() {
                   }
                   handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)');
                 }}
-                className="px-6 py-2.5 rounded-full bg-violet-500/20 border border-violet-400/25 text-violet-200 text-sm font-bold hover:bg-violet-500/30 hover:text-white transition-all"
+                className="px-8 py-3 rounded-full bg-violet-500/25 border-2 border-violet-400/30 text-violet-100 text-base font-bold hover:bg-violet-500/35 hover:text-white hover:border-violet-400/50 transition-all"
               >
-                New topic
+                New Topic
               </motion.button>
             </div>
           )}
