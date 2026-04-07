@@ -765,14 +765,14 @@ export default function ProfilePage() {
                 <motion.button
                   onClick={copyBaeLink}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2 rounded-full bg-yellow-300 text-black font-bold text-sm shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
+                  className="px-6 py-2.5 rounded-full bg-yellow-300 text-black font-bold text-base min-w-[80px] shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
                 >
                   {usernameCopied ? 'Copied!' : 'Copy'}
                 </motion.button>
                 <motion.button
                   onClick={shareBaeLink}
                   whileTap={{ scale: 0.95 }}
-                  className="px-5 py-2 rounded-full bg-yellow-300 text-black font-bold text-sm shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
+                  className="px-6 py-2.5 rounded-full bg-yellow-300 text-black font-bold text-base min-w-[80px] shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
                 >
                   Share
                 </motion.button>

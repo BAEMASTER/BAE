@@ -682,7 +682,7 @@ export default function WelcomePage() {
                         boxShadow: ['0 0 30px rgba(253,224,71,0.3)', '0 0 50px rgba(253,224,71,0.5)', '0 0 30px rgba(253,224,71,0.3)']
                       } : {}}
                       transition={firstName.trim() && city.trim() && signupInterests.length >= 3 ? { duration: 2, repeat: Infinity } : {}}
-                      className={`w-full py-5 rounded-2xl font-black text-xl transition-all mt-2 ${
+                      className={`w-full py-5 rounded-2xl font-black text-lg sm:text-xl transition-all mt-2 ${
                         firstName.trim() && city.trim() && signupInterests.length >= 3 && !isSaving
                           ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black'
                           : 'bg-white/5 text-white/15 cursor-not-allowed'

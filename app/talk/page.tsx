@@ -766,7 +766,7 @@ export default function DiscoverPage() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     onClick={() => handleExploreInterest(name)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-black text-black bg-gradient-to-r from-yellow-300 to-amber-300 border border-yellow-200 whitespace-nowrap"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black text-black bg-gradient-to-r from-yellow-300 to-amber-300 border border-yellow-200 whitespace-nowrap"
                     style={{ boxShadow: '0 0 10px rgba(253,224,71,0.3)' }}
                   >
                     {name}
