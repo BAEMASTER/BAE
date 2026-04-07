@@ -84,7 +84,7 @@ function playAddSound() {
 // --- Two beats only ---
 const BEATS = [
   {
-    headline: 'Make Your BAE More...YOU!',
+    headline: 'Make Your BAE More...YOU',
     sub: 'Talk authentically about your life. Tap what resonates. Your interests make your conversations on BAE more fun and real.',
     glowColor: 'rgba(168,85,247,0.4)',
   },

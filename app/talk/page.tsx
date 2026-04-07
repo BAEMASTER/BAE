@@ -892,7 +892,7 @@ export default function DiscoverPage() {
                 className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
                 style={{ filter: 'drop-shadow(0 0 50px rgba(253,224,71,0.5)) drop-shadow(0 0 100px rgba(253,224,71,0.25))' }}
               >
-                YOU!
+                YOU
               </span>
             </h2>
             <p className="text-base sm:text-xl text-white/70 font-semibold mb-2">
