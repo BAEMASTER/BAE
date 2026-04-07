@@ -166,8 +166,8 @@ export default function Header() {
                 onClick={doSignOut}
                 disabled={busy}
                 className="
-                  px-4 py-2 rounded-full border border-white/20 text-sm font-semibold
-                  text-white/80 hover:text-white hover:bg-white/10 hover:border-white/40
+                  px-4 py-2 rounded-full border-2 border-amber-400/50 text-sm font-semibold
+                  text-amber-300 bg-transparent hover:bg-amber-400 hover:text-black
                   transition-all disabled:opacity-50 whitespace-nowrap
                 "
               >
@@ -223,8 +223,8 @@ export default function Header() {
                 onClick={doSignOut}
                 disabled={busy}
                 className="
-                  px-8 py-3 rounded-full border border-white/20 text-sm font-semibold
-                  text-white/80 hover:text-white hover:bg-white/10 hover:border-white/40
+                  px-8 py-3 rounded-full border-2 border-amber-400/50 text-sm font-semibold
+                  text-amber-300 bg-transparent hover:bg-amber-400 hover:text-black
                   transition-all disabled:opacity-50
                 "
               >

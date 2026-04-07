@@ -110,6 +110,7 @@ function InterestPill({ interest, onRemove }: {
   interest: string;
   onRemove: (i: string) => void;
 }) {
+  const [active, setActive] = useState(false);
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.7 }}
@@ -117,12 +118,15 @@ function InterestPill({ interest, onRemove }: {
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{ type: 'spring', stiffness: 500, damping: 25 }}
       whileHover={{ scale: 1.05 }}
-      className={`relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES}`}
+      onHoverStart={() => setActive(true)}
+      onHoverEnd={() => setActive(false)}
+      onTap={() => setActive(a => !a)}
+      className={`group relative px-5 py-2 rounded-full text-sm font-semibold shadow-md cursor-pointer select-none ${GOLD_PILL_CLASSES}`}
     >
       {interest}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(interest); playRemoveSound(); }}
-        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-black shadow-lg z-10"
+        className={`absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500/70 text-white flex items-center justify-center text-[10px] font-black shadow-lg z-10 transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`}
       >
         ×
       </button>
@@ -170,7 +174,7 @@ export default function ProfilePage() {
   const [showSpotifyInput, setShowSpotifyInput] = useState(true);
 
   // --- Links state ---
-  const [links, setLinks] = useState({ website: '', instagram: '', other: '' });
+  const [links, setLinks] = useState<{ url: string; label: string }[]>([]);
 
   // --- Settings collapsed ---
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -222,11 +226,16 @@ export default function ProfilePage() {
             setShowSpotifyInput(false);
           }
           if (data.links) {
-            setLinks({
-              website: data.links.website || '',
-              instagram: data.links.instagram || '',
-              other: data.links.other || '',
-            });
+            if (Array.isArray(data.links)) {
+              setLinks(data.links);
+            } else {
+              // Migrate old format { website, instagram, other } to new array format
+              const migrated: { url: string; label: string }[] = [];
+              if (data.links.website) migrated.push({ url: data.links.website, label: 'Website' });
+              if (data.links.instagram) migrated.push({ url: data.links.instagram, label: 'Instagram' });
+              if (data.links.other) migrated.push({ url: data.links.other, label: '' });
+              setLinks(migrated);
+            }
           }
           if (data.displayName?.trim() && data.city?.trim() && data.country?.trim()) {
             setSetupComplete(true);
@@ -400,14 +409,43 @@ export default function ProfilePage() {
     }
   };
 
-  // --- Links handler ---
-  const saveLinks = async (newLinks: typeof links) => {
+  // --- Links handlers ---
+  const saveLinks = async (newLinks: { url: string; label: string }[]) => {
     setLinks(newLinks);
     if (!user) return;
     try {
       await setDoc(doc(db, 'users', user.uid), { links: newLinks, updatedAt: new Date().toISOString() }, { merge: true });
       showRoomToast();
     } catch (e) { console.error(e); }
+  };
+
+  const addLink = () => {
+    setLinks(prev => [...prev, { url: '', label: '' }]);
+  };
+
+  const updateLink = (index: number, field: 'url' | 'label', value: string) => {
+    setLinks(prev => prev.map((l, i) => i === index ? { ...l, [field]: value } : l));
+  };
+
+  const removeLink = (index: number) => {
+    const updated = links.filter((_, i) => i !== index);
+    setLinks(updated);
+    saveLinks(updated);
+  };
+
+  const detectLinkIcon = (url: string): string => {
+    const lower = url.toLowerCase();
+    if (lower.includes('instagram.com')) return 'IG';
+    if (lower.includes('twitter.com') || lower.includes('x.com')) return 'X';
+    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'YT';
+    if (lower.includes('tiktok.com')) return 'TT';
+    if (lower.includes('linkedin.com')) return 'LI';
+    if (lower.includes('github.com')) return 'GH';
+    if (lower.includes('spotify.com')) return 'SP';
+    if (lower.includes('twitch.tv')) return 'TW';
+    if (lower.includes('discord.')) return 'DC';
+    if (lower.includes('facebook.com')) return 'FB';
+    return '';
   };
 
   if (!authReady) return <div className="min-h-screen flex items-center justify-center text-white font-black">Initializing BAE...</div>;
@@ -836,7 +874,7 @@ export default function ProfilePage() {
             whileTap={{ scale: 0.99 }}
             className="w-full mt-5 py-3 text-center bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black rounded-full font-black text-sm shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
           >
-            Talk to BAE to discover more interests
+            TALK TO DISCOVER MORE INTERESTS
           </motion.button>
         </motion.section>
 
@@ -878,7 +916,7 @@ export default function ProfilePage() {
               {!showSpotifyInput && (
                 <button
                   onClick={() => setShowSpotifyInput(true)}
-                  className="mt-2 text-yellow-300/60 text-xs hover:text-yellow-300 transition-colors font-bold"
+                  className="mt-2 text-amber-300 text-xs hover:text-amber-200 transition-colors font-bold"
                 >
                   Change song
                 </button>
@@ -901,45 +939,45 @@ export default function ProfilePage() {
           <h2 className="text-2xl font-black mb-4">Your Links</h2>
 
           <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Website</label>
-              <input
-                value={links.website}
-                onChange={e => {
-                  const newLinks = { ...links, website: e.target.value };
-                  setLinks(newLinks);
-                }}
-                onBlur={() => saveLinks(links)}
-                placeholder="https://yoursite.com"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Instagram</label>
-              <input
-                value={links.instagram}
-                onChange={e => {
-                  const newLinks = { ...links, instagram: e.target.value };
-                  setLinks(newLinks);
-                }}
-                onBlur={() => saveLinks(links)}
-                placeholder="@yourhandle"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-white/40 mb-1 uppercase tracking-wider">Other</label>
-              <input
-                value={links.other}
-                onChange={e => {
-                  const newLinks = { ...links, other: e.target.value };
-                  setLinks(newLinks);
-                }}
-                onBlur={() => saveLinks(links)}
-                placeholder="LinkedIn, Twitter, anything"
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
-              />
-            </div>
+            {links.map((link, index) => {
+              const icon = detectLinkIcon(link.url);
+              return (
+                <div key={index} className="group flex items-center gap-2">
+                  {icon && (
+                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/25 text-amber-300 text-xs font-black flex items-center justify-center">
+                      {icon}
+                    </span>
+                  )}
+                  <input
+                    value={link.url}
+                    onChange={e => updateLink(index, 'url', e.target.value)}
+                    onBlur={() => saveLinks(links)}
+                    placeholder="Paste a link"
+                    className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-sm"
+                  />
+                  <input
+                    value={link.label}
+                    onChange={e => updateLink(index, 'label', e.target.value)}
+                    onBlur={() => saveLinks(links)}
+                    placeholder="Label (optional) — e.g. My podcast"
+                    className="w-40 sm:w-48 flex-shrink-0 px-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/20 outline-none focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 transition-all text-xs"
+                  />
+                  <button
+                    onClick={() => removeLink(index)}
+                    className="flex-shrink-0 w-7 h-7 rounded-full bg-red-500/70 text-white flex items-center justify-center text-xs font-black opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              onClick={addLink}
+              className="w-full py-3 rounded-xl border-2 border-dashed border-amber-400/30 text-amber-300 font-bold text-sm hover:border-amber-400/50 hover:bg-amber-400/5 transition-all"
+            >
+              + Add a link
+            </button>
           </div>
         </motion.section>
 
@@ -1103,7 +1141,7 @@ export default function ProfilePage() {
                   {username && (
                     <button
                       onClick={() => { setUsernameStatus('idle'); }}
-                      className="text-yellow-300/60 text-xs hover:text-yellow-300 transition-colors font-bold"
+                      className="text-amber-300 text-xs hover:text-amber-200 transition-colors font-bold"
                     >
                       Change username
                     </button>
