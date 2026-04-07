@@ -68,12 +68,23 @@ export default function HomePage() {
   useEffect(() => {
     if (!auth || !db) return;
     const unsub = onAuthStateChanged(auth, async (user) => {
-      setIsLoggedIn(!!user && !user.isAnonymous);
       if (user && !user.isAnonymous) {
         try {
           const snap = await getDoc(doc(db, 'users', user.uid));
-          if (snap.exists()) setUsername(snap.data().username || null);
-        } catch {}
+          if (snap.exists() && snap.data().displayName?.trim()) {
+            // Existing user — show logged-in homepage
+            setIsLoggedIn(true);
+            setUsername(snap.data().username || null);
+          } else {
+            // New user — needs signup
+            router.push('/welcome');
+          }
+        } catch {
+          setIsLoggedIn(true);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUsername(null);
       }
     });
     return () => unsub();
@@ -104,12 +115,25 @@ export default function HomePage() {
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
       {/* Nav for logged-in users / sign-in for returning visitors */}
       {isLoggedIn ? <Header /> : (
-        <button
-          onClick={() => router.push('/auth')}
-          className="absolute top-5 right-5 z-20 px-5 py-2 rounded-full border border-amber-400/40 text-amber-300/70 text-sm font-semibold bg-transparent hover:bg-amber-400/10 hover:text-amber-300 transition-all"
-        >
-          Sign in
-        </button>
+        <div className="absolute top-5 right-5 z-20 flex items-center gap-3">
+          <span className="text-white/20 text-xs font-medium hidden sm:inline">Already have an account?</span>
+          <button
+            onClick={async () => {
+              try {
+                const { signInWithPopup, GoogleAuthProvider } = await import('firebase/auth');
+                const provider = new GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                await signInWithPopup(auth, provider);
+                // onAuthStateChanged will handle the rest
+              } catch {
+                router.push('/auth');
+              }
+            }}
+            className="px-5 py-2 rounded-full border border-amber-400/40 text-amber-300/70 text-sm font-semibold bg-transparent hover:bg-amber-400/10 hover:text-amber-300 transition-all"
+          >
+            Sign in
+          </button>
+        </div>
       )}
 
       <div className="pointer-events-none absolute inset-0 opacity-40">
