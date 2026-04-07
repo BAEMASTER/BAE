@@ -106,7 +106,7 @@ export default function HomePage() {
       {isLoggedIn ? <Header /> : (
         <button
           onClick={() => router.push('/auth')}
-          className="absolute top-4 right-4 z-20 text-white/25 text-sm font-semibold hover:text-white/50 transition-colors px-4 py-2 rounded-full"
+          className="absolute top-5 right-5 z-20 px-5 py-2 rounded-full border border-amber-400/40 text-amber-300/70 text-sm font-semibold bg-transparent hover:bg-amber-400/10 hover:text-amber-300 transition-all"
         >
           Sign in
         </button>
