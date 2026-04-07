@@ -701,79 +701,12 @@ export default function DiscoverPage() {
     );
   }
 
-  // ====== INTRO ======
-  if (!started && isFirstVisit) {
-    return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white overflow-hidden">
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 sm:px-12">
-          <div className="w-full max-w-3xl text-center">
-
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight"
-            >
-              Let's Talk.
-            </motion.h1>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.7 }}
-              className="text-5xl sm:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight mt-1"
-            >
-              <span className="text-white">And Make it </span>
-              <span className="relative">
-                <motion.span
-                  className="bg-gradient-to-r from-yellow-300 via-amber-300 to-yellow-200 bg-clip-text text-transparent"
-                  animate={{ filter: ['brightness(1)', 'brightness(1.3)', 'brightness(1)'] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                >
-                  Interesting
-                </motion.span>
-                <motion.span
-                  className="absolute -bottom-1 left-0 right-0 h-[3px] bg-gradient-to-r from-yellow-300/0 via-yellow-300/80 to-yellow-300/0"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 1.2, duration: 0.8 }}
-                />
-              </span>
-              <span className="text-white">.</span>
-            </motion.h1>
-
-            <div className="mt-8 mb-14" />
-
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4 }}
-            >
-              {existingInterests.length > 0 && (
-                <p className="text-white/20 text-sm mb-5">You have {existingInterests.length} interest{existingInterests.length !== 1 ? 's' : ''}. Let's find more.</p>
-              )}
-              <motion.button
-                onClick={startConversation}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                animate={{
-                  boxShadow: [
-                    '0 0 30px rgba(253,224,71,0.25), 0 0 60px rgba(253,224,71,0.08)',
-                    '0 0 50px rgba(253,224,71,0.4), 0 0 100px rgba(253,224,71,0.15)',
-                    '0 0 30px rgba(253,224,71,0.25), 0 0 60px rgba(253,224,71,0.08)',
-                  ],
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="px-16 py-6 rounded-full font-black text-xl sm:text-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black border-2 border-yellow-300/40"
-              >
-                Let's Go
-              </motion.button>
-            </motion.div>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  // Auto-start conversation if not started (skip old intro screen)
+  useEffect(() => {
+    if (authReady && !started && isFirstVisit) {
+      startConversation();
+    }
+  }, [authReady, started, isFirstVisit]);
 
   // ====== CONVERSATION — BRIGHT, FUN, SCROLLING ======
   return (
