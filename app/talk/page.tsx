@@ -686,6 +686,14 @@ export default function DiscoverPage() {
 
   const addedCount = collectedInterests.length;
 
+  // Auto-start conversation if not started (skip old intro screen)
+  useEffect(() => {
+    if (authReady && !started && isFirstVisit && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      startConversation();
+    }
+  }, [authReady, started, isFirstVisit]);
+
   // ====== LOADING ======
   if (!authReady) {
     return (
@@ -694,14 +702,6 @@ export default function DiscoverPage() {
       </main>
     );
   }
-
-  // Auto-start conversation if not started (skip old intro screen)
-  useEffect(() => {
-    if (authReady && !started && isFirstVisit && !autoStartedRef.current) {
-      autoStartedRef.current = true;
-      startConversation();
-    }
-  }, [authReady, started, isFirstVisit]);
 
   // ====== CONVERSATION — BRIGHT, FUN, SCROLLING ======
   return (
