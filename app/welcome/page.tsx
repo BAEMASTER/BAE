@@ -356,29 +356,30 @@ export default function WelcomePage() {
     if (!auth || !db) return;
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u && !u.isAnonymous) {
-        // Check if user already has a completed profile — skip everything
+        // Check if existing user — try Firestore first, then creation time as fallback
+        let isExisting = false;
+
+        // Method 1: Check Firestore for profile
         try {
           const snap = await getDoc(doc(db, 'users', u.uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data.displayName?.trim()) {
-              // Existing user — go to homepage
-              router.replace('/');
-              return;
-            }
+          if (snap.exists() && snap.data().displayName?.trim()) {
+            isExisting = true;
           }
-        } catch (e) {
-          // If Firestore check fails, try once more after a short delay
-          await new Promise(r => setTimeout(r, 1000));
-          try {
-            const snap2 = await getDoc(doc(db, 'users', u.uid));
-            if (snap2.exists() && snap2.data().displayName?.trim()) {
-              router.replace('/');
-              return;
-            }
-          } catch {}
+        } catch {
+          // Firestore failed — use creation time as fallback
+          // If account was created more than 60 seconds ago, they're existing
+          const createdAt = new Date(u.metadata.creationTime || 0).getTime();
+          if (Date.now() - createdAt > 60000) {
+            isExisting = true;
+          }
         }
-        // New user or incomplete profile — show signup form
+
+        if (isExisting) {
+          router.replace('/');
+          return;
+        }
+
+        // New user — show signup form
         setUser(u);
         setFirstName(u.displayName?.split(' ')[0] || '');
       }

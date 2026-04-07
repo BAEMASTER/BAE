@@ -152,6 +152,7 @@ export default function DiscoverPage() {
   };
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
+  const autoStartedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -695,7 +696,6 @@ export default function DiscoverPage() {
   }
 
   // Auto-start conversation if not started (skip old intro screen)
-  const autoStartedRef = useRef(false);
   useEffect(() => {
     if (authReady && !started && isFirstVisit && !autoStartedRef.current) {
       autoStartedRef.current = true;
