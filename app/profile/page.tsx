@@ -194,7 +194,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        router.push('/auth');
+        router.push('/');
         return;
       }
       setUser(u);

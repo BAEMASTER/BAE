@@ -165,15 +165,8 @@ export default function DiscoverPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
-        // Not signed in — try anonymous auth, fall back to pure guest mode
-        try {
-          await signInAnonymously(auth);
-        } catch {
-          // Anonymous auth failed — run Talk without auth (no Firestore saving)
-          setIsGuestTalk(true);
-          setUserName('');
-          setAuthReady(true);
-        }
+        // Not signed in — send to homepage (has both ENTER and Sign in)
+        router.push('/');
         return;
       }
       setUser(u);
