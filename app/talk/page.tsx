@@ -192,6 +192,8 @@ export default function DiscoverPage() {
           const data = snap.data();
           const interests = parseInterests(data.interests);
           setExistingInterests(interests);
+          // Initialize sidebar with ALL existing interests (including mini signup ones)
+          setCollectedInterests(interestNames(interests));
           // Use firstName field first, fall back to displayName/auth
           const first = data.firstName || u.displayName?.split(' ')[0] || data.displayName?.split(' ')[0] || '';
           setUserName(first);

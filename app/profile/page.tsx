@@ -974,7 +974,7 @@ export default function ProfilePage() {
 
             <button
               onClick={addLink}
-              className="w-full py-3 rounded-xl border-2 border-dashed border-amber-400/30 text-amber-300 font-bold text-sm hover:border-amber-400/50 hover:bg-amber-400/5 transition-all"
+              className="w-full py-3 rounded-xl border-2 border-dashed border-amber-400/40 text-amber-300 font-bold text-sm bg-amber-400/5 hover:border-amber-400/60 hover:bg-amber-400/10 transition-all"
             >
               + Add a link
             </button>
@@ -992,7 +992,7 @@ export default function ProfilePage() {
         >
           <button
             onClick={() => setSettingsOpen(o => !o)}
-            className="flex items-center gap-2 text-yellow-300 hover:text-yellow-200 transition-colors font-bold text-lg border border-yellow-300/25 rounded-full px-5 py-2"
+            className="flex items-center gap-2 text-amber-300 hover:text-amber-200 transition-colors font-bold text-lg border-2 border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/10 rounded-full px-6 py-2.5"
           >
             Settings
             <motion.span
