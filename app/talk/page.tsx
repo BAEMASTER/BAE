@@ -885,29 +885,25 @@ export default function DiscoverPage() {
       <div className={`flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:mr-64 ${activeJoke !== null ? 'relative z-20' : ''}`} ref={messagesContainerRef}>
         <div className="max-w-2xl mx-auto space-y-8">
           {/* Talk page identity header */}
-          <div className="text-center pb-8 sm:pb-12 mb-4 border-b border-white/5">
-            <h2 className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8">
+          <div className="text-center pb-6 sm:pb-10 mb-4 border-b border-white/5">
+            <h2 className="text-4xl sm:text-6xl font-black mb-4 sm:mb-6 drop-shadow-[0_0_60px_rgba(255,180,255,0.4)]">
               <span className="text-white">Make Your BAE More...</span>
               <span
-                className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent text-3xl sm:text-4xl"
-                style={{ filter: 'drop-shadow(0 0 40px rgba(253,224,71,0.5)) drop-shadow(0 0 80px rgba(253,224,71,0.2))' }}
+                className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
+                style={{ filter: 'drop-shadow(0 0 50px rgba(253,224,71,0.5)) drop-shadow(0 0 100px rgba(253,224,71,0.25))' }}
               >
                 YOU!
               </span>
             </h2>
-            <div className="max-w-md mx-auto space-y-3 sm:space-y-4">
-              <p className="text-sm sm:text-base text-white/50 font-medium leading-relaxed">
-                Talk authentically about your life.<br />
-                Tap what resonates.
-              </p>
-              <p className="text-sm sm:text-base text-white/40 font-medium leading-relaxed">
-                Your interests make your conversations<br />
-                on BAE more fun and real.
-              </p>
-              <p className="text-xs sm:text-sm text-white/25 font-medium pt-2">
-                Start now — come back whenever you want to Talk more.
-              </p>
-            </div>
+            <p className="text-base sm:text-xl text-white/70 font-semibold mb-2">
+              Talk authentically about your life. Add the interests that fit you.
+            </p>
+            <p className="text-base sm:text-lg text-white/50 font-medium mb-2">
+              Your interests make your conversations on BAE more fun and real.
+            </p>
+            <p className="text-sm sm:text-base text-white/30 font-medium">
+              Start now — come back whenever you want to Talk more.
+            </p>
           </div>
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
             <motion.div
