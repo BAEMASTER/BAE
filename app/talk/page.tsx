@@ -213,7 +213,10 @@ export default function DiscoverPage() {
               }
             });
             setSuggestedInterests(suggested);
-            setCollectedInterests(collected);
+            // Merge conversation-discovered interests with ALL existing interests
+            const allNames = interestNames(interests);
+            const merged = [...new Set([...allNames, ...collected])];
+            setCollectedInterests(merged);
           }
         }
       } catch (e) { console.error('Load failed:', e); }
