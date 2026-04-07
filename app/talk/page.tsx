@@ -695,8 +695,10 @@ export default function DiscoverPage() {
   }
 
   // Auto-start conversation if not started (skip old intro screen)
+  const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (authReady && !started && isFirstVisit) {
+    if (authReady && !started && isFirstVisit && !autoStartedRef.current) {
+      autoStartedRef.current = true;
       startConversation();
     }
   }, [authReady, started, isFirstVisit]);

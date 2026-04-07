@@ -357,20 +357,26 @@ export default function WelcomePage() {
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u && !u.isAnonymous) {
         // Check if user already has a completed profile — skip everything
-        if (db) {
-          try {
-            const snap = await getDoc(doc(db, 'users', u.uid));
-            if (snap.exists()) {
-              const data = snap.data();
-              // ANY existing profile with a name = existing user, skip signup
-              if (data.displayName?.trim()) {
-                router.push('/');
-                return;
-              }
+        try {
+          const snap = await getDoc(doc(db, 'users', u.uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.displayName?.trim()) {
+              // Existing user — go to homepage
+              router.replace('/');
+              return;
             }
-          } catch (e) {
-            console.error('Profile check failed:', e);
           }
+        } catch (e) {
+          // If Firestore check fails, try once more after a short delay
+          await new Promise(r => setTimeout(r, 1000));
+          try {
+            const snap2 = await getDoc(doc(db, 'users', u.uid));
+            if (snap2.exists() && snap2.data().displayName?.trim()) {
+              router.replace('/');
+              return;
+            }
+          } catch {}
         }
         // New user or incomplete profile — show signup form
         setUser(u);
