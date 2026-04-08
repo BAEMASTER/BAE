@@ -1984,11 +1984,13 @@ function MatchPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="absolute left-4 right-4 z-[36] flex justify-center pointer-events-none"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)' }}
+            className="absolute inset-0 z-[36] flex items-end justify-center"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 120px)' }}
+            onClick={dismissOracle}
           >
             <div
-              className="pointer-events-auto max-w-md w-full px-5 py-4 rounded-2xl relative"
+              className="max-w-md w-full mx-4 px-5 py-4 rounded-2xl relative"
+              onClick={(e) => e.stopPropagation()}
               style={{
                 background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,10,60,0.7))',
                 backdropFilter: 'blur(20px)',
@@ -2010,7 +2012,7 @@ function MatchPage() {
                 </div>
                 <button
                   onClick={dismissOracle}
-                  className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-all text-sm leading-none"
+                  className="flex-shrink-0 min-w-[36px] min-h-[36px] w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 active:bg-white/30 text-white/80 hover:text-white flex items-center justify-center transition-all text-base leading-none"
                 >
                   ×
                 </button>
