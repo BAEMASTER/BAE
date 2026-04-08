@@ -917,7 +917,7 @@ export default function ProfilePage() {
               {!showSpotifyInput && (
                 <button
                   onClick={() => setShowSpotifyInput(true)}
-                  className="mt-2 text-amber-300 text-xs hover:text-amber-200 transition-colors font-bold bg-transparent shadow-none border-none p-0 rounded-none"
+                  className="mt-2 text-amber-300 text-xs hover:text-amber-200 transition-colors font-bold"
                 >
                   Change song
                 </button>
