@@ -532,7 +532,7 @@ export default function ProfilePage() {
 
           <button
             onClick={saveProfile}
-            className="w-full py-3 bg-gradient-to-r from-violet-500 to-indigo-500 font-bold rounded-xl shadow-lg"
+            className="w-full py-3 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-black font-black rounded-xl shadow-[0_0_12px_rgba(253,224,71,0.3)] hover:shadow-[0_0_20px_rgba(253,224,71,0.5)] transition-shadow"
           >
             Verify & Continue
           </button>
