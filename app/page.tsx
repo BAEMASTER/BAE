@@ -142,7 +142,7 @@ export default function HomePage() {
       </div>
 
 
-      <section className={`relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen ${isLoggedIn ? 'pt-[72px]' : ''}`}>
+      <section className={`relative z-10 flex flex-col items-center justify-center text-center px-6 min-h-screen ${isLoggedIn ? 'pt-[110px]' : ''}`}>
         {/* Interest pills */}
         <div className="flex justify-center gap-2.5 sm:gap-3 mb-5 sm:mb-12">
           {pills.map((p, i) => (
@@ -195,58 +195,42 @@ export default function HomePage() {
 
         {/* CTA — different for logged-in vs new visitors */}
         {isLoggedIn && username ? (
-          <div className="flex flex-col items-center gap-5 sm:gap-6">
-            {/* Room link — the star */}
-            <motion.div
-              animate={{ boxShadow: ['0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.1)', '0 0 50px rgba(253,224,71,0.35), 0 0 80px rgba(253,224,71,0.15)', '0 0 30px rgba(253,224,71,0.2), 0 0 60px rgba(253,224,71,0.1)'] }}
+          <div className="flex flex-col items-center gap-6 sm:gap-8">
+            {/* Room link — floating, no box, same language as headline */}
+            <motion.p
+              animate={{ textShadow: ['0 0 30px rgba(253,224,71,0.2)', '0 0 50px rgba(253,224,71,0.35)', '0 0 30px rgba(253,224,71,0.2)'] }}
               transition={{ duration: 3, repeat: Infinity }}
-              className="px-8 sm:px-12 py-5 sm:py-6 rounded-2xl bg-black/30 backdrop-blur-sm border-2 border-amber-400/30"
+              className="text-3xl sm:text-4xl md:text-5xl font-black text-center"
             >
-              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-center">
-                <span className="text-white/50">baewithme.com/</span>
-                <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent" style={{ filter: 'drop-shadow(0 0 30px rgba(253,224,71,0.4))' }}>
-                  {username}
-                </span>
-              </p>
-            </motion.div>
+              <span className="text-white">baewithme.com/</span>
+              <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">
+                {username}
+              </span>
+            </motion.p>
 
-            {/* Action buttons */}
-            <div className="flex gap-3 sm:gap-4">
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(253,224,71,0.5)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
+            {/* Smart button — Share on mobile, Copy Link on desktop */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (typeof navigator !== 'undefined' && navigator.share) {
+                  navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
+                } else {
                   navigator.clipboard.writeText(`https://baewithme.com/${username}`);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
-                }}
-                className="px-8 sm:px-12 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400"
-                style={{ boxShadow: '0 0 30px rgba(253,224,71,0.3)' }}
-              >
-                {copied ? 'Copied!' : 'Copy Link'}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
-                  } else {
-                    navigator.clipboard.writeText(`https://baewithme.com/${username}`);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }
-                }}
-                className="px-8 sm:px-12 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-white/80 bg-white/10 border-2 border-white/20 hover:bg-white/15 transition-all"
-              >
-                Share
-              </motion.button>
-            </div>
+                }
+              }}
+              className="px-12 sm:px-16 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-black bg-white hover:bg-white/90 transition-all"
+              style={{ boxShadow: '0 0 40px rgba(255,255,255,0.25), 0 0 80px rgba(255,255,255,0.1)' }}
+            >
+              {copied ? '✓ Copied!' : 'Share Your Link'}
+            </motion.button>
 
             {/* Talk link */}
             <button
               onClick={() => router.push('/talk')}
-              className="text-white/30 text-sm font-medium hover:text-white/50 transition-colors mt-1"
+              className="text-white/30 text-sm font-medium hover:text-white/50 transition-colors"
             >
               or keep Talking to add more interests →
             </button>
