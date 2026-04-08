@@ -467,7 +467,7 @@ export default function BaeLinkPage() {
   // Loading
   if (pageState === 'loading') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -483,7 +483,7 @@ export default function BaeLinkPage() {
   // Not found
   if (pageState === 'not-found') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -507,7 +507,7 @@ export default function BaeLinkPage() {
   // Host lobby — owner is in their room
   if (pageState === 'host-lobby') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white pt-[72px]">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white pt-[72px]"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <div className="max-w-2xl mx-auto px-6 py-12 text-center">
           <h1 className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
             style={{ filter: 'drop-shadow(0 0 40px rgba(253,224,71,0.4))' }}>
@@ -577,7 +577,7 @@ export default function BaeLinkPage() {
   // Mini signup — sign in + profile to join
   if (pageState === 'guest-entry' || pageState === 'need-auth' || pageState === 'need-onboarding') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -710,7 +710,7 @@ export default function BaeLinkPage() {
   // Waiting / Ringing
   if (pageState === 'waiting' || pageState === 'ringing') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -791,7 +791,7 @@ export default function BaeLinkPage() {
   // Connecting
   if (pageState === 'connecting') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -807,7 +807,7 @@ export default function BaeLinkPage() {
   // Offline
   if (pageState === 'offline') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -844,7 +844,7 @@ export default function BaeLinkPage() {
   // Ping sent
   if (pageState === 'ping-sent') {
     return (
-      <main className="min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4">
+      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}

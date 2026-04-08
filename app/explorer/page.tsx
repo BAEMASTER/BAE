@@ -19,7 +19,7 @@ import {
 import { formatPublicName } from '@/lib/formatName';
 
 // --- BAE BRAND ---
-const BAE_GRADIENT = "bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent";
+const BAE_GRADIENT = "bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent";
 
 // --- SOUND EFFECT ---
 const playSound = (freqs: number[]) => {
@@ -334,7 +334,7 @@ function InterestDrawer({
               />
               <button
                 onClick={onAdd}
-                className="px-6 py-3 rounded-full bg-gradient-to-r from-yellow-300 to-pink-400 text-black font-bold text-sm hover:brightness-110 transition-all"
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 text-black font-bold text-sm hover:brightness-110 transition-all"
               >
                 Add
               </button>
@@ -508,7 +508,7 @@ function ExplorerPageContent() {
       <motion.div
         animate={{ opacity: [0.4, 1, 0.4] }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        className="text-3xl font-black bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent"
+        className="text-3xl font-black bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
       >
         Exploring...
       </motion.div>
@@ -548,7 +548,7 @@ function ExplorerPageContent() {
               animate={{ scale: 1, boxShadow: '0 0 25px rgba(255,160,255,0.7)' }}
               transition={{ type: 'spring', stiffness: 300, damping: 15 }}
               onClick={() => setDrawerOpen(true)}
-              className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-yellow-300 to-pink-400 text-white border-2 border-white/30 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform duration-300"
+              className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-yellow-200 via-yellow-300 to-amber-300 text-white border-2 border-white/30 flex flex-col items-center justify-center text-center hover:scale-105 transition-transform duration-300"
             >
               <span className="text-3xl sm:text-5xl font-extrabold">{userInterests.length}</span>
               <span className="text-[10px] sm:text-sm font-semibold">Interests</span>

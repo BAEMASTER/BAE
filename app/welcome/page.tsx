@@ -84,17 +84,20 @@ function playAddSound() {
 // --- Two beats only ---
 const BEATS = [
   {
-    headline: 'Make Your BAE More...YOU',
+    white: 'Make Your BAE More...',
+    gold: 'YOU',
     sub: 'Talk authentically about your life. Tap what resonates. Your interests make your conversations on BAE more fun and real.',
     glowColor: 'rgba(168,85,247,0.4)',
   },
   {
-    headline: 'Make Your BAE the Most Fun Place to Meet.',
+    white: 'Make Your BAE the Most Fun Place to',
+    gold: 'Meet.',
     sub: 'Your interests. Your song. Your links. Your room.',
     glowColor: 'rgba(253,224,71,0.4)',
   },
   {
-    headline: 'Talk with your people!',
+    white: 'Talk with Your',
+    gold: 'People!',
     sub: 'Invite your people to your room.',
     glowColor: 'rgba(244,63,94,0.4)',
   },
@@ -552,16 +555,17 @@ export default function WelcomePage() {
               {/* Headline */}
               <div>
                 <h1
-                  className="text-3xl sm:text-4xl md:text-5xl font-black leading-[1.15] mb-2 sm:mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
-                  style={{ filter: 'drop-shadow(0 0 80px rgba(253,224,71,0.5)) drop-shadow(0 0 140px rgba(253,224,71,0.25))' }}
+                  className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.15] mb-2 sm:mb-3"
+                  style={{ filter: 'drop-shadow(0 0 60px rgba(255,180,255,0.4))' }}
                 >
-                  {current.headline}
+                  <span className="text-white">{current.white} </span>
+                  <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">{current.gold}</span>
                 </h1>
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="text-base sm:text-lg md:text-xl font-semibold text-white/60"
+                  className="text-base sm:text-lg md:text-xl font-semibold text-white/80"
                 >
                   {current.sub}
                 </motion.p>

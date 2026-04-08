@@ -116,7 +116,7 @@ export default function AuthPage() {
           className="text-7xl sm:text-8xl lg:text-9xl font-black leading-tight text-white mb-8 drop-shadow-[0_0_20px_rgba(255,160,255,0.4)]"
         >
           Log In to Access{' '}
-          <span className="bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">
             BAE
           </span>
         </motion.h1>
