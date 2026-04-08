@@ -112,7 +112,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
+    <main className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white">
       {/* Nav for logged-in users / sign-in for returning visitors */}
       {isLoggedIn ? <Header /> : (
         <div className="absolute top-5 right-5 z-20 flex items-center gap-3">
@@ -208,12 +208,14 @@ export default function HomePage() {
               </span>
             </motion.p>
 
-            {/* Smart button — Share on mobile, Copy Link on desktop */}
+            {/* Smart button — Copy Link on desktop, Share on mobile */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                if (typeof navigator !== 'undefined' && navigator.share) {
+                // Mobile: use native share sheet. Desktop: copy to clipboard.
+                const isMobile = typeof window !== 'undefined' && 'ontouchstart' in window;
+                if (isMobile && navigator.share) {
                   navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
                 } else {
                   navigator.clipboard.writeText(`https://baewithme.com/${username}`);
@@ -224,16 +226,8 @@ export default function HomePage() {
               className="px-12 sm:px-16 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-black bg-white hover:bg-white/90 transition-all"
               style={{ boxShadow: '0 0 40px rgba(255,255,255,0.25), 0 0 80px rgba(255,255,255,0.1)' }}
             >
-              {copied ? '✓ Copied!' : 'Share Your Link'}
+              {copied ? '✓ Copied!' : 'Copy Link'}
             </motion.button>
-
-            {/* Talk link */}
-            <button
-              onClick={() => router.push('/talk')}
-              className="text-white/30 text-sm font-medium hover:text-white/50 transition-colors"
-            >
-              or keep Talking to add more interests →
-            </button>
           </div>
         ) : (
           <motion.button
