@@ -25,8 +25,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main
             className={
               isAuthPage
-                ? "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100"
-                : "min-h-screen bg-gradient-to-br from-rose-100 via-fuchsia-100 to-indigo-100 pt-[72px]"
+                ? "min-h-screen bg-[#1A0033]"
+                : "min-h-screen bg-[#1A0033] pt-[72px]"
             }
           >
             {children}

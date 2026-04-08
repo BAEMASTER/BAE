@@ -459,7 +459,7 @@ export default function ProfilePage() {
   // AGE/DOB LOCKED VIEW
   if (isProfileLocked) {
     return (
-      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
+      <div className="relative min-h-[calc(100vh-72px)] w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -537,7 +537,7 @@ export default function ProfilePage() {
             Verify & Continue
           </button>
         </motion.div>
-      </main>
+      </div>
     );
   }
 
@@ -599,7 +599,7 @@ export default function ProfilePage() {
     };
 
     return (
-      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
+      <div className="relative min-h-[calc(100vh-72px)] w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center justify-center px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -714,7 +714,7 @@ export default function ProfilePage() {
             Continue
           </button>
         </motion.div>
-      </main>
+      </div>
     );
   }
 
@@ -722,7 +722,7 @@ export default function ProfilePage() {
   // FULL PROFILE — SINGLE SCROLLABLE PAGE
   // ========================
   return (
-    <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 pb-16 px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
+    <div className="relative min-h-[calc(100vh-72px)] w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col items-center pt-8 pb-16 px-4"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
       {/* Room updated toast */}
       <AnimatePresence>
         {roomToast && (
@@ -1168,6 +1168,6 @@ export default function ProfilePage() {
           color: white;
         }
       `}</style>
-    </main>
+    </div>
   );
 }

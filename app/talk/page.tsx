@@ -700,19 +700,19 @@ export default function DiscoverPage() {
   // ====== LOADING ======
   if (!authReady) {
     return (
-      <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center">
+      <div className="relative w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex items-center justify-center" style={{ height: 'calc(100vh - 72px)' }}>
         <div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden">
           <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
           <div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" />
         </div>
         <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-white/40 text-sm">Loading...</motion.div>
-      </main>
+      </div>
     );
   }
 
   // ====== CONVERSATION — BRIGHT, FUN, SCROLLING ======
   return (
-    <main className="fixed inset-0 w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col pt-[72px]">
+    <div className="relative w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col" style={{ height: 'calc(100vh - 72px)' }}>
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
@@ -1000,6 +1000,6 @@ export default function DiscoverPage() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
