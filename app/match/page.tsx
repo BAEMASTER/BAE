@@ -1966,7 +1966,7 @@ function MatchPage() {
       {isMatched && (
         <div
           className="fixed left-0 right-0 z-[35] flex justify-center pointer-events-none"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
         >
           <div
             className="pointer-events-auto flex items-center gap-2.5 px-5 py-3 rounded-full lg:gap-3 lg:px-6 lg:py-3"
