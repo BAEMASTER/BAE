@@ -93,9 +93,7 @@ export default function Header() {
 
   const mobileNavLinks = (
     <>
-      <NavLink href="/explorer" label="Explorer" mobile />
       <NavLink href="/talk" label="Talk" mobile />
-      <NavLink href={username ? `/${username}` : '/profile'} label="My Room" mobile />
       <NavLink href="/profile" label="Profile" mobile />
     </>
   );
