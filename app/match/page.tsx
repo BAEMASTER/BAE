@@ -1687,9 +1687,9 @@ function MatchPage() {
                       ],
                     }}
                     transition={oracleLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity }}
-                    className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400/90 to-yellow-300/90 border border-amber-300/50 flex items-center justify-center"
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 border border-amber-200/60 flex items-center justify-center"
                   >
-                    <span className="text-[18px] text-black/80">✦</span>
+                    <span className="text-[16px] font-black text-black/85 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
                   </motion.div>
                 </motion.button>
               </div>
@@ -1995,8 +1995,8 @@ function MatchPage() {
               }}
             >
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 flex items-center justify-center mt-0.5">
-                  <span className="text-[14px] text-black">✦</span>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 flex items-center justify-center mt-0.5" style={{ boxShadow: '0 0 12px rgba(253,224,71,0.3)' }}>
+                  <span className="text-[14px] font-black text-black/85 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   {oracleLoading ? (
@@ -2073,9 +2073,9 @@ function MatchPage() {
                   ],
                 }}
                 transition={oracleLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity }}
-                className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-amber-400/90 to-yellow-300/90 border border-amber-300/50 flex items-center justify-center"
+                className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 border border-amber-200/60 flex items-center justify-center"
               >
-                <span className="text-[18px] lg:text-[20px] text-black/80">✦</span>
+                <span className="text-[16px] lg:text-[18px] font-black text-black/85 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
               </motion.div>
             </motion.button>
           </div>

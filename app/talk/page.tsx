@@ -845,8 +845,13 @@ export default function DiscoverPage() {
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
               {msg.role === 'assistant' && (
-                <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
-                  {renderMessage(msg.content, idx)}
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 flex items-center justify-center mt-1.5 opacity-40" style={{ boxShadow: '0 0 8px rgba(253,224,71,0.15)' }}>
+                    <span className="text-[10px] font-black text-black/80 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl leading-[1.7] text-white/90 font-light whitespace-pre-wrap">
+                    {renderMessage(msg.content, idx)}
+                  </div>
                 </div>
               )}
               {msg.role === 'user' && (
@@ -867,10 +872,12 @@ export default function DiscoverPage() {
               className="flex items-center gap-3 py-4"
             >
               <motion.div
-                animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.6, 0.3] }}
+                animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.3, 0.5, 0.3] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="w-8 h-8 rounded-full bg-violet-500/20 border border-violet-500/30"
-              />
+                className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400/30 to-yellow-300/30 border border-amber-400/20 flex items-center justify-center"
+              >
+                <span className="text-[10px] font-black text-amber-300/50 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
+              </motion.div>
               <span className="text-white/20 text-sm font-medium">BAE is thinking...</span>
             </motion.div>
           )}
