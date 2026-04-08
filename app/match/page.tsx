@@ -1965,7 +1965,7 @@ function MatchPage() {
       {/* REACTION BAR */}
       {isMatched && (
         <div
-          className="absolute left-0 right-0 z-[35] flex justify-center pointer-events-none"
+          className="fixed left-0 right-0 z-[35] flex justify-center pointer-events-none"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
         >
           <div
