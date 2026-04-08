@@ -196,28 +196,23 @@ export default function HomePage() {
         {/* CTA — different for logged-in vs new visitors */}
         {isLoggedIn && username ? (
           <div className="flex flex-col items-center gap-5 sm:gap-6">
-            {/* Context line */}
-            <p className="text-base sm:text-lg text-white/70 font-medium">Send your link to anyone and start talking.</p>
+            {/* Room link — the star, big and proud */}
+            <motion.p
+              animate={{ textShadow: ['0 0 30px rgba(253,224,71,0.2)', '0 0 50px rgba(253,224,71,0.35)', '0 0 30px rgba(253,224,71,0.2)'] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="text-3xl sm:text-5xl md:text-6xl font-black text-center"
+            >
+              <span className="text-white">baewithme.com/</span>
+              <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">
+                {username}
+              </span>
+            </motion.p>
 
-            {/* Room link + button — one unit */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5">
-              <motion.p
-                animate={{ textShadow: ['0 0 30px rgba(253,224,71,0.2)', '0 0 50px rgba(253,224,71,0.35)', '0 0 30px rgba(253,224,71,0.2)'] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="text-2xl sm:text-3xl md:text-4xl font-black text-center"
-              >
-                <span className="text-white">baewithme.com/</span>
-                <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">
-                  {username}
-                </span>
-              </motion.p>
-
-              {/* Smart button — Copy Link on desktop, Share on mobile */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+            {/* Copy/Share button — gold shimmer */}
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: '0 0 50px rgba(253,224,71,0.5)' }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => {
-                // Mobile: use native share sheet. Desktop: copy to clipboard.
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                 if (isMobile && navigator.share) {
                   navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
@@ -227,12 +222,11 @@ export default function HomePage() {
                   setTimeout(() => setCopied(false), 2000);
                 }
               }}
-              className="px-12 sm:px-16 py-4 sm:py-5 rounded-full font-black text-lg sm:text-xl text-black bg-white hover:bg-white/90 transition-all"
-              style={{ boxShadow: '0 0 40px rgba(255,255,255,0.25), 0 0 80px rgba(255,255,255,0.1)' }}
+              className="px-10 sm:px-14 py-3.5 sm:py-4 rounded-full font-black text-base sm:text-lg text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 transition-all"
+              style={{ boxShadow: '0 0 30px rgba(253,224,71,0.3)' }}
             >
               {copied ? '✓ Copied!' : 'Copy Link'}
             </motion.button>
-            </div>
           </div>
         ) : (
           <motion.button

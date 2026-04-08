@@ -712,7 +712,7 @@ export default function DiscoverPage() {
 
   // ====== CONVERSATION — BRIGHT, FUN, SCROLLING ======
   return (
-    <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col">
+    <main className="relative h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col overflow-hidden">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
@@ -834,14 +834,8 @@ export default function DiscoverPage() {
                 YOU
               </span>
             </h2>
-            <p className="text-base sm:text-xl text-white/80 font-semibold mb-2">
-              Talk authentically about your life. Add the interests that fit you.
-            </p>
-            <p className="text-base sm:text-lg text-white/60 font-medium mb-2">
-              Your interests make your conversations on BAE more fun and real.
-            </p>
-            <p className="text-sm sm:text-base text-white/30 font-medium">
-              Start now — come back whenever you want to Talk more.
+            <p className="text-lg sm:text-2xl text-white font-semibold">
+              Talk authentically about your life. Add the interests that fit you. Come back anytime.
             </p>
           </div>
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
