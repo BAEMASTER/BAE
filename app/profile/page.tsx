@@ -187,8 +187,9 @@ export default function ProfilePage() {
   };
 
   // Check if locked: NO birthdate OR birthdate < 13
+  // Skip gate for existing users who already have a profile (displayName set)
   const birthDate = formatDOB(birthYear, birthMonth, birthDay);
-  const isProfileLocked = !birthDate || !isAdult(birthDate);
+  const isProfileLocked = !birthDate && !displayName;
 
   // --- Load user ---
   useEffect(() => {
