@@ -1251,7 +1251,7 @@ function MatchPage() {
   }
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col">
+    <main className="fixed inset-0 overflow-hidden overflow-x-hidden bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] flex flex-col" style={{ maxWidth: '100vw' }}>
       <style>{scrollbarStyle}</style>
 
       <div className="pointer-events-none absolute inset-0 opacity-40 z-0">
@@ -1544,7 +1544,7 @@ function MatchPage() {
                 )}
               </div>
               {/* Partner interest pills — scrollable row with '+' badge, pinned first */}
-              <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center pt-2 pr-2">
+              <div className="flex gap-1.5 overflow-x-auto interests-scroll items-center pt-2 pr-2 max-w-[calc(100vw-2rem)]">
                 {(() => {
                   const parsed = parseInterests(theirProfile?.interests);
                   const sorted = [...parsed].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
@@ -1614,7 +1614,7 @@ function MatchPage() {
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
-              <div className="overflow-x-auto interests-scroll">
+              <div className="overflow-x-auto interests-scroll max-w-[calc(100vw-2rem)]">
                 <div className="flex gap-1.5">
                   {sharedInterests.map((interest: string, idx: number) => (
                     <motion.div

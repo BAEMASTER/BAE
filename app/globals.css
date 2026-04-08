@@ -6,7 +6,7 @@
 @layer base {
   html,
   body {
-    @apply min-h-screen font-sans text-gray-900;
+    @apply min-h-screen font-sans text-gray-900 overflow-x-hidden;
     background-color: #1A0033;
     overscroll-behavior: none;
   }
