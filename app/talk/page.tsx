@@ -949,8 +949,8 @@ export default function DiscoverPage() {
 
       {/* Input */}
       <div
-        className="flex-shrink-0 px-5 sm:px-8 py-4 bg-[#1A0033]/90 backdrop-blur-md border-t border-violet-400/15"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        className="flex-shrink-0 px-5 sm:px-8 py-4 border-t border-white/10"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))', background: 'linear-gradient(to top, rgba(26,0,51,0.95), rgba(26,0,51,0.7))' }}
       >
         <div className="max-w-2xl mx-auto">
           <div className="flex gap-3 items-center">
@@ -961,7 +961,7 @@ export default function DiscoverPage() {
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder={isStreaming ? '' : 'Say something...'}
               disabled={isStreaming}
-              className={`flex-1 min-w-0 px-6 py-4 rounded-full bg-white/12 border-2 text-white text-base sm:text-lg placeholder:text-white/30 outline-none focus:border-amber-400/50 focus:bg-white/15 focus:shadow-[0_0_20px_rgba(253,224,71,0.1)] transition-all disabled:opacity-30 font-medium ${showContinue && !isStreaming ? 'border-amber-400/40 shadow-[0_0_20px_rgba(253,224,71,0.15)] animate-pulse' : 'border-white/20'}`}
+              className={`flex-1 min-w-0 px-6 py-4 rounded-full bg-white/10 border-2 text-white text-base sm:text-lg placeholder:text-white/40 outline-none focus:border-amber-400/50 focus:bg-white/15 focus:shadow-[0_0_20px_rgba(253,224,71,0.15)] transition-all disabled:opacity-30 font-medium ${showContinue && !isStreaming ? 'border-amber-400/40 shadow-[0_0_20px_rgba(253,224,71,0.15)] animate-pulse' : 'border-white/15'}`}
             />
             <motion.button
               onClick={() => handleSend()}
@@ -970,7 +970,7 @@ export default function DiscoverPage() {
               className={`p-4 rounded-full transition-all flex-shrink-0 ${
                 input.trim() && !isStreaming
                   ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-black shadow-lg shadow-amber-400/30'
-                  : 'bg-white/10 text-white/25'
+                  : 'bg-white/15 text-white/40'
               }`}
             >
               <Send size={20} />
@@ -978,11 +978,12 @@ export default function DiscoverPage() {
           </div>
           {/* New topic — below input */}
           {messages.length > 2 && !isStreaming && (
-            <div className="flex justify-center mt-2">
+            <div className="flex justify-center mt-3">
               <motion.button
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }}
                 onClick={() => {
                   const count = newTopicCount + 1;
                   setNewTopicCount(count);
@@ -991,7 +992,7 @@ export default function DiscoverPage() {
                   }
                   handleSend('(User wants to switch to a completely new topic. Briefly honor what they just shared with genuine warmth, then bridge naturally to a completely different area of their real life. Vary your transition style — never say "switching gears." Be curious, warm, energetic.)');
                 }}
-                className="px-8 py-3 rounded-full bg-violet-500/25 border-2 border-violet-400/30 text-violet-100 text-base font-bold hover:bg-violet-500/35 hover:text-white hover:border-violet-400/50 transition-all"
+                className="px-8 py-2.5 rounded-full text-sm font-bold text-amber-300/80 border border-amber-400/30 hover:text-amber-200 hover:border-amber-400/50 hover:bg-amber-400/10 transition-all"
               >
                 New Topic
               </motion.button>
