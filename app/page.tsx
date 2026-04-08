@@ -195,23 +195,27 @@ export default function HomePage() {
 
         {/* CTA — different for logged-in vs new visitors */}
         {isLoggedIn && username ? (
-          <div className="flex flex-col items-center gap-6 sm:gap-8">
-            {/* Room link — floating, no box, same language as headline */}
-            <motion.p
-              animate={{ textShadow: ['0 0 30px rgba(253,224,71,0.2)', '0 0 50px rgba(253,224,71,0.35)', '0 0 30px rgba(253,224,71,0.2)'] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="text-3xl sm:text-4xl md:text-5xl font-black text-center"
-            >
-              <span className="text-white">baewithme.com/</span>
-              <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">
-                {username}
-              </span>
-            </motion.p>
+          <div className="flex flex-col items-center gap-5 sm:gap-6">
+            {/* Context line */}
+            <p className="text-base sm:text-lg text-white/70 font-medium">Send your link to anyone and start talking.</p>
 
-            {/* Smart button — Copy Link on desktop, Share on mobile */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            {/* Room link + button — one unit */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5">
+              <motion.p
+                animate={{ textShadow: ['0 0 30px rgba(253,224,71,0.2)', '0 0 50px rgba(253,224,71,0.35)', '0 0 30px rgba(253,224,71,0.2)'] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="text-2xl sm:text-3xl md:text-4xl font-black text-center"
+              >
+                <span className="text-white">baewithme.com/</span>
+                <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">
+                  {username}
+                </span>
+              </motion.p>
+
+              {/* Smart button — Copy Link on desktop, Share on mobile */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               onClick={() => {
                 // Mobile: use native share sheet. Desktop: copy to clipboard.
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -228,6 +232,7 @@ export default function HomePage() {
             >
               {copied ? '✓ Copied!' : 'Copy Link'}
             </motion.button>
+            </div>
           </div>
         ) : (
           <motion.button
