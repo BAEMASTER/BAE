@@ -1475,8 +1475,8 @@ function MatchPage() {
         </div>
 
         {/* MOBILE INFO SECTION — compact, no scroll (lg:hidden) */}
-        {/* pb-28 = 112px clears both the reaction bar (~48px) and bottom controls bar (~56px) */}
-        <div className="flex-shrink-0 flex flex-col overflow-y-auto px-3 pt-1 pb-28 lg:hidden">
+        {/* pb-16 clears the bottom controls bar (~56px) */}
+        <div className="flex-shrink-0 flex flex-col overflow-y-auto px-3 pt-1 pb-16 lg:hidden">
           {/* Partner info: name + heart + dots + interest pills */}
           {isMatched && theirProfile && (
             <div className="mb-2">
@@ -1610,7 +1610,7 @@ function MatchPage() {
 
           {/* MOBILE SHARED INTERESTS — simple scrollable row */}
           {isMatched && sharedInterests.length > 0 && (
-            <div ref={sharedSectionRef} className="mb-2">
+            <div ref={sharedSectionRef} className="mb-3">
               <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-1.5">
                 ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
               </p>
@@ -1629,6 +1629,33 @@ function MatchPage() {
                     </motion.div>
                   ))}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* MOBILE REACTION BAR — in flow, not floating */}
+          {isMatched && (
+            <div className="flex justify-center mb-3">
+              <div
+                className="flex items-center gap-2.5 px-5 py-3 rounded-full"
+                style={{
+                  background: 'rgba(0,0,0,0.55)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {REACTION_EMOJIS.map(emoji => (
+                  <motion.button
+                    key={`m-${emoji}`}
+                    whileTap={{ scale: 1.25 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                    onClick={(e) => triggerReaction(emoji, e.currentTarget)}
+                    className="text-[30px] opacity-70 hover:opacity-100 active:opacity-100 transition-opacity p-1"
+                  >
+                    {emoji}
+                  </motion.button>
+                ))}
               </div>
             </div>
           )}
@@ -1962,10 +1989,10 @@ function MatchPage() {
         )}
       </AnimatePresence>
 
-      {/* REACTION BAR */}
+      {/* REACTION BAR — desktop only (mobile has in-flow version above) */}
       {isMatched && (
         <div
-          className="fixed left-0 right-0 z-[35] flex justify-center pointer-events-none"
+          className="hidden lg:flex fixed left-0 right-0 z-[35] justify-center pointer-events-none"
           style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
         >
           <div
