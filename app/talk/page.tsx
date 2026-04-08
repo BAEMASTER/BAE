@@ -724,7 +724,7 @@ export default function DiscoverPage() {
         {collectedInterests.length > 0 && (
           <>
             {/* Desktop: fixed right sidebar — big glowing pills */}
-            <div className="hidden md:block fixed right-0 top-[60px] bottom-[80px] w-64 z-20">
+            <div className="hidden md:block fixed right-0 top-[72px] bottom-[80px] w-64 z-20">
               {/* Sticky interest counter — top of sidebar */}
               <div className="px-5 py-4">
                 <motion.div
@@ -743,7 +743,7 @@ export default function DiscoverPage() {
                   <span className="text-3xl font-black text-yellow-300">Interests</span>
                 </motion.div>
               </div>
-              <div className="h-[calc(100%-72px)] overflow-y-auto flex flex-col justify-end py-4 px-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
+              <div className="h-[calc(100%-72px)] overflow-y-auto flex flex-col py-4 px-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
                     <motion.button
