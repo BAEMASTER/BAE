@@ -596,6 +596,10 @@ function MatchPage() {
           playReactionReceivedSound();
           setReceivedCounts(prev => ({ ...prev, [data.emoji]: (prev[data.emoji] || 0) + 1 }));
         }
+        if (data?.type === 'oracle' && !event?.fromId?.startsWith?.('local')) {
+          setOraclePrompt(data.prompt);
+          setOracleVisible(true);
+        }
         if (data?.type === 'interest-added' && !event?.fromId?.startsWith?.('local')) {
           setAddNotification({ name: data.name, interest: data.interest });
           setTimeout(() => setAddNotification(null), 2000);
@@ -1111,6 +1115,8 @@ function MatchPage() {
     setOracleLoading(true);
     setOracleVisible(true);
     try {
+      const myDisplayName = formatPublicName(myProfile?.displayName || '');
+      const theirDisplayName = formatPublicName(theirProfile?.displayName || '');
       const res = await fetch('/api/oracle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1120,11 +1126,17 @@ function MatchPage() {
           sharedInterests: sharedInterests.slice(0, 8),
           myPinned: parseInterests(myProfile?.interests).filter(i => i.pinned).map(i => i.name),
           theirPinned: parseInterests(theirProfile?.interests).filter(i => i.pinned).map(i => i.name),
+          myName: myDisplayName,
+          theirName: theirDisplayName,
         }),
       });
       const data = await res.json();
       if (data.prompt) {
         setOraclePrompt(data.prompt);
+        // Broadcast to partner so both users see the same prompt
+        if (callObjectRef.current) {
+          callObjectRef.current.sendAppMessage({ type: 'oracle', prompt: data.prompt }, '*');
+        }
       }
     } catch (e) {
       console.error('Oracle failed:', e);
@@ -1656,6 +1668,30 @@ function MatchPage() {
                     {emoji}
                   </motion.button>
                 ))}
+                {/* Separator */}
+                <div className="w-px h-7 bg-white/15 mx-0.5" />
+                {/* AI Oracle button */}
+                <motion.button
+                  whileTap={{ scale: 1.2 }}
+                  onClick={fetchOraclePrompt}
+                  disabled={oracleLoading}
+                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  className="relative p-1"
+                >
+                  <motion.div
+                    animate={oracleLoading ? { rotate: 360 } : {
+                      boxShadow: [
+                        '0 0 8px rgba(253,224,71,0.3)',
+                        '0 0 16px rgba(253,224,71,0.5)',
+                        '0 0 8px rgba(253,224,71,0.3)',
+                      ],
+                    }}
+                    transition={oracleLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity }}
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400/90 to-yellow-300/90 border border-amber-300/50 flex items-center justify-center"
+                  >
+                    <span className="text-[18px] text-black/80">✦</span>
+                  </motion.div>
+                </motion.button>
               </div>
             </div>
           )}
@@ -1951,27 +1987,27 @@ function MatchPage() {
             <div
               className="pointer-events-auto max-w-md w-full px-5 py-4 rounded-2xl relative"
               style={{
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(99,102,241,0.2))',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid rgba(139,92,246,0.3)',
-                boxShadow: '0 0 30px rgba(139,92,246,0.15)',
+                background: 'linear-gradient(135deg, rgba(0,0,0,0.7), rgba(30,10,60,0.7))',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(253,224,71,0.25)',
+                boxShadow: '0 0 30px rgba(253,224,71,0.1), 0 4px 20px rgba(0,0,0,0.4)',
               }}
             >
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center mt-0.5">
-                  <span className="text-[13px]">✦</span>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 flex items-center justify-center mt-0.5">
+                  <span className="text-[14px] text-black">✦</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   {oracleLoading ? (
-                    <p className="text-white/50 text-sm italic">The oracle is thinking...</p>
+                    <p className="text-white/50 text-base italic">The oracle is thinking...</p>
                   ) : (
-                    <p className="text-white/90 text-sm leading-relaxed">{oraclePrompt}</p>
+                    <p className="text-white text-base leading-relaxed font-medium">{oraclePrompt}</p>
                   )}
                 </div>
                 <button
                   onClick={dismissOracle}
-                  className="flex-shrink-0 text-white/30 hover:text-white/60 transition-colors text-lg leading-none mt-0.5"
+                  className="flex-shrink-0 text-white/40 hover:text-white/70 transition-colors text-lg leading-none mt-0.5"
                 >
                   ×
                 </button>
@@ -1979,7 +2015,7 @@ function MatchPage() {
               {!oracleLoading && (
                 <button
                   onClick={fetchOraclePrompt}
-                  className="mt-2 ml-10 text-violet-300/60 hover:text-violet-300 text-xs font-medium transition-colors"
+                  className="mt-2.5 ml-11 text-amber-300/60 hover:text-amber-300 text-xs font-semibold transition-colors"
                 >
                   Another one
                 </button>
@@ -2031,15 +2067,15 @@ function MatchPage() {
               <motion.div
                 animate={oracleLoading ? { rotate: 360 } : {
                   boxShadow: [
-                    '0 0 8px rgba(139,92,246,0.3)',
-                    '0 0 16px rgba(139,92,246,0.6)',
-                    '0 0 8px rgba(139,92,246,0.3)',
+                    '0 0 8px rgba(253,224,71,0.3)',
+                    '0 0 16px rgba(253,224,71,0.5)',
+                    '0 0 8px rgba(253,224,71,0.3)',
                   ],
                 }}
                 transition={oracleLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity }}
-                className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-violet-500/80 to-indigo-500/80 border border-violet-400/40 flex items-center justify-center"
+                className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-amber-400/90 to-yellow-300/90 border border-amber-300/50 flex items-center justify-center"
               >
-                <span className="text-[18px] lg:text-[20px]">✦</span>
+                <span className="text-[18px] lg:text-[20px] text-black/80">✦</span>
               </motion.div>
             </motion.button>
           </div>
