@@ -9,7 +9,7 @@ function getClient() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { myInterests, theirInterests, sharedInterests, myPinned, theirPinned, myName, theirName } = await req.json();
+    const { myInterests, theirInterests, sharedInterests, myPinned, theirPinned, myName, theirName, previousPrompts } = await req.json();
 
     if (!myInterests?.length && !theirInterests?.length) {
       return NextResponse.json({ error: "Interests required" }, { status: 400 });
@@ -53,7 +53,7 @@ Rules:
 ${personB}'s interests: ${theirInterests.join(', ')}${theirPinned?.length ? `\n${personB}'s top interests: ${theirPinned.join(', ')}` : ''}
 ${sharedInterests?.length ? `Shared interests: ${sharedInterests.join(', ')}` : 'No shared interests yet.'}
 
-Generate one conversation prompt.`,
+Generate one conversation prompt.${previousPrompts?.length ? `\n\nDo NOT repeat or rephrase these previous prompts — pick a completely different interest and angle:\n${previousPrompts.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}` : ''}`,
         },
       ],
     });

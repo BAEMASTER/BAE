@@ -198,6 +198,7 @@ function MatchPage() {
   const [oraclePrompt, setOraclePrompt] = useState<string | null>(null);
   const [oracleLoading, setOracleLoading] = useState(false);
   const [oracleVisible, setOracleVisible] = useState(false);
+  const oracleHistoryRef = useRef<string[]>([]);
 
   // --- BLOCKLIST / NOTIFICATIONS ---
   const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
@@ -1128,10 +1129,12 @@ function MatchPage() {
           theirPinned: parseInterests(theirProfile?.interests).filter(i => i.pinned).map(i => i.name),
           myName: myDisplayName,
           theirName: theirDisplayName,
+          previousPrompts: oracleHistoryRef.current.slice(-5),
         }),
       });
       const data = await res.json();
       if (data.prompt) {
+        oracleHistoryRef.current.push(data.prompt);
         setOraclePrompt(data.prompt);
         // Broadcast to partner so both users see the same prompt
         if (callObjectRef.current) {
@@ -2007,7 +2010,7 @@ function MatchPage() {
                 </div>
                 <button
                   onClick={dismissOracle}
-                  className="flex-shrink-0 text-white/40 hover:text-white/70 transition-colors text-lg leading-none mt-0.5"
+                  className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-all text-sm leading-none"
                 >
                   ×
                 </button>
@@ -2015,9 +2018,10 @@ function MatchPage() {
               {!oracleLoading && (
                 <button
                   onClick={fetchOraclePrompt}
-                  className="mt-2.5 ml-11 text-amber-300/60 hover:text-amber-300 text-xs font-semibold transition-colors"
+                  className="mt-3 ml-11 px-4 py-1.5 rounded-full text-xs font-bold text-black/80 bg-gradient-to-r from-amber-400/80 to-yellow-300/80 hover:from-amber-400 hover:to-yellow-300 transition-all"
+                  style={{ boxShadow: '0 0 10px rgba(253,224,71,0.15)' }}
                 >
-                  Another one
+                  Next question
                 </button>
               )}
             </div>
