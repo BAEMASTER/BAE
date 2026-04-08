@@ -740,10 +740,10 @@ export default function DiscoverPage() {
                   >
                     {addedCount}
                   </motion.span>
-                  <span className="text-yellow-300/50 text-sm font-bold">interests</span>
+                  <span className="text-3xl font-black text-yellow-300">Interests</span>
                 </motion.div>
               </div>
-              <div className="h-[calc(100%-72px)] overflow-y-auto flex flex-col justify-end py-4 pr-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
+              <div className="h-[calc(100%-72px)] overflow-y-auto flex flex-col justify-end py-4 px-5 gap-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(253,224,71,0.2) transparent' }}>
                 <AnimatePresence initial={false}>
                   {[...collectedInterests].reverse().map((name, i) => (
                     <motion.button
