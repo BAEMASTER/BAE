@@ -214,7 +214,7 @@ export default function HomePage() {
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 // Mobile: use native share sheet. Desktop: copy to clipboard.
-                const isMobile = typeof window !== 'undefined' && 'ontouchstart' in window;
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
                 if (isMobile && navigator.share) {
                   navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
                 } else {
