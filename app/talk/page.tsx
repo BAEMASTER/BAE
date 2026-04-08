@@ -712,7 +712,7 @@ export default function DiscoverPage() {
 
   // ====== CONVERSATION — BRIGHT, FUN, SCROLLING ======
   return (
-    <main className="relative h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col overflow-hidden">
+    <main className="relative h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white flex flex-col overflow-x-hidden">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden">
         <div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" />
