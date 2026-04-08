@@ -824,8 +824,8 @@ export default function DiscoverPage() {
       <div className={`flex-1 overflow-y-auto px-5 sm:px-8 md:px-4 py-8 md:mr-64 ${activeJoke !== null ? 'relative z-20' : ''}`} ref={messagesContainerRef}>
         <div className="max-w-2xl mx-auto space-y-8">
           {/* Talk page identity header */}
-          <div className="text-center pb-6 sm:pb-10 mb-4 border-b border-white/5">
-            <h2 className="text-4xl sm:text-6xl font-black mb-4 sm:mb-6 drop-shadow-[0_0_60px_rgba(255,180,255,0.4)]">
+          <div className="text-center pb-4 sm:pb-6 mb-2 border-b border-white/5">
+            <h2 className="text-4xl sm:text-6xl font-black mb-3 sm:mb-4 drop-shadow-[0_0_60px_rgba(255,180,255,0.4)]">
               <span className="text-white">Make Your BAE More...</span>
               <span
                 className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
@@ -834,8 +834,8 @@ export default function DiscoverPage() {
                 YOU
               </span>
             </h2>
-            <p className="text-lg sm:text-2xl text-white font-semibold">
-              Talk authentically about your life. Add the interests that fit you. Come back anytime.
+            <p className="text-xl sm:text-3xl font-black text-white drop-shadow-[0_0_40px_rgba(255,180,255,0.25)]">
+              Start Talking Now. Come Back Whenever.
             </p>
           </div>
           {messages.filter(msg => !(msg.role === 'user' && msg.content.startsWith('('))).map((msg, idx) => (
