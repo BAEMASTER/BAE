@@ -1825,43 +1825,8 @@ function MatchPage() {
           )}
         </div>
 
-        {/* CENTER COLUMN — Shared interests + vibe bar */}
-        <div ref={sharedSectionDesktopRef} className="flex-1 flex flex-col items-center justify-center min-w-0">
-          {isMatched && sharedInterests.length > 0 && (
-            <>
-              <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase mb-3">
-                ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
-              </p>
-              <div
-                className="overflow-hidden transition-all duration-300 mb-2"
-                style={{ maxHeight: !sharedExpanded && sharedInterests.length > 8 ? '132px' : 'none' }}
-              >
-                <div className="flex flex-wrap justify-center gap-3">
-                  {sharedInterests.map((interest: string, idx: number) => (
-                    <motion.div
-                      key={`desk-shared-${interest}`}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 20 }}
-                      className="px-6 py-2.5 rounded-full text-[15px] font-bold text-black bg-yellow-300 border border-yellow-200 ring-2 ring-yellow-200/40"
-                      style={{ boxShadow: '0 0 24px rgba(253,224,71,0.55), 0 0 8px rgba(253,224,71,0.35), 0 0 44px rgba(253,224,71,0.15)' }}
-                    >
-                      {interest}
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-              {sharedInterests.length > 8 && (
-                <button
-                  onClick={() => setSharedExpanded(!sharedExpanded)}
-                  className="text-[12px] font-semibold text-yellow-300/60 hover:text-yellow-300 transition-colors mt-1"
-                >
-                  {sharedExpanded ? 'Show less' : `See all \u2728`}
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {/* CENTER COLUMN — spacer (shared interests moved to stacked bar above reaction bar) */}
+        <div ref={sharedSectionDesktopRef} className="flex-1 min-w-0" />
 
         {/* RIGHT COLUMN — Partner info */}
         <div className="flex-1 flex flex-col items-end min-w-0 overflow-y-auto desk-scroll">
@@ -2031,14 +1996,34 @@ function MatchPage() {
         )}
       </AnimatePresence>
 
-      {/* REACTION BAR — desktop only (mobile has in-flow version above) */}
+      {/* REACTION BAR + SHARED INTERESTS — desktop only, stacked column */}
       {isMatched && (
         <div
-          className="hidden lg:flex fixed left-0 right-0 z-[35] justify-center pointer-events-none"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}
+          className="hidden lg:flex fixed left-0 right-0 z-[35] flex-col items-center pointer-events-none gap-2"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)' }}
         >
+          {/* Shared interests row */}
+          {sharedInterests.length > 0 && (
+            <div className="pointer-events-none flex flex-col items-center gap-1.5 mb-1">
+              <p className="text-[11px] font-bold text-yellow-300/70 tracking-wide uppercase">
+                ✨ {sharedInterests.length} Shared Interest{sharedInterests.length !== 1 ? 's' : ''}
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 max-w-[600px]">
+                {sharedInterests.map((interest: string) => (
+                  <div
+                    key={`bar-shared-${interest}`}
+                    className="px-4 py-1.5 rounded-full text-xs font-bold text-black bg-yellow-300 border border-yellow-200"
+                    style={{ boxShadow: '0 0 16px rgba(253,224,71,0.5), 0 0 6px rgba(253,224,71,0.3)' }}
+                  >
+                    {interest}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Reaction bar */}
           <div
-            className="pointer-events-auto flex items-center gap-2.5 px-5 py-3 rounded-full lg:gap-3 lg:px-6 lg:py-3"
+            className="pointer-events-auto flex items-center gap-3 px-6 py-3 rounded-full"
             style={{
               background: 'rgba(0,0,0,0.55)',
               backdropFilter: 'blur(12px)',
@@ -2052,7 +2037,7 @@ function MatchPage() {
                 whileTap={{ scale: 1.25 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 onClick={(e) => triggerReaction(emoji, e.currentTarget)}
-                className="text-[30px] opacity-70 hover:opacity-100 active:opacity-100 transition-opacity p-1 lg:text-[34px] lg:p-1.5"
+                className="text-[34px] opacity-70 hover:opacity-100 active:opacity-100 transition-opacity p-1.5"
               >
                 {emoji}
               </motion.button>
@@ -2068,7 +2053,7 @@ function MatchPage() {
               onClick={fetchOraclePrompt}
               disabled={oracleLoading}
               transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-              className="relative p-1 lg:p-1.5"
+              className="relative p-1.5"
             >
               <motion.div
                 animate={oracleLoading ? { rotate: 360 } : {
@@ -2079,25 +2064,25 @@ function MatchPage() {
                   ],
                 }}
                 transition={oracleLoading ? { duration: 1, repeat: Infinity, ease: 'linear' } : { duration: 2, repeat: Infinity }}
-                className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 border border-amber-200/60 flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-300 border border-amber-200/60 flex items-center justify-center"
               >
-                <span className="text-[16px] lg:text-[18px] font-black text-black/85 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
+                <span className="text-[18px] font-black text-black/85 tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>B</span>
               </motion.div>
             </motion.button>
           </div>
           {/* Reaction stat rows — sent (white) and received (gold) */}
           {(Object.keys(sentCounts).length > 0 || Object.keys(receivedCounts).length > 0) && (
-            <div className="pointer-events-none mt-1.5 flex flex-col items-center gap-0.5">
-              <div className="flex items-center gap-2.5 px-5 lg:gap-3 lg:px-6">
+            <div className="pointer-events-none flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-3 px-6">
                 {REACTION_EMOJIS.map(emoji => (
-                  <span key={`s-${emoji}`} className="text-[11px] font-bold text-white/30 w-[30px] lg:w-[34px] text-center tabular-nums">
+                  <span key={`s-${emoji}`} className="text-[11px] font-bold text-white/30 w-[34px] text-center tabular-nums">
                     {sentCounts[emoji] || ''}
                   </span>
                 ))}
               </div>
-              <div className="flex items-center gap-2.5 px-5 lg:gap-3 lg:px-6">
+              <div className="flex items-center gap-3 px-6">
                 {REACTION_EMOJIS.map(emoji => (
-                  <span key={`r-${emoji}`} className="text-[11px] font-bold text-amber-300/50 w-[30px] lg:w-[34px] text-center tabular-nums">
+                  <span key={`r-${emoji}`} className="text-[11px] font-bold text-amber-300/50 w-[34px] text-center tabular-nums">
                     {receivedCounts[emoji] || ''}
                   </span>
                 ))}
