@@ -2070,25 +2070,7 @@ function MatchPage() {
               </motion.div>
             </motion.button>
           </div>
-          {/* Reaction stat rows — sent (white) and received (gold) */}
-          {(Object.keys(sentCounts).length > 0 || Object.keys(receivedCounts).length > 0) && (
-            <div className="pointer-events-none flex flex-col items-center gap-0.5">
-              <div className="flex items-center gap-3 px-6">
-                {REACTION_EMOJIS.map(emoji => (
-                  <span key={`s-${emoji}`} className="text-[11px] font-bold text-white/30 w-[34px] text-center tabular-nums">
-                    {sentCounts[emoji] || ''}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-3 px-6">
-                {REACTION_EMOJIS.map(emoji => (
-                  <span key={`r-${emoji}`} className="text-[11px] font-bold text-amber-300/50 w-[34px] text-center tabular-nums">
-                    {receivedCounts[emoji] || ''}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Reaction stats removed — half-baked visual didn't meet BAE aesthetic standard */}
         </div>
       )}
 
