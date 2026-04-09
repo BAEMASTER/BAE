@@ -63,6 +63,7 @@ type OwnerProfile = {
   city: string;
   country: string;
   interests: StructuredInterest[];
+  spotifySong: string | null;
   isOnline: boolean;
 };
 
@@ -508,39 +509,68 @@ export default function BaeLinkPage() {
   if (pageState === 'host-lobby') {
     return (
       <main className="relative min-h-screen w-full bg-gradient-to-br from-[#1A0033] via-[#4D004D] to-[#000033] text-white pt-[72px]"><div className="pointer-events-none absolute inset-0 opacity-40 overflow-hidden"><div className="absolute top-0 left-0 w-3/4 h-3/4 bg-fuchsia-500/15 blur-[150px] animate-pulse" /><div className="absolute bottom-0 right-0 w-3/4 h-3/4 bg-indigo-500/15 blur-[150px]" /></div>
-        <div className="max-w-2xl mx-auto px-6 py-12 text-center">
-          <h1 className="text-4xl sm:text-6xl font-black mb-3 bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent"
-            style={{ filter: 'drop-shadow(0 0 40px rgba(253,224,71,0.4))' }}>
-            Your Room
+        <div className="relative z-10 max-w-2xl mx-auto px-6 py-10 text-center">
+          {/* Owner identity */}
+          <h1 className="text-4xl sm:text-6xl font-black mb-2" style={{ filter: 'drop-shadow(0 0 60px rgba(255,180,255,0.4))' }}>
+            <span className="text-white">{ownerPublicName}&apos;s </span>
+            <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">Room</span>
           </h1>
-          <p className="text-white/50 text-lg font-medium mb-2">baewithme.com/{username}</p>
-          <p className="text-white/30 text-sm mb-10">Share your link — anyone who taps it will appear here.</p>
+          {owner?.city && (
+            <p className="text-white/60 text-base font-medium mb-4">{owner.city}{owner.country ? `, ${owner.country}` : ''}</p>
+          )}
+
+          {/* Room link + buttons */}
+          <div className="mb-8">
+            <p className="text-xl sm:text-2xl font-black text-white/80 mb-4">
+              baewithme.com/<span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-amber-300 bg-clip-text text-transparent">{username}</span>
+            </p>
+            <div className="flex justify-center gap-3">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://baewithme.com/${username}`);
+                }}
+                className="px-8 py-3 rounded-full font-bold text-sm text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_16px_rgba(253,224,71,0.3)] hover:shadow-[0_0_24px_rgba(253,224,71,0.5)] transition-shadow"
+              >
+                Copy Link
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: 'BAE with me', url: `https://baewithme.com/${username}` }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(`https://baewithme.com/${username}`);
+                  }
+                }}
+                className="px-8 py-3 rounded-full font-bold text-sm text-black bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_16px_rgba(253,224,71,0.3)] hover:shadow-[0_0_24px_rgba(253,224,71,0.5)] transition-shadow"
+              >
+                Share
+              </motion.button>
+            </div>
+          </div>
 
           {/* Waiting visitors */}
-          {waitingVisitors.length === 0 ? (
-            <motion.div
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="py-16"
-            >
-              <p className="text-white/25 text-xl font-medium">No one here yet.</p>
-              <p className="text-white/15 text-sm mt-2">When someone taps your link, they&apos;ll show up here.</p>
-            </motion.div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-amber-300/70 text-sm font-bold mb-6">
+          {waitingVisitors.length > 0 ? (
+            <div className="space-y-4 mb-10">
+              <p className="text-amber-300 text-sm font-bold mb-4">
                 {waitingVisitors.length} {waitingVisitors.length === 1 ? 'person' : 'people'} waiting
               </p>
               {waitingVisitors.map(v => (
                 <motion.div
                   key={v.callId}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10"
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  className="flex items-center justify-between p-5 rounded-2xl border"
+                  style={{
+                    background: 'rgba(253,224,71,0.05)',
+                    border: '1px solid rgba(253,224,71,0.2)',
+                    boxShadow: '0 0 20px rgba(253,224,71,0.1)',
+                  }}
                 >
                   <div className="text-left">
                     <p className="text-white font-bold text-lg">{v.visitorName}</p>
-                    <p className="text-white/30 text-sm">Waiting to join</p>
+                    <p className="text-white/50 text-sm">Waiting to join</p>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -555,20 +585,47 @@ export default function BaeLinkPage() {
                 </motion.div>
               ))}
             </div>
+          ) : (
+            <div className="py-8 mb-6">
+              <p className="text-white/50 text-lg font-medium">Send your link to anyone and start talking.</p>
+            </div>
           )}
 
-          {/* Share link */}
-          <div className="mt-12">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                navigator.clipboard.writeText(`https://baewithme.com/${username}`);
-              }}
-              className="px-8 py-3 rounded-full text-sm font-bold text-amber-300 border border-amber-400/30 bg-amber-400/10 hover:bg-amber-400/20 transition-colors"
-            >
-              Copy room link
-            </motion.button>
-          </div>
+          {/* Owner's interests */}
+          {ownerInterestNames.length > 0 && (
+            <div className="mb-8">
+              <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-3">Your Interests</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {ownerInterestNames.map((name: string) => (
+                  <div
+                    key={`room-${name}`}
+                    className="px-4 py-2 rounded-full text-sm font-bold text-black bg-yellow-300 border border-yellow-200"
+                    style={{ boxShadow: '0 0 12px rgba(253,224,71,0.3)' }}
+                  >
+                    {name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Owner's Spotify song */}
+          {owner?.spotifySong && (
+            <div className="mb-8 max-w-sm mx-auto">
+              <p className="text-white/40 text-xs font-bold uppercase tracking-wider mb-3">Your Song</p>
+              <div className="rounded-xl overflow-hidden">
+                <iframe
+                  src={`https://open.spotify.com/embed/track/${owner.spotifySong}?theme=0`}
+                  width="100%"
+                  height="80"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="rounded-xl"
+                  style={{ border: 'none' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </main>
     );

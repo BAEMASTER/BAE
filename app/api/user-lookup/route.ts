@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       city: data.city || '',
       country: data.country || '',
       interests: data.interests || [],
+      spotifySong: data.spotifySong || null,
       isOnline,
     }, { status: 200 });
   } catch (error: any) {
